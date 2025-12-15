@@ -154,6 +154,17 @@ func main() {
 			auth.POST("/refresh", authHandler.RefreshToken)
 		}
 
+		// USER USERS (Admin Only)
+		userHandler := handlers.NewUserHandler(db)
+		users := api.Group("/users")
+		users.Use(middleware.JWTAuthMiddleware(jwtSecret, db))
+		users.Use(middleware.RequireRole("admin"))
+		{
+			users.POST("", userHandler.CreateUser)
+			users.GET("", userHandler.ListUsers)
+			users.DELETE("/:id", userHandler.DeleteUser)
+		}
+
 		// DEVICE ENDPOINTS (Protected with JWT and Audited)
 		device := api.Group("/device")
 		device.Use(middleware.JWTAuthMiddleware(jwtSecret, db))
