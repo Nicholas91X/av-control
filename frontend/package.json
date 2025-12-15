@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.12",
+    "axios": "^1.13.2",
     "lucide-react": "^0.561.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-router-dom": "^7.10.1",
     "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
