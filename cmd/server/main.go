@@ -4,9 +4,13 @@ import (
 	"av-control/internal/database"
 	"av-control/internal/handlers"
 	"av-control/internal/hardware"
+	"av-control/internal/middleware"
 	"av-control/internal/models"
+	"crypto/rand"
+	"encoding/base64"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -24,10 +28,20 @@ func main() {
 		log.Fatalf("Failed to seed database: %v", err)
 	}
 
-	// 2. Create Mock Hardware Client
+	// 2. Load or generate JWT secret
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		// Generate random 32-byte secret
+		bytes := make([]byte, 32)
+		rand.Read(bytes)
+		jwtSecret = base64.StdEncoding.EncodeToString(bytes)
+		log.Println("⚠️  Generated random JWT secret (set JWT_SECRET env var for production)")
+	}
+
+	// 3. Create Mock Hardware Client
 	hwClient := hardware.NewMockHardwareClient()
 
-	// 3. Setup Gin Router
+	// 4. Setup Gin Router
 	r := gin.Default()
 
 	// CORS Middleware
@@ -40,7 +54,7 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// 4. Routes
+	// 5. Routes
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
@@ -106,31 +120,21 @@ func main() {
 	// ========================================
 	api := r.Group("/api")
 	{
-		auth := api.Group("/auth")
-		{
-			auth.POST("/login", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{
-					"message": "Login successful (placeholder)",
-					"todo":    "Implement JWT auth",
-				})
-			})
-
-			auth.POST("/logout", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"message": "Logout (placeholder)"})
-			})
-
-			auth.POST("/refresh", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"message": "Refresh (placeholder)"})
-			})
-		}
-
-		// DEVICE ENDPOINTS - USA HANDLER VERO
-		// Crea handler
+		// Create handlers
+		authHandler := handlers.NewAuthHandler(db, jwtSecret)
 		deviceHandler := handlers.NewHandler(db, hwClient)
 
+		// AUTH ENDPOINTS
+		auth := api.Group("/auth")
+		{
+			auth.POST("/login", authHandler.Login)
+			auth.POST("/logout", middleware.JWTAuthMiddleware(jwtSecret, db), authHandler.Logout)
+			auth.POST("/refresh", authHandler.RefreshToken)
+		}
+
+		// DEVICE ENDPOINTS (Protected with JWT)
 		device := api.Group("/device")
-		// TODO: Add auth middleware here when ready
-		// device.Use(middleware.JWTAuthMiddleware())
+		device.Use(middleware.JWTAuthMiddleware(jwtSecret, db))
 		{
 			// System Status
 			device.GET("/status", deviceHandler.GetSystemStatus)
@@ -177,17 +181,22 @@ func main() {
 		}
 	}
 
-	// 5. Serve Static Files
+	// 6. Serve Static Files
 	r.Static("/public", "./public")
 
-	// 6. Listen on port 8000
+	// 7. Listen on port 8000
 	log.Println("🚀 Server starting on :8000")
+	log.Println("🔐 Auth endpoints:")
+	log.Println("   - POST http://localhost:8000/api/auth/login")
+	log.Println("   - POST http://localhost:8000/api/auth/logout")
+	log.Println("   - POST http://localhost:8000/api/auth/refresh")
 	log.Println("📊 Debug endpoints:")
 	log.Println("   - http://localhost:8000/debug/db-info")
 	log.Println("   - http://localhost:8000/debug/users")
 	log.Println("   - http://localhost:8000/debug/mock-status")
 	log.Println("✅ Health check: http://localhost:8000/health")
 	log.Println("📡 API base: http://localhost:8000/api")
+	log.Println("📝 Default credentials: admin / admin123")
 
 	if err := r.Run(":8000"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
