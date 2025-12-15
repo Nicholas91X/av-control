@@ -31,23 +31,25 @@ export const Players: React.FC = () => {
     const [selectedSource, setSelectedSource] = useState<string>('');
 
     // Fetch sources
-    const { data: sources = [] } = useQuery<Source[]>({
+    const { data: sourcesData } = useQuery<Source[]>({
         queryKey: ['player', 'sources'],
         queryFn: async () => {
             const response = await api.get('/device/player/sources');
-            return response.data;
+            return Array.isArray(response.data) ? response.data : [];
         },
     });
+    const sources = sourcesData || [];
 
     // Fetch songs (only when source is selected)
-    const { data: songs = [] } = useQuery<Song[]>({
+    const { data: songsData } = useQuery<Song[]>({
         queryKey: ['player', 'songs', selectedSource],
         queryFn: async () => {
             const response = await api.get('/device/player/songs');
-            return response.data;
+            return Array.isArray(response.data) ? response.data : [];
         },
         enabled: !!selectedSource,
     });
+    const songs = songsData || [];
 
     // Fetch player status
     const { data: playerStatus, refetch: refetchStatus } = useQuery<PlayerStatus>({

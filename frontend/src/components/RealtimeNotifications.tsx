@@ -16,6 +16,11 @@ export const RealtimeNotifications: React.FC = () => {
     useEffect(() => {
         if (!lastMessage) return;
 
+        // Only show notifications for user actions, not status updates
+        if (lastMessage.type === 'status_update') {
+            return; // Silent update, don't show notification
+        }
+
         // Add new notification
         const notification: Notification = {
             id: `${Date.now()}-${Math.random()}`,

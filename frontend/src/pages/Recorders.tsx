@@ -29,7 +29,10 @@ export const Recorders: React.FC = () => {
 
     // Mutations
     const startRecordingMutation = useMutation({
-        mutationFn: async () => api.post('/device/recorder/start'),
+        mutationFn: async () => {
+            const filename = `recording_${new Date().toISOString().replace(/[:.]/g, '-')}.mp4`;
+            return api.post('/device/recorder/start', { filename });
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recorder', 'status'] });
         },

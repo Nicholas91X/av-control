@@ -59,7 +59,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             ws.onmessage = (event) => {
                 try {
                     const message: WebSocketMessage = JSON.parse(event.data);
-                    console.log('📨 WebSocket message:', message);
+                    // Only log non-status updates to reduce console noise
+                    if (message.type !== 'status_update') {
+                        console.log('📨 WebSocket message:', message);
+                    }
                     setLastMessage(message);
                 } catch (error) {
                     console.error('❌ Failed to parse WebSocket message:', error);
