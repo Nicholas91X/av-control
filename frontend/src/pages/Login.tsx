@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Lock, User, LayoutDashboard } from 'lucide-react';
 
 export const Login: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -35,62 +37,62 @@ export const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
-            <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Welcome Back</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Sign in to control your AV system</p>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-bg p-4 relative overflow-hidden">
+            {/* Background Decorative Elements */}
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
+
+            <div className="w-full max-w-md relative z-10">
+                <div className="text-center mb-10">
+                    <div className="inline-flex items-center justify-center p-3 bg-primary-50 dark:bg-primary-900/20 rounded-2xl mb-4 text-primary-600 dark:text-primary-400">
+                        <LayoutDashboard className="w-8 h-8" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to control your AV system</p>
                 </div>
 
-                {error && (
-                    <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <User className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                placeholder="Enter your username"
-                                required
-                            />
+                <div className="bg-white dark:bg-dark-surface rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm font-medium">
+                            {error}
                         </div>
-                    </div>
+                    )}
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Lock className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                placeholder="••••••••"
-                                required
-                            />
-                        </div>
-                    </div>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <Input
+                            label="Username"
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Enter your username"
+                            icon={User}
+                            required
+                        />
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {loading ? 'Signing in...' : 'Sign In'}
-                    </button>
-                </form>
+                        <Input
+                            label="Password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            icon={Lock}
+                            required
+                        />
+
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            fullWidth
+                            size="lg"
+                            isLoading={loading}
+                        >
+                            Sign In
+                        </Button>
+                    </form>
+                </div>
+                <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
+                    Protected by Role-Based Access Control
+                </p>
             </div>
         </div>
     );
