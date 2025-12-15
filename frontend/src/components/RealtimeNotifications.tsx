@@ -28,14 +28,15 @@ export const RealtimeNotifications: React.FC = () => {
             timestamp: Date.now(),
         };
 
-        setNotifications(prev => [notification, ...prev].slice(0, 5)); // Keep only last 5
+        setNotifications(prev => [notification, ...prev].slice(0, 3)); // Keep only last 3
 
-        // Auto-remove after 5 seconds
+        // Auto-remove after 2 seconds
         const timer = setTimeout(() => {
             setNotifications(prev => prev.filter(n => n.id !== notification.id));
-        }, 5000);
+        }, 2000);
 
-        return () => clearTimeout(timer);
+        // Note: We intentionally do NOT clear this timer in the cleanup.
+        // If we did, a new message arriving <2s later would cancel the dismissal of the previous one.
     }, [lastMessage]);
 
     const removeNotification = (id: string) => {
@@ -90,7 +91,7 @@ export const RealtimeNotifications: React.FC = () => {
     if (notifications.length === 0) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-md">
+        <div className="fixed top-4 left-4 z-50 space-y-2 max-w-md">
             {notifications.map((notification) => {
                 const content = getNotificationContent(notification.message);
                 const Icon = content.icon;
