@@ -77,18 +77,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// 4. Check for existing active session (ONLY ONE SESSION ALLOWED)
-	var existingSession models.Session
-	result = h.db.Where("user_id = ? AND expires_at > ?", user.ID, time.Now()).First(&existingSession)
-	if result.Error == nil {
-		// Session exists
-		c.JSON(409, models.ErrorResponse{
-			Success:   false,
-			Error:     "User already logged in",
-			ErrorCode: "ALREADY_LOGGED_IN",
-		})
-		return
-	}
+	// 4. Check for existing active session (LAST LOGIN WINS)
+	// Instead of blocking, we delete any existing active sessions for this user
+	h.db.Where("user_id = ?", user.ID).Delete(&models.Session{})
 
 	// 5. Generate JWT access token (24 HOURS)
 	accessTokenExpiry := time.Now().Add(24 * time.Hour)
