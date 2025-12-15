@@ -12,6 +12,7 @@ import {
     HardDrive
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { WebSocketStatus } from '../WebSocketStatus';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -91,6 +92,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </div>
 
                     <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+                        <div className="mb-3 px-2">
+                            <WebSocketStatus />
+                        </div>
                         <div className="flex items-center space-x-3 mb-4 px-2">
                             <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 dark:text-primary-300 font-semibold">
                                 {user?.name?.charAt(0) || 'U'}
