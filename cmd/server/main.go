@@ -119,11 +119,25 @@ func main() {
 	// ========================================
 	// API ROUTES
 	// ========================================
+	// Create WebSocket hub and start it
+	hub := services.NewHub()
+	go hub.Run()
+
+	// Create status poller (polls every 5 seconds)
+	statusPoller := services.NewStatusPoller(hwClient, hub, 5*time.Second)
+	statusPoller.Start()
+	defer statusPoller.Stop()
+
+	// Create handlers
+	authHandler := handlers.NewAuthHandler(db, jwtSecret)
+	deviceHandler := handlers.NewHandler(db, hwClient, hub)
+	wsHandler := handlers.NewWebSocketHandler(hub, jwtSecret)
+
+	// WebSocket endpoint
+	r.GET("/ws", wsHandler.HandleWebSocket)
+
 	api := r.Group("/api")
 	{
-		// Create handlers
-		authHandler := handlers.NewAuthHandler(db, jwtSecret)
-		deviceHandler := handlers.NewHandler(db, hwClient)
 
 		// Create and start audit service
 		auditService := services.NewAuditService(db)
@@ -195,6 +209,7 @@ func main() {
 
 	// 7. Listen on port 8000
 	log.Println("🚀 Server starting on :8000")
+	log.Println("🔌 WebSocket endpoint: ws://localhost:8000/ws?token=<JWT>")
 	log.Println("🔐 Auth endpoints:")
 	log.Println("   - POST http://localhost:8000/api/auth/login")
 	log.Println("   - POST http://localhost:8000/api/auth/logout")

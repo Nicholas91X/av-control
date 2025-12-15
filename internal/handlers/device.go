@@ -3,6 +3,7 @@ package handlers
 import (
 	"av-control/internal/hardware"
 	"av-control/internal/models"
+	"av-control/internal/services"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,12 +13,14 @@ import (
 type Handler struct {
 	db       *gorm.DB
 	hwClient hardware.HardwareClient
+	hub      *services.Hub
 }
 
-func NewHandler(db *gorm.DB, hwClient hardware.HardwareClient) *Handler {
+func NewHandler(db *gorm.DB, hwClient hardware.HardwareClient, hub *services.Hub) *Handler {
 	return &Handler{
 		db:       db,
 		hwClient: hwClient,
+		hub:      hub,
 	}
 }
 
@@ -72,6 +75,14 @@ func (h *Handler) LoadPreset(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "presets.load", gin.H{"id": req.ID})
+	}
+
 	h.respondSuccess(c, nil)
 }
 
@@ -99,6 +110,14 @@ func (h *Handler) SelectSource(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "player.source.select", gin.H{"id": req.ID})
+	}
+
 	h.respondSuccess(c, nil)
 }
 
@@ -124,6 +143,14 @@ func (h *Handler) SelectSong(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "player.song.select", gin.H{"id": req.ID})
+	}
+
 	h.respondSuccess(c, nil)
 }
 
@@ -132,6 +159,14 @@ func (h *Handler) Play(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "player.play", nil)
+	}
+
 	h.respondSuccess(c, nil)
 }
 
@@ -140,6 +175,14 @@ func (h *Handler) Pause(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "player.pause", nil)
+	}
+
 	h.respondSuccess(c, nil)
 }
 
@@ -148,6 +191,14 @@ func (h *Handler) Stop(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "player.stop", nil)
+	}
+
 	h.respondSuccess(c, nil)
 }
 
@@ -156,6 +207,14 @@ func (h *Handler) Next(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "player.next", nil)
+	}
+
 	h.respondSuccess(c, nil)
 }
 
@@ -164,6 +223,14 @@ func (h *Handler) Previous(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "player.previous", nil)
+	}
+
 	h.respondSuccess(c, nil)
 }
 
@@ -180,6 +247,14 @@ func (h *Handler) SetRepeatMode(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "player.repeat", gin.H{"mode": req.Mode})
+	}
+
 	h.respondSuccess(c, nil)
 }
 
@@ -208,6 +283,14 @@ func (h *Handler) StartRecording(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "recorder.start", gin.H{"filename": actualFilename})
+	}
+
 	h.respondSuccess(c, gin.H{"filename": actualFilename})
 }
 
@@ -216,6 +299,14 @@ func (h *Handler) StopRecording(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "recorder.stop", nil)
+	}
+
 	h.respondSuccess(c, nil)
 }
 
@@ -273,6 +364,14 @@ func (h *Handler) SetControlValue(c *gin.Context) {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "controls."+controlID+".set", gin.H{"value": req.Value})
+	}
+
 	h.respondSuccess(c, nil)
 }
 
