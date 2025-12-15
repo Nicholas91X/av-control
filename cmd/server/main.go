@@ -151,6 +151,7 @@ func main() {
 		{
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/logout", middleware.JWTAuthMiddleware(jwtSecret, db), authHandler.Logout)
+			auth.GET("/me", middleware.JWTAuthMiddleware(jwtSecret, db), authHandler.GetMe)
 			auth.POST("/refresh", authHandler.RefreshToken)
 		}
 

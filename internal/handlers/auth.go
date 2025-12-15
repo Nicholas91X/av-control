@@ -310,3 +310,35 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		"expires_in":   86400, // 24 hours
 	})
 }
+
+func (h *AuthHandler) GetMe(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if userID == "" {
+		c.JSON(401, models.ErrorResponse{
+			Success:   false,
+			Error:     "Unauthorized",
+			ErrorCode: "UNAUTHORIZED",
+		})
+		return
+	}
+
+	var user models.User
+	if err := h.db.First(&user, "id = ?", userID).Error; err != nil {
+		c.JSON(404, models.ErrorResponse{
+			Success:   false,
+			Error:     "User not found",
+			ErrorCode: "USER_NOT_FOUND",
+		})
+		return
+	}
+
+	c.JSON(200, UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Role:      user.Role,
+		FullName:  user.FullName,
+		Email:     user.Email,
+		IsActive:  user.IsActive,
+		CreatedAt: user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	})
+}
