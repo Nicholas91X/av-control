@@ -6,7 +6,11 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(sqlite3:*)",
+      "Bash(timeout:*)",
+      "Bash(del:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjU4OTI4NzEsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOiJkZDE0NGI1My04N2M3LTRjNTktYmNhYS1lYzBlNTMxYzAwYTIiLCJ1c2VybmFtZSI6ImFkbWluIn0.gLTeEdijWLz9rRIHDrBQrqWXYa7COvxo_Vta5v3tGME\")"
     ]
   }
 }

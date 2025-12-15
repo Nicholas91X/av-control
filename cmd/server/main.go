@@ -6,6 +6,7 @@ import (
 	"av-control/internal/hardware"
 	"av-control/internal/middleware"
 	"av-control/internal/models"
+	"av-control/internal/services"
 	"crypto/rand"
 	"encoding/base64"
 	"log"
@@ -124,6 +125,13 @@ func main() {
 		authHandler := handlers.NewAuthHandler(db, jwtSecret)
 		deviceHandler := handlers.NewHandler(db, hwClient)
 
+		// Create and start audit service
+		auditService := services.NewAuditService(db)
+		auditService.Start()
+
+		// Graceful shutdown handler
+		defer auditService.Shutdown()
+
 		// AUTH ENDPOINTS
 		auth := api.Group("/auth")
 		{
@@ -132,9 +140,10 @@ func main() {
 			auth.POST("/refresh", authHandler.RefreshToken)
 		}
 
-		// DEVICE ENDPOINTS (Protected with JWT)
+		// DEVICE ENDPOINTS (Protected with JWT and Audited)
 		device := api.Group("/device")
 		device.Use(middleware.JWTAuthMiddleware(jwtSecret, db))
+		device.Use(middleware.AuditMiddleware(auditService))
 		{
 			// System Status
 			device.GET("/status", deviceHandler.GetSystemStatus)
