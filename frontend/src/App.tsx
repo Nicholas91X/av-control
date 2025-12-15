@@ -10,6 +10,7 @@ import { RealtimeNotifications } from './components/RealtimeNotifications';
 import { Players } from './pages/Players';
 import { Recorders } from './pages/Recorders';
 import { Controls } from './pages/Controls';
+import { UserManagement } from './pages/UserManagement';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -97,6 +98,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Controls />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users"
+                element={
+                  <ProtectedRoute>
+                    <UserManagement />
                   </ProtectedRoute>
                 }
               />

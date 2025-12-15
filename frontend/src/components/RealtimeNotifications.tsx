@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useWebSocket, WebSocketMessage } from '../context/WebSocketContext';
+import { useWebSocket } from '../context/WebSocketContext';
+import type { WebSocketMessage } from '../types/websocket';
 import { X, User, Activity, UserPlus, UserMinus } from 'lucide-react';
 
 interface Notification {
