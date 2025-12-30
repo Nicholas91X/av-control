@@ -197,3 +197,7 @@ coverage/
 # Debug files
 debug/
 *.pdb
+
+# Frontend Build Output
+public/*
+!public/.gitkeep
