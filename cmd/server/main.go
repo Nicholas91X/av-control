@@ -17,11 +17,32 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+
+	// Load .env file (se esiste)
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system environment variables")
+	}
+
+	// 0. Parse command line flags
+	useMock := flag.Bool("mock", false, "Use mock hardware client for testing")
+	flag.Parse()
+
+	// Set Gin mode from environment
+	ginMode := os.Getenv("GIN_MODE")
+	if ginMode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	// 1. Initialize Database
-	db, err := database.InitDB("./av-control.db")
+	dbPath := os.Getenv("DATABASE_PATH")
+	if dbPath == "" {
+		dbPath = "./av-control.db" // Development default
+	}
+	db, err := database.InitDB(dbPath)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
@@ -33,18 +54,17 @@ func main() {
 	// 2. Load or generate JWT secret
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		// Generate random 32-byte secret
+		if os.Getenv("GIN_MODE") == "release" {
+			log.Fatal("❌ JWT_SECRET environment variable is required in production")
+		}
+		// Development fallback
 		bytes := make([]byte, 32)
 		rand.Read(bytes)
 		jwtSecret = base64.StdEncoding.EncodeToString(bytes)
-		log.Println("⚠️  Generated random JWT secret (set JWT_SECRET env var for production)")
+		log.Println("⚠️  Using random JWT secret (development only)")
 	}
 
-	// 3. Parse command line flags
-	useMock := flag.Bool("mock", false, "Use mock hardware client for testing")
-	flag.Parse()
-
-	// 4. Create Hardware Client (MOCK or REAL)
+	// 3. Create Hardware Client (MOCK or REAL)
 	var hwClient hardware.HardwareClient
 	if *useMock {
 		log.Println("🔧 Using MOCK hardware client (testing mode)")
@@ -62,12 +82,22 @@ func main() {
 		}
 	}
 
-	// 5. Setup Gin Router
+	// 4. Setup Gin Router
 	r := gin.Default()
 
+	// Trust proxy from local network only
+	if err := r.SetTrustedProxies([]string{"127.0.0.1", "192.168.0.0/16"}); err != nil {
+		log.Printf("⚠️  Failed to set trusted proxies: %v", err)
+	}
+
 	// CORS Middleware
+	corsOrigins := os.Getenv("CORS_ORIGINS")
+	if corsOrigins == "" {
+		corsOrigins = "http://localhost:5173" // Development default
+	}
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     []string{corsOrigins},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -75,65 +105,66 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// 6. Routes
+	// 5. Routes
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
 	// ========================================
-	// DEBUG ENDPOINTS (Rimuovi in produzione)
+	// DEBUG ENDPOINTS (Solo in development)
 	// ========================================
-	debug := r.Group("/debug")
-	{
-		debug.GET("/db-info", func(c *gin.Context) {
-			var userCount, sessionCount, logCount int64
-			db.Model(&models.User{}).Count(&userCount)
-			db.Model(&models.Session{}).Count(&sessionCount)
-			db.Model(&models.CommandLog{}).Count(&logCount)
+	if os.Getenv("GIN_MODE") != "release" {
+		debug := r.Group("/debug")
+		{
+			debug.GET("/db-info", func(c *gin.Context) {
+				var userCount, sessionCount, logCount int64
+				db.Model(&models.User{}).Count(&userCount)
+				db.Model(&models.Session{}).Count(&sessionCount)
+				db.Model(&models.CommandLog{}).Count(&logCount)
 
-			c.JSON(http.StatusOK, gin.H{
-				"users_count":    userCount,
-				"sessions_count": sessionCount,
-				"logs_count":     logCount,
-				"database_path":  "./av-control.db",
+				c.JSON(http.StatusOK, gin.H{
+					"users_count":    userCount,
+					"sessions_count": sessionCount,
+					"logs_count":     logCount,
+					"database_path":  "./av-control.db",
+				})
 			})
-		})
 
-		debug.GET("/users", func(c *gin.Context) {
-			var users []models.User
-			db.Find(&users)
+			debug.GET("/users", func(c *gin.Context) {
+				var users []models.User
+				db.Find(&users)
 
-			// Rimuovi password hash dalla risposta
-			type SafeUser struct {
-				ID       string `json:"id"`
-				Username string `json:"username"`
-				Role     string `json:"role"`
-				FullName string `json:"full_name"`
-				Email    string `json:"email"`
-				IsActive bool   `json:"is_active"`
-			}
-
-			safeUsers := make([]SafeUser, len(users))
-			for i, u := range users {
-				safeUsers[i] = SafeUser{
-					ID:       u.ID,
-					Username: u.Username,
-					Role:     u.Role,
-					FullName: u.FullName,
-					Email:    u.Email,
-					IsActive: u.IsActive,
+				type SafeUser struct {
+					ID       string `json:"id"`
+					Username string `json:"username"`
+					Role     string `json:"role"`
+					FullName string `json:"full_name"`
+					Email    string `json:"email"`
+					IsActive bool   `json:"is_active"`
 				}
-			}
 
-			c.JSON(http.StatusOK, safeUsers)
-		})
+				safeUsers := make([]SafeUser, len(users))
+				for i, u := range users {
+					safeUsers[i] = SafeUser{
+						ID:       u.ID,
+						Username: u.Username,
+						Role:     u.Role,
+						FullName: u.FullName,
+						Email:    u.Email,
+						IsActive: u.IsActive,
+					}
+				}
 
-		debug.GET("/mock-status", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"message": "Mock client is active",
-				"type":    "MockHardwareClient",
+				c.JSON(http.StatusOK, safeUsers)
 			})
-		})
+
+			debug.GET("/mock-status", func(c *gin.Context) {
+				c.JSON(http.StatusOK, gin.H{
+					"message": "Mock client is active",
+					"type":    "MockHardwareClient",
+				})
+			})
+		}
 	}
 
 	// ========================================
@@ -236,25 +267,26 @@ func main() {
 		}
 	}
 
-	// 7. Serve Static Files
+	// 6. Serve Static Files
 	r.Static("/public", "./public")
 
-	// 8. Listen on port 8000
-	log.Println("🚀 Server starting on :8000")
-	log.Println("🔌 WebSocket endpoint: ws://localhost:8000/ws?token=<JWT>")
-	log.Println("🔐 Auth endpoints:")
-	log.Println("   - POST http://localhost:8000/api/auth/login")
-	log.Println("   - POST http://localhost:8000/api/auth/logout")
-	log.Println("   - POST http://localhost:8000/api/auth/refresh")
-	log.Println("📊 Debug endpoints:")
-	log.Println("   - http://localhost:8000/debug/db-info")
-	log.Println("   - http://localhost:8000/debug/users")
-	log.Println("   - http://localhost:8000/debug/mock-status")
-	log.Println("✅ Health check: http://localhost:8000/health")
-	log.Println("📡 API base: http://localhost:8000/api")
-	log.Println("📝 Default credentials: admin / admin123")
+	// 7. Listen on port 8000
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8000"
+	}
 
-	if err := r.Run(":8000"); err != nil {
+	log.Printf("🚀 Server starting on :%s", port)
+	log.Printf("🔧 Mode: %s", gin.Mode())
+	log.Printf("🗄️  Database: %s", dbPath)
+
+	if gin.Mode() != gin.ReleaseMode {
+		log.Println("📝 Default credentials: admin / admin123")
+		log.Printf("🔌 WebSocket: ws://localhost:%s/ws?token=<JWT>", port)
+		log.Printf("📊 Debug endpoints: http://localhost:%s/debug/*", port)
+	}
+
+	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }

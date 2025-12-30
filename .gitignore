@@ -1,0 +1,199 @@
+# ==========================================
+# AV Control - Complete .gitignore
+# ==========================================
+
+# ==========================================
+# BACKEND (Go)
+# ==========================================
+
+# Binaries
+av-control
+av-control-arm32
+av-control.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Go workspace file
+go.work
+
+# Build artifacts
+vendor/
+
+# ==========================================
+# FRONTEND (Node/React)
+# ==========================================
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build output
+dist/
+dist-ssr/
+frontend/dist/
+frontend/dist-ssr/
+
+# Vite
+.vite/
+frontend/.vite/
+
+# npm/yarn
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+package-lock.json
+yarn.lock
+
+# ==========================================
+# ENVIRONMENT & CONFIG
+# ==========================================
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# Deployment info (contiene credenziali!)
+deployment-info.txt
+
+# ==========================================
+# DATABASE
+# ==========================================
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
+# Database dumps
+database-dump.sql
+*.sql
+
+# Backup files
+*.backup
+
+# ==========================================
+# DEPLOYMENT
+# ==========================================
+
+# Deployment packages
+av-control-deployment.tar.gz
+*.tar.gz
+*.zip
+
+# Build directory
+deploy-package/
+
+# ==========================================
+# LOGS
+# ==========================================
+
+logs/
+*.log
+
+# ==========================================
+# OS SPECIFIC
+# ==========================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ==========================================
+# IDEs & EDITORS
+# ==========================================
+
+# VSCode
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.code-workspace
+
+# JetBrains (GoLand, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Vim
+*.swp
+*.swo
+*~
+.vim/
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ==========================================
+# TEMPORARY FILES
+# ==========================================
+
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+*.local
+
+# ==========================================
+# TESTING
+# ==========================================
+
+coverage/
+*.cover
+.pytest_cache/
+
+# ==========================================
+# MISCELLANEOUS
+# ==========================================
+
+# Compiled Object files
+*.o
+*.a
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Debug files
+debug/
+*.pdb
