@@ -4,7 +4,7 @@ import api from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Lock, User, LayoutDashboard } from 'lucide-react';
+import { Lock, User } from 'lucide-react';
 
 export const Login: React.FC = () => {
     const [username, setUsername] = useState('');

@@ -17,7 +17,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [status, setStatus] = useState<WebSocketStatus>('disconnected');
     const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
-    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const reconnectAttemptsRef = useRef(0);
 
     const connect = useCallback(() => {
