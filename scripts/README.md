@@ -238,7 +238,6 @@ users                1
 # 3. Inserisci SD in S-Mix e accendi
 #    - Boot automatico (30-60s)
 #    - IP statico: 192.168.1.100
-#    - SSH: root / emixsvfl
 ```
 
 ---
@@ -285,7 +284,6 @@ ping 192.168.1.100
 
 # 2. SSH connect
 ssh root@192.168.1.100
-# Password: emixsvfl
 
 # 3. Verifica daemon Svilen
 curl http://localhost:8080/api/device/status
@@ -300,7 +298,6 @@ curl http://localhost:8080/api/device/status
 ```bash
 # Da PC (nuovo terminale, NON SSH)
 scp av-control-deployment.tar.gz root@192.168.1.100:/tmp/
-# Password: emixsvfl
 
 # Tempo: ~5-10 secondi (12MB)
 ```
@@ -603,7 +600,7 @@ Data Installazione: $(date)
 Versione: v1.0.0
 
 ACCESSI:
-- SSH: root / emixsvfl
+- SSH: root / password
 - IP: 192.168.1.100
 - Web: http://192.168.1.100:8000
 - Admin: admin / admin123
@@ -775,19 +772,6 @@ mv /usr/local/share/av-control/public.old /usr/local/share/av-control/public
 # 5. Start service
 systemctl start av-control
 ```
-
----
-
-## 📞 Supporto
-
-**Problemi hardware/daemon:**
-- Contatto: Svilen
-
-**Problemi software/deploy:**
-- Contatto: Nicholas
-
-**Problemi installazione:**
-- Contatto: Fulvio
 
 ---
 
