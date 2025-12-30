@@ -1,0 +1,42 @@
+[Unit]
+Description=VerbumDigital AV Control System
+Documentation=https://github.com/yourusername/av-control
+After=network.target
+Requires=network.target
+
+[Service]
+Type=simple
+User=av-control
+Group=av-control
+WorkingDirectory=/usr/local/share/av-control
+
+# Binary (senza flag -mock = usa real hardware)
+ExecStart=/usr/local/bin/av-control
+
+# Restart policy
+Restart=always
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Environment
+EnvironmentFile=/etc/av-control/config.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=av-control
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/av-control /var/log/av-control
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
