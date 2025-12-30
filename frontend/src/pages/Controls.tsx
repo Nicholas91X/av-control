@@ -27,7 +27,7 @@ export const Controls: React.FC = () => {
         queryKey: ['controls'],
         queryFn: async () => {
             const response = await api.get('/device/controls');
-            return response.data;
+            return response.data?.controls || [];
         },
     });
 
@@ -153,16 +153,14 @@ export const Controls: React.FC = () => {
                             <button
                                 onClick={() => handleToggle(control.id, isOn)}
                                 disabled={setControlMutation.isPending}
-                                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                                    isOn
+                                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${isOn
                                         ? 'bg-primary-600'
                                         : 'bg-gray-200 dark:bg-gray-700'
-                                } disabled:opacity-50`}
+                                    } disabled:opacity-50`}
                             >
                                 <span
-                                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                                        isOn ? 'translate-x-7' : 'translate-x-1'
-                                    }`}
+                                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${isOn ? 'translate-x-7' : 'translate-x-1'
+                                        }`}
                                 />
                             </button>
                         </div>

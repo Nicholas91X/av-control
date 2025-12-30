@@ -9,6 +9,7 @@ import (
 	"av-control/internal/services"
 	"crypto/rand"
 	"encoding/base64"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -39,10 +40,29 @@ func main() {
 		log.Println("⚠️  Generated random JWT secret (set JWT_SECRET env var for production)")
 	}
 
-	// 3. Create Mock Hardware Client
-	hwClient := hardware.NewMockHardwareClient()
+	// 3. Parse command line flags
+	useMock := flag.Bool("mock", false, "Use mock hardware client for testing")
+	flag.Parse()
 
-	// 4. Setup Gin Router
+	// 4. Create Hardware Client (MOCK or REAL)
+	var hwClient hardware.HardwareClient
+	if *useMock {
+		log.Println("🔧 Using MOCK hardware client (testing mode)")
+		hwClient = hardware.NewMockHardwareClient()
+	} else {
+		log.Println("🔧 Using REAL hardware client (localhost:8080)")
+		hwClient = hardware.NewRealHardwareClient()
+
+		// Test connection to hardware daemon
+		if _, err := hwClient.GetSystemStatus(); err != nil {
+			log.Printf("⚠️  Warning: Cannot connect to hardware daemon: %v", err)
+			log.Println("⚠️  Make sure Svilen's daemon is running on localhost:8080")
+		} else {
+			log.Println("✅ Hardware daemon connected!")
+		}
+	}
+
+	// 5. Setup Gin Router
 	r := gin.Default()
 
 	// CORS Middleware
@@ -55,7 +75,7 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// 5. Routes
+	// 6. Routes
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
@@ -216,10 +236,10 @@ func main() {
 		}
 	}
 
-	// 6. Serve Static Files
+	// 7. Serve Static Files
 	r.Static("/public", "./public")
 
-	// 7. Listen on port 8000
+	// 8. Listen on port 8000
 	log.Println("🚀 Server starting on :8000")
 	log.Println("🔌 WebSocket endpoint: ws://localhost:8000/ws?token=<JWT>")
 	log.Println("🔐 Auth endpoints:")

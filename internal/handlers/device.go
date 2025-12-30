@@ -99,7 +99,7 @@ func (h *Handler) GetSources(c *gin.Context) {
 
 func (h *Handler) SelectSource(c *gin.Context) {
 	var req struct {
-		ID string `json:"id" binding:"required"`
+		ID string `json:"source_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.respondError(c, http.StatusBadRequest, err.Error(), "INVALID_REQUEST")
@@ -132,7 +132,7 @@ func (h *Handler) GetSongs(c *gin.Context) {
 
 func (h *Handler) SelectSong(c *gin.Context) {
 	var req struct {
-		ID int `json:"id" binding:"required"`
+		ID int `json:"song_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.respondError(c, http.StatusBadRequest, err.Error(), "INVALID_REQUEST")

@@ -10,10 +10,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'AV Control System',
-        short_name: 'AV Control',
-        description: 'Control your Audio/Video system',
-        theme_color: '#ffffff',
+        name: 'VerbumDigital AV Control',
+        short_name: 'VerbumDigital',
+        description: 'Sistema di controllo audio/video professionale',
+        theme_color: '#7c2d12',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -37,6 +37,8 @@ export default defineConfig({
     })
   ],
   server: {
+    host: '0.0.0.0',
+    port: 5173,
     proxy: {
       '/api': {
         target: 'http://localhost:8000',

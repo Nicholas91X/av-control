@@ -41,10 +41,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Mobile Header */}
             <div className="lg:hidden bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between sticky top-0 z-40">
                 <Link to="/" className="flex items-center space-x-2">
-                    <div className="bg-primary-600 rounded-lg p-1.5">
-                        <LayoutDashboard className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="text-xl font-bold text-gray-900 dark:text-white">AV Control</span>
+                    <img
+                        src="/verbumdigital-logo.png"
+                        alt="VerbumDigital"
+                        className="h-8 w-8 object-contain"
+                    />
+                    <span className="text-xl font-bold text-gray-900 dark:text-white">VerbumDigital</span>
                 </Link>
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -61,10 +63,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
                     <div className="p-6 hidden lg:flex items-center space-x-3">
-                        <div className="bg-primary-600 rounded-lg p-2">
-                            <LayoutDashboard className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-xl font-bold text-gray-900 dark:text-white">AV Control</span>
+                        <img
+                            src="/verbumdigital-logo.png"
+                            alt="VerbumDigital"
+                            className="h-10 w-10 object-contain"
+                        />
+                        <span className="text-xl font-bold text-gray-900 dark:text-white">VerbumDigital</span>
                     </div>
 
                     <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">

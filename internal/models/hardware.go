@@ -29,6 +29,7 @@ type SourcesResponse struct {
 type Song struct {
 	ID       int    `json:"id"`
 	Title    string `json:"title"`
+	Artist   string `json:"artist"`
 	Duration int    `json:"duration"` // seconds
 }
 
@@ -42,7 +43,7 @@ type PlayerStatus struct {
 	CurrentTime int    `json:"current_time"` // seconds
 	TotalTime   int    `json:"total_time"`   // seconds
 	RepeatMode  string `json:"repeat_mode"`  // none, song, group
-	Source      string `json:"source"`
+	Source      string `json:"current_source"`
 }
 
 // Recorder

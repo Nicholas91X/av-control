@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Play, Pause, Square, SkipForward, SkipBack, Repeat, Music } from 'lucide-react';
+import { Play, Pause, Square, SkipForward, SkipBack, Repeat, Music, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 
 interface Source {
@@ -21,7 +21,7 @@ interface Song {
 interface PlayerStatus {
     state: 'playing' | 'paused' | 'stopped';
     current_source?: string;
-    current_song?: string;
+    song_title?: string;
     repeat_mode: 'off' | 'one' | 'all';
 }
 
@@ -29,13 +29,15 @@ export const Players: React.FC = () => {
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
     const [selectedSource, setSelectedSource] = useState<string>('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
 
     // Fetch sources
     const { data: sourcesData } = useQuery<Source[]>({
         queryKey: ['player', 'sources'],
         queryFn: async () => {
             const response = await api.get('/device/player/sources');
-            return Array.isArray(response.data) ? response.data : [];
+            return response.data?.sources || [];
         },
     });
     const sources = sourcesData || [];
@@ -45,9 +47,9 @@ export const Players: React.FC = () => {
         queryKey: ['player', 'songs', selectedSource],
         queryFn: async () => {
             const response = await api.get('/device/player/songs');
-            return Array.isArray(response.data) ? response.data : [];
+            return response.data?.songs || [];
         },
-        enabled: !!selectedSource,
+        enabled: true,
     });
     const songs = songsData || [];
 
@@ -125,6 +127,17 @@ export const Players: React.FC = () => {
         return '';
     };
 
+    const formatDuration = (seconds?: number | string) => {
+        if (!seconds) return '--:--';
+        const sec = typeof seconds === 'string' ? parseInt(seconds) : seconds;
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    const paginatedSongs = songs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const totalPages = Math.ceil(songs.length / pageSize);
+
     return (
         <div className="space-y-6">
             <div>
@@ -141,11 +154,10 @@ export const Players: React.FC = () => {
                                 key={source.id}
                                 onClick={() => selectSourceMutation.mutate(source.id)}
                                 disabled={selectSourceMutation.isPending}
-                                className={`w-full px-4 py-3 rounded-lg text-left transition-all ${
-                                    selectedSource === source.id || playerStatus?.current_source === source.id
-                                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500'
-                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
-                                } disabled:opacity-50`}
+                                className={`w-full px-4 py-3 rounded-lg text-left transition-all ${selectedSource === source.id || playerStatus?.current_source === source.id
+                                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500'
+                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                                    } disabled:opacity-50`}
                             >
                                 <div className="flex items-center space-x-3">
                                     <Music className="w-5 h-5" />
@@ -163,13 +175,12 @@ export const Players: React.FC = () => {
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">State</p>
                             <div className="flex items-center space-x-2">
                                 <span
-                                    className={`w-3 h-3 rounded-full ${
-                                        playerStatus?.state === 'playing'
-                                            ? 'bg-green-500 animate-pulse'
-                                            : playerStatus?.state === 'paused'
+                                    className={`w-3 h-3 rounded-full ${playerStatus?.state === 'playing'
+                                        ? 'bg-green-500 animate-pulse'
+                                        : playerStatus?.state === 'paused'
                                             ? 'bg-yellow-500'
                                             : 'bg-gray-400'
-                                    }`}
+                                        }`}
                                 />
                                 <span className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
                                     {playerStatus?.state || 'Unknown'}
@@ -180,7 +191,7 @@ export const Players: React.FC = () => {
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Current Song</p>
                             <p className="text-gray-900 dark:text-white font-medium">
-                                {playerStatus?.current_song || 'No song selected'}
+                                {playerStatus?.song_title || 'No song selected'}
                             </p>
                         </div>
 
@@ -275,36 +286,64 @@ export const Players: React.FC = () => {
             </div>
 
             {/* Song List */}
-            {selectedSource && (
-                <Card title="Songs" subtitle="Select a song to play">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {songs.map((song) => (
+            <Card title="Songs" subtitle="Select a song to play">
+                <>
+                    <div className="space-y-1">
+                        {paginatedSongs.map((song) => (
                             <button
                                 key={song.id}
                                 onClick={() => selectSongMutation.mutate(song.id)}
                                 disabled={selectSongMutation.isPending}
-                                className={`px-4 py-3 rounded-lg text-left transition-all ${
-                                    playerStatus?.current_song === song.id
-                                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500'
-                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
-                                } disabled:opacity-50`}
+                                className={`w-full px-4 py-2 text-left transition-all flex items-center justify-between group rounded-md ${playerStatus?.song_title === song.title
+                                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium'
+                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                    } disabled:opacity-50`}
                             >
-                                <p className="font-medium truncate">{song.title}</p>
-                                {song.artist && (
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                                        {song.artist}
-                                    </p>
-                                )}
-                                {song.duration && (
-                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                        {song.duration}
-                                    </p>
-                                )}
+                                <div className="flex-1 min-w-0 pr-4">
+                                    <span className="truncate block">
+                                        {song.title}
+                                        {song.artist && (
+                                            <span className="text-gray-500 dark:text-gray-500 font-normal ml-2 text-sm">
+                                                - {song.artist}
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="text-right text-sm font-mono text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300">
+                                    {formatDuration(song.duration)}
+                                </div>
                             </button>
                         ))}
                     </div>
-                </Card>
-            )}
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-4 mt-2 border-t border-gray-100 dark:border-gray-700">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                                Page {currentPage} of {totalPages}
+                            </span>
+                            <div className="flex space-x-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </>
+            </Card>
         </div>
     );
 };

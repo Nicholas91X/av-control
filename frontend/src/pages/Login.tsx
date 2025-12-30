@@ -44,9 +44,11 @@ export const Login: React.FC = () => {
 
             <div className="w-full max-w-md relative z-10">
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center p-3 bg-primary-50 dark:bg-primary-900/20 rounded-2xl mb-4 text-primary-600 dark:text-primary-400">
-                        <LayoutDashboard className="w-8 h-8" />
-                    </div>
+                    <img
+                        src="/verbumdigital-logo.png"
+                        alt="VerbumDigital"
+                        className="h-20 w-auto mx-auto object-contain"
+                    />
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to control your AV system</p>
                 </div>
