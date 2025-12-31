@@ -268,7 +268,7 @@ func main() {
 	}
 
 	// 6. Serve Static Files
-	r.Static("/public", "./public")
+	r.Static("/", "./public")
 
 	// 7. Listen on port 8000
 	port := os.Getenv("PORT")
