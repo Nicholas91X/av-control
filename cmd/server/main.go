@@ -105,6 +105,12 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// ========================================
+	// CRITICAL: Serve Static Files FIRST!
+	// Must be before API routes to avoid conflicts
+	// ========================================
+	r.Static("/", "./public")
+
 	// 5. Routes
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -126,7 +132,7 @@ func main() {
 					"users_count":    userCount,
 					"sessions_count": sessionCount,
 					"logs_count":     logCount,
-					"database_path":  "./av-control.db",
+					"database_path":  dbPath,
 				})
 			})
 
@@ -179,24 +185,22 @@ func main() {
 	statusPoller.Start()
 	defer statusPoller.Stop()
 
+	// Create and start audit service
+	auditService := services.NewAuditService(db)
+	auditService.Start()
+	defer auditService.Shutdown()
+
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(db, jwtSecret)
 	deviceHandler := handlers.NewHandler(db, hwClient, hub)
 	wsHandler := handlers.NewWebSocketHandler(hub, jwtSecret)
+	userHandler := handlers.NewUserHandler(db)
 
 	// WebSocket endpoint
 	r.GET("/ws", wsHandler.HandleWebSocket)
 
 	api := r.Group("/api")
 	{
-
-		// Create and start audit service
-		auditService := services.NewAuditService(db)
-		auditService.Start()
-
-		// Graceful shutdown handler
-		defer auditService.Shutdown()
-
 		// AUTH ENDPOINTS
 		auth := api.Group("/auth")
 		{
@@ -206,8 +210,7 @@ func main() {
 			auth.POST("/refresh", authHandler.RefreshToken)
 		}
 
-		// USER USERS (Admin Only)
-		userHandler := handlers.NewUserHandler(db)
+		// USER MANAGEMENT (Admin Only)
 		users := api.Group("/users")
 		users.Use(middleware.JWTAuthMiddleware(jwtSecret, db))
 		users.Use(middleware.RequireRole("admin"))
@@ -266,9 +269,6 @@ func main() {
 			}
 		}
 	}
-
-	// 6. Serve Static Files
-	r.Static("/", "./public")
 
 	// 7. Listen on port 8000
 	port := os.Getenv("PORT")
