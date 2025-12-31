@@ -105,13 +105,7 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// ========================================
-	// CRITICAL: Serve Static Files FIRST!
-	// Must be before API routes to avoid conflicts
-	// ========================================
-	r.Static("/", "./public")
-
-	// 5. Routes
+	// 5. Health Check Route
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
@@ -174,7 +168,7 @@ func main() {
 	}
 
 	// ========================================
-	// API ROUTES
+	// WEBSOCKET & SERVICES
 	// ========================================
 	// Create WebSocket hub and start it
 	hub := services.NewHub()
@@ -199,6 +193,9 @@ func main() {
 	// WebSocket endpoint
 	r.GET("/ws", wsHandler.HandleWebSocket)
 
+	// ========================================
+	// API ROUTES
+	// ========================================
 	api := r.Group("/api")
 	{
 		// AUTH ENDPOINTS
@@ -270,7 +267,29 @@ func main() {
 		}
 	}
 
-	// 7. Listen on port 8000
+	// ========================================
+	// SERVE STATIC FILES (MUST BE LAST!)
+	// ========================================
+	// Serve assets folder explicitly
+	r.Static("/assets", "./public/assets")
+
+	// Catch-all for other files and SPA routing
+	r.NoRoute(func(c *gin.Context) {
+		path := "./public" + c.Request.URL.Path
+
+		// Check if file exists
+		if _, err := os.Stat(path); err == nil {
+			c.File(path)
+			return
+		}
+
+		// Fallback to index.html for SPA routing
+		c.File("./public/index.html")
+	})
+
+	// ========================================
+	// START SERVER
+	// ========================================
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8000"
