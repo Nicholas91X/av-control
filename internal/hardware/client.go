@@ -6,11 +6,11 @@ type HardwareClient interface {
 	// Presets
 	GetPresets() (*models.PresetsResponse, error)
 	GetCurrentPreset() (*models.CurrentPresetResponse, error)
-	LoadPreset(presetID int) error
+	LoadPreset(presetID string) error
 
 	// Player
 	GetSources() (*models.SourcesResponse, error)
-	SelectSource(sourceID string) error
+	SelectSource(sourceID int) error
 	GetSongs() (*models.SongsResponse, error)
 	SelectSong(songID int) error
 	Play() error
@@ -18,11 +18,11 @@ type HardwareClient interface {
 	Stop() error
 	Next() error
 	Previous() error
-	SetRepeatMode(mode string) error // mode: "none", "song", "group"
+	SetRepeatMode(mode string) error
 	GetPlayerStatus() (*models.PlayerStatus, error)
 
 	// Recorder
-	StartRecording(filename string) (string, error) // returns actual filename
+	StartRecording(filename string) (string, error)
 	StopRecording() error
 	GetRecorderStatus() (*models.RecorderStatus, error)
 

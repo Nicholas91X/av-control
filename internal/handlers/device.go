@@ -62,9 +62,10 @@ func (h *Handler) GetCurrentPreset(c *gin.Context) {
 	h.respondSuccess(c, preset)
 }
 
+// LoadPreset
 func (h *Handler) LoadPreset(c *gin.Context) {
 	var req struct {
-		ID int `json:"id" binding:"required"`
+		ID string `json:"id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.respondError(c, http.StatusBadRequest, err.Error(), "INVALID_REQUEST")
@@ -76,7 +77,6 @@ func (h *Handler) LoadPreset(c *gin.Context) {
 		return
 	}
 
-	// Broadcast command execution
 	userID := c.GetString("user_id")
 	username := c.GetString("username")
 	if h.hub != nil {
@@ -97,9 +97,10 @@ func (h *Handler) GetSources(c *gin.Context) {
 	h.respondSuccess(c, sources)
 }
 
+// SelectSource
 func (h *Handler) SelectSource(c *gin.Context) {
 	var req struct {
-		ID string `json:"source_id" binding:"required"`
+		ID int `json:"id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.respondError(c, http.StatusBadRequest, err.Error(), "INVALID_REQUEST")
@@ -111,7 +112,6 @@ func (h *Handler) SelectSource(c *gin.Context) {
 		return
 	}
 
-	// Broadcast command execution
 	userID := c.GetString("user_id")
 	username := c.GetString("username")
 	if h.hub != nil {
@@ -130,9 +130,10 @@ func (h *Handler) GetSongs(c *gin.Context) {
 	h.respondSuccess(c, songs)
 }
 
+// SelectSong
 func (h *Handler) SelectSong(c *gin.Context) {
 	var req struct {
-		ID int `json:"song_id" binding:"required"`
+		ID int `json:"id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.respondError(c, http.StatusBadRequest, err.Error(), "INVALID_REQUEST")
@@ -144,7 +145,6 @@ func (h *Handler) SelectSong(c *gin.Context) {
 		return
 	}
 
-	// Broadcast command execution
 	userID := c.GetString("user_id")
 	username := c.GetString("username")
 	if h.hub != nil {

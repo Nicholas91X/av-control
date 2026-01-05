@@ -94,8 +94,8 @@ func (r *RealHardwareClient) GetCurrentPreset() (*models.CurrentPresetResponse, 
 	return &response, err
 }
 
-func (r *RealHardwareClient) LoadPreset(presetID int) error {
-	payload := map[string]int{"id": presetID}
+func (r *RealHardwareClient) LoadPreset(presetID string) error {
+	payload := map[string]string{"id": presetID}
 	return r.post("/api/device/presets/load", payload, nil)
 }
 
@@ -109,8 +109,8 @@ func (r *RealHardwareClient) GetSources() (*models.SourcesResponse, error) {
 	return &response, err
 }
 
-func (r *RealHardwareClient) SelectSource(sourceID string) error {
-	payload := map[string]string{"source_id": sourceID}
+func (r *RealHardwareClient) SelectSource(sourceID int) error {
+	payload := map[string]int{"id": sourceID}
 	return r.post("/api/device/player/source", payload, nil)
 }
 
@@ -121,7 +121,7 @@ func (r *RealHardwareClient) GetSongs() (*models.SongsResponse, error) {
 }
 
 func (r *RealHardwareClient) SelectSong(songID int) error {
-	payload := map[string]int{"song_id": songID}
+	payload := map[string]int{"id": songID}
 	return r.post("/api/device/player/song", payload, nil)
 }
 
@@ -163,7 +163,6 @@ func (r *RealHardwareClient) GetPlayerStatus() (*models.PlayerStatus, error) {
 func (r *RealHardwareClient) StartRecording(filename string) (string, error) {
 	payload := map[string]string{"filename": filename}
 
-	// Response structure for recording start
 	var response struct {
 		Filename string `json:"filename"`
 	}
@@ -197,14 +196,48 @@ func (r *RealHardwareClient) GetControls() (*models.ControlsResponse, error) {
 }
 
 func (r *RealHardwareClient) GetControlValue(controlID string) (*models.ControlValue, error) {
-	var response models.ControlValue
-	err := r.get("/api/device/controls/"+controlID, &response)
-	return &response, err
+	var volumeResp struct {
+		ID     int     `json:"id"`
+		Volume float64 `json:"volume"`
+	}
+
+	// Try volume first
+	err := r.get("/api/device/controls/volume/"+controlID, &volumeResp)
+	if err == nil {
+		return &models.ControlValue{
+			ID:    controlID,
+			Value: volumeResp.Volume,
+		}, nil
+	}
+
+	// Try mute
+	var muteResp struct {
+		ID   int  `json:"id"`
+		Mute bool `json:"mute"`
+	}
+
+	err = r.get("/api/device/controls/mute/"+controlID, &muteResp)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.ControlValue{
+		ID:    controlID,
+		Value: muteResp.Mute,
+	}, nil
 }
 
 func (r *RealHardwareClient) SetControlValue(controlID string, value interface{}) error {
 	payload := map[string]interface{}{"value": value}
-	return r.post("/api/device/controls/"+controlID, payload, nil)
+
+	switch v := value.(type) {
+	case float64, int:
+		return r.post("/api/device/controls/volume/"+controlID, payload, nil)
+	case bool:
+		return r.post("/api/device/controls/mute/"+controlID, payload, nil)
+	default:
+		return fmt.Errorf("unsupported control value type: %T", v)
+	}
 }
 
 // ============================================================================

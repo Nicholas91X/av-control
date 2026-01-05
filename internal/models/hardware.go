@@ -2,7 +2,7 @@ package models
 
 // Presets
 type Preset struct {
-	ID   int    `json:"id"`
+	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -11,15 +11,14 @@ type PresetsResponse struct {
 }
 
 type CurrentPresetResponse struct {
-	PresetID int    `json:"preset_id"`
-	Name     string `json:"name"`
+	ID string `json:"id"`
 }
 
 // Player
 type Source struct {
-	ID   string `json:"id"`
+	ID   int    `json:"id"`
 	Name string `json:"name"`
-	Type string `json:"type"` // device, storage, group
+	Type string `json:"type"`
 }
 
 type SourcesResponse struct {
@@ -27,10 +26,8 @@ type SourcesResponse struct {
 }
 
 type Song struct {
-	ID       int    `json:"id"`
-	Title    string `json:"title"`
-	Artist   string `json:"artist"`
-	Duration int    `json:"duration"` // seconds
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type SongsResponse struct {
@@ -39,27 +36,27 @@ type SongsResponse struct {
 
 type PlayerStatus struct {
 	SongTitle   string `json:"song_title"`
-	State       string `json:"state"`        // playing, paused, stopped
-	CurrentTime int    `json:"current_time"` // seconds
-	TotalTime   int    `json:"total_time"`   // seconds
-	RepeatMode  string `json:"repeat_mode"`  // none, song, group
-	Source      string `json:"current_source"`
+	State       string `json:"state"`
+	CurrentTime int    `json:"current_time"`
+	TotalTime   int    `json:"total_time"`
+	RepeatMode  string `json:"repeat_mode"`
 }
 
 // Recorder
 type RecorderStatus struct {
-	State       string `json:"state"` // recording, stopped
+	State       string `json:"state"`
 	Filename    string `json:"filename,omitempty"`
 	CurrentTime int    `json:"current_time,omitempty"`
 }
 
 // Controls
 type Control struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"` // range, boolean
-	Min  *int   `json:"min,omitempty"`
-	Max  *int   `json:"max,omitempty"`
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Min      *int   `json:"min,omitempty"`
+	Max      *int   `json:"max,omitempty"`
+	SecondID *int   `json:"second_id,omitempty"`
 }
 
 type ControlsResponse struct {
@@ -68,15 +65,15 @@ type ControlsResponse struct {
 
 type ControlValue struct {
 	ID    string      `json:"id"`
-	Value interface{} `json:"value"` // int for volume, bool for mute
+	Value interface{} `json:"value"`
 }
 
 // System Status
 type SystemStatus struct {
-	Preset   CurrentPresetResponse  `json:"preset"`
-	Player   PlayerStatus           `json:"player"`
-	Recorder RecorderStatus         `json:"recorder"`
-	Controls map[string]interface{} `json:"controls"`
+	Connected bool                  `json:"connected"`
+	Preset    CurrentPresetResponse `json:"preset"`
+	Player    PlayerStatus          `json:"player"`
+	Recorder  RecorderStatus        `json:"recorder"`
 }
 
 // Generic responses
