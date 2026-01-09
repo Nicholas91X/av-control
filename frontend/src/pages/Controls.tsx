@@ -2,42 +2,87 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Sliders, Volume2, Sun, Mic } from 'lucide-react';
+import { Sliders, Volume2, VolumeX, Sun, Mic } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 
 interface Control {
-    id: string;
+    id: number;
     name: string;
-    type: 'slider' | 'toggle' | 'button';
+    type: string;
     min?: number;
     max?: number;
     step?: number;
     unit?: string;
-    current_value?: number | boolean;
+    second_id?: number;
+}
+
+interface ControlValue {
+    id: number;
+    volume?: number;
+    mute?: boolean;
 }
 
 export const Controls: React.FC = () => {
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
-    const [pendingValues, setPendingValues] = useState<Record<string, number>>({});
+    const [pendingValues, setPendingValues] = useState<Record<number, number>>({});
+    const [controlValues, setControlValues] = useState<Record<number, ControlValue>>({});
 
     // Fetch all controls
-    const { data: controls = [] } = useQuery<Control[]>({
+    const { data: controlsData = { controls: [] } } = useQuery<{ controls: Control[] }>({
         queryKey: ['controls'],
         queryFn: async () => {
             const response = await api.get('/device/controls');
-            return response.data?.controls || [];
+            return response.data;
         },
     });
+    const controls = controlsData.controls || [];
+
+    // Fetch individual control values
+    React.useEffect(() => {
+        const fetchControlValues = async () => {
+            const values: Record<number, ControlValue> = {};
+
+            for (const control of controls) {
+                try {
+                    const response = await api.get(`/device/controls/${control.id}`);
+                    values[control.id] = response.data;
+
+                    // Fetch mute value if second_id exists
+                    if (control.second_id) {
+                        const muteResponse = await api.get(`/device/controls/${control.second_id}`);
+                        values[control.id] = {
+                            ...values[control.id],
+                            mute: muteResponse.data.mute,
+                        };
+                    }
+                } catch (error) {
+                    console.error(`Failed to fetch control ${control.id}:`, error);
+                }
+            }
+
+            setControlValues(values);
+        };
+
+        if (controls.length > 0) {
+            fetchControlValues();
+        }
+    }, [controls]);
 
     // Set control value mutation
     const setControlMutation = useMutation({
-        mutationFn: async ({ id, value }: { id: string; value: number | boolean }) => {
+        mutationFn: async ({ id, value }: { id: number; value: number | boolean }) => {
             await api.post(`/device/controls/${id}`, { value });
         },
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['controls'] });
+            // Refetch the specific control value
+            api.get(`/device/controls/${variables.id}`).then((response) => {
+                setControlValues((prev) => ({
+                    ...prev,
+                    [variables.id]: response.data,
+                }));
+            });
+
             // Remove from pending
             setPendingValues((prev) => {
                 const newPending = { ...prev };
@@ -54,24 +99,24 @@ export const Controls: React.FC = () => {
         }
     }, [lastMessage, queryClient]);
 
-    const handleSliderChange = (controlId: string, value: number) => {
+    const handleVolumeChange = (controlId: number, value: number) => {
         setPendingValues((prev) => ({ ...prev, [controlId]: value }));
     };
 
-    const handleSliderRelease = (controlId: string, value: number) => {
+    const handleVolumeRelease = (controlId: number, value: number) => {
         setControlMutation.mutate({ id: controlId, value });
     };
 
-    const handleToggle = (controlId: string, currentValue: boolean) => {
-        setControlMutation.mutate({ id: controlId, value: !currentValue });
-    };
-
-    const handleButton = (controlId: string) => {
-        setControlMutation.mutate({ id: controlId, value: true });
+    const handleMuteToggle = (control: Control) => {
+        const muteId = control.second_id || control.id;
+        const currentMute = controlValues[control.id]?.mute || false;
+        setControlMutation.mutate({ id: muteId, value: !currentMute });
     };
 
     const getControlIcon = (control: Control) => {
-        if (control.name.toLowerCase().includes('volume')) return Volume2;
+        if (control.name.toLowerCase().includes('volume') || control.name.toLowerCase().includes('mic')) {
+            return controlValues[control.id]?.mute ? VolumeX : Volume2;
+        }
         if (control.name.toLowerCase().includes('brightness')) return Sun;
         if (control.name.toLowerCase().includes('mic')) return Mic;
         return Sliders;
@@ -79,121 +124,95 @@ export const Controls: React.FC = () => {
 
     const renderControl = (control: Control) => {
         const Icon = getControlIcon(control);
-        const currentValue =
-            control.id in pendingValues
-                ? pendingValues[control.id]
-                : (control.current_value as number);
+        const currentValue = controlValues[control.id];
+        const volumeValue = control.id in pendingValues
+            ? pendingValues[control.id]
+            : currentValue?.volume ?? 0;
+        const isMuted = currentValue?.mute || false;
 
-        switch (control.type) {
-            case 'slider':
-                return (
-                    <Card key={control.id} className="p-6">
-                        <div className="flex items-start space-x-4">
-                            <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-                                <Icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                                    {control.name}
-                                </h3>
-                                <div className="flex items-center space-x-4 mt-4">
-                                    <input
-                                        type="range"
-                                        min={control.min || 0}
-                                        max={control.max || 100}
-                                        step={control.step || 1}
-                                        value={currentValue}
-                                        onChange={(e) =>
-                                            handleSliderChange(control.id, Number(e.target.value))
-                                        }
-                                        onMouseUp={(e) =>
-                                            handleSliderRelease(
-                                                control.id,
-                                                Number((e.target as HTMLInputElement).value)
-                                            )
-                                        }
-                                        onTouchEnd={(e) =>
-                                            handleSliderRelease(
-                                                control.id,
-                                                Number((e.target as HTMLInputElement).value)
-                                            )
-                                        }
-                                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-600"
-                                        disabled={setControlMutation.isPending}
-                                    />
-                                    <div className="w-20 text-right">
-                                        <span className="text-xl font-bold text-gray-900 dark:text-white">
-                                            {currentValue}
-                                        </span>
-                                        {control.unit && (
-                                            <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">
-                                                {control.unit}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+        // Handle volume_mute type
+        if (control.type === 'volume_mute') {
+            return (
+                <Card key={control.id} className="p-6">
+                    <div className="flex items-start space-x-4">
+                        <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+                            <Icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                         </div>
-                    </Card>
-                );
-
-            case 'toggle':
-                const isOn = control.current_value as boolean;
-                return (
-                    <Card key={control.id} className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                                <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-                                    <Icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                                </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                                     {control.name}
                                 </h3>
-                            </div>
-                            <button
-                                onClick={() => handleToggle(control.id, isOn)}
-                                disabled={setControlMutation.isPending}
-                                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${isOn
-                                        ? 'bg-primary-600'
-                                        : 'bg-gray-200 dark:bg-gray-700'
-                                    } disabled:opacity-50`}
-                            >
-                                <span
-                                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${isOn ? 'translate-x-7' : 'translate-x-1'
-                                        }`}
-                                />
-                            </button>
-                        </div>
-                    </Card>
-                );
-
-            case 'button':
-                return (
-                    <Card key={control.id} className="p-6">
-                        <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-                                <Icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                                    {control.name}
-                                </h3>
-                                <Button
-                                    variant="primary"
-                                    onClick={() => handleButton(control.id)}
+                                <button
+                                    onClick={() => handleMuteToggle(control)}
                                     disabled={setControlMutation.isPending}
-                                    isLoading={setControlMutation.isPending}
+                                    className={`p-2 rounded-lg transition-colors ${isMuted
+                                        ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                        } hover:bg-opacity-80 disabled:opacity-50`}
+                                    title={isMuted ? 'Unmute' : 'Mute'}
                                 >
-                                    Execute
-                                </Button>
+                                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                                </button>
+                            </div>
+                            <div className="flex items-center space-x-4 mt-4">
+                                <input
+                                    type="range"
+                                    min={control.min || -96}
+                                    max={control.max || 12}
+                                    step={control.step || 0.1}
+                                    value={volumeValue}
+                                    onChange={(e) =>
+                                        handleVolumeChange(control.id, Number(e.target.value))
+                                    }
+                                    onMouseUp={(e) =>
+                                        handleVolumeRelease(
+                                            control.id,
+                                            Number((e.target as HTMLInputElement).value)
+                                        )
+                                    }
+                                    onTouchEnd={(e) =>
+                                        handleVolumeRelease(
+                                            control.id,
+                                            Number((e.target as HTMLInputElement).value)
+                                        )
+                                    }
+                                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-600"
+                                    disabled={setControlMutation.isPending || isMuted}
+                                />
+                                <div className="w-24 text-right">
+                                    <span className="text-xl font-bold text-gray-900 dark:text-white">
+                                        {volumeValue.toFixed(1)}
+                                    </span>
+                                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">
+                                        dB
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </Card>
-                );
-
-            default:
-                return null;
+                    </div>
+                </Card>
+            );
         }
+
+        // Fallback for other types (if any)
+        return (
+            <Card key={control.id} className="p-6">
+                <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+                        <Icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {control.name}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Type: {control.type}
+                        </p>
+                    </div>
+                </div>
+            </Card>
+        );
     };
 
     return (

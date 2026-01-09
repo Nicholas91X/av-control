@@ -10,6 +10,7 @@ import { RealtimeNotifications } from './components/RealtimeNotifications';
 import { Players } from './pages/Players';
 import { Recorders } from './pages/Recorders';
 import { Controls } from './pages/Controls';
+import { Presets } from './pages/Presets';
 import { UserManagement } from './pages/UserManagement';
 
 // Create a client
@@ -74,6 +75,14 @@ function App() {
                         </Card>
                       </div>
                     </div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/presets"
+                element={
+                  <ProtectedRoute>
+                    <Presets />
                   </ProtectedRoute>
                 }
               />

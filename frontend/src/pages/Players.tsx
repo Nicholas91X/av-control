@@ -7,51 +7,51 @@ import { Play, Pause, Square, SkipForward, SkipBack, Repeat, Music, ChevronLeft,
 import { useWebSocket } from '../context/WebSocketContext';
 
 interface Source {
-    id: string;
+    id: number;
     name: string;
 }
 
 interface Song {
-    id: string;
-    title: string;
-    artist?: string;
-    duration?: string;
+    id: number;
+    name: string;
 }
 
 interface PlayerStatus {
-    state: 'playing' | 'paused' | 'stopped';
+    state: 'playing' | 'paused' | 'stopped' | 'nomedia';
     current_source?: string;
     song_title?: string;
-    repeat_mode: 'off' | 'one' | 'all';
+    current_time?: number;
+    total_time?: number;
+    repeat_mode: 'off' | 'one' | 'all' | 'none';
 }
 
 export const Players: React.FC = () => {
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
-    const [selectedSource, setSelectedSource] = useState<string>('');
+    const [selectedSource, setSelectedSource] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
 
     // Fetch sources
-    const { data: sourcesData } = useQuery<Source[]>({
+    const { data: sourcesData } = useQuery<{ sources: Source[] }>({
         queryKey: ['player', 'sources'],
         queryFn: async () => {
             const response = await api.get('/device/player/sources');
-            return response.data?.sources || [];
+            return response.data;
         },
     });
-    const sources = sourcesData || [];
+    const sources = sourcesData?.sources || [];
 
-    // Fetch songs (only when source is selected)
-    const { data: songsData } = useQuery<Song[]>({
-        queryKey: ['player', 'songs', selectedSource],
+    // Fetch songs
+    const { data: songsData } = useQuery<{ songs: Song[] }>({
+        queryKey: ['player', 'songs'],
         queryFn: async () => {
             const response = await api.get('/device/player/songs');
-            return response.data?.songs || [];
+            return response.data;
         },
         enabled: true,
     });
-    const songs = songsData || [];
+    const songs = songsData?.songs || [];
 
     // Fetch player status
     const { data: playerStatus, refetch: refetchStatus } = useQuery<PlayerStatus>({
@@ -65,10 +65,10 @@ export const Players: React.FC = () => {
 
     // Mutations
     const selectSourceMutation = useMutation({
-        mutationFn: async (sourceId: string) => {
-            await api.post('/device/player/source', { source_id: sourceId });
+        mutationFn: async (sourceId: number) => {
+            await api.post('/device/player/source', { id: sourceId });
         },
-        onSuccess: (_, sourceId) => {
+        onSuccess: (_: unknown, sourceId: number) => {
             setSelectedSource(sourceId);
             queryClient.invalidateQueries({ queryKey: ['player', 'songs'] });
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
@@ -76,8 +76,8 @@ export const Players: React.FC = () => {
     });
 
     const selectSongMutation = useMutation({
-        mutationFn: async (songId: string) => {
-            await api.post('/device/player/song', { song_id: songId });
+        mutationFn: async (songId: number) => {
+            await api.post('/device/player/song', { id: songId });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
@@ -127,12 +127,11 @@ export const Players: React.FC = () => {
         return '';
     };
 
-    const formatDuration = (seconds?: number | string) => {
-        if (!seconds) return '--:--';
-        const sec = typeof seconds === 'string' ? parseInt(seconds) : seconds;
-        const m = Math.floor(sec / 60);
-        const s = sec % 60;
-        return `${m}:${s.toString().padStart(2, '0')}`;
+    const formatTime = (seconds?: number) => {
+        if (!seconds) return '00:00';
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
     const paginatedSongs = songs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -149,14 +148,14 @@ export const Players: React.FC = () => {
                 {/* Source Selection */}
                 <Card title="Source" subtitle="Select audio/video source">
                     <div className="space-y-2">
-                        {sources.map((source) => (
+                        {sources.map((source: Source) => (
                             <button
                                 key={source.id}
                                 onClick={() => selectSourceMutation.mutate(source.id)}
                                 disabled={selectSourceMutation.isPending}
-                                className={`w-full px-4 py-3 rounded-lg text-left transition-all ${selectedSource === source.id || playerStatus?.current_source === source.id
-                                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500'
-                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                                className={`w-full px-4 py-3 rounded-lg text-left transition-all ${selectedSource === source.id
+                                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500'
+                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                                     } disabled:opacity-50`}
                             >
                                 <div className="flex items-center space-x-3">
@@ -176,10 +175,10 @@ export const Players: React.FC = () => {
                             <div className="flex items-center space-x-2">
                                 <span
                                     className={`w-3 h-3 rounded-full ${playerStatus?.state === 'playing'
-                                        ? 'bg-green-500 animate-pulse'
-                                        : playerStatus?.state === 'paused'
-                                            ? 'bg-yellow-500'
-                                            : 'bg-gray-400'
+                                            ? 'bg-green-500 animate-pulse'
+                                            : playerStatus?.state === 'paused'
+                                                ? 'bg-yellow-500'
+                                                : 'bg-gray-400'
                                         }`}
                                 />
                                 <span className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
@@ -195,10 +194,19 @@ export const Players: React.FC = () => {
                             </p>
                         </div>
 
+                        {playerStatus?.total_time && playerStatus.total_time > 0 && (
+                            <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Time</p>
+                                <p className="text-gray-900 dark:text-white font-mono">
+                                    {formatTime(playerStatus.current_time)} / {formatTime(playerStatus.total_time)}
+                                </p>
+                            </div>
+                        )}
+
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Repeat Mode</p>
                             <p className="text-gray-900 dark:text-white font-medium capitalize">
-                                {playerStatus?.repeat_mode || 'Off'}
+                                {playerStatus?.repeat_mode === 'none' ? 'Off' : playerStatus?.repeat_mode || 'Off'}
                             </p>
                         </div>
                     </div>
@@ -268,7 +276,8 @@ export const Players: React.FC = () => {
                             fullWidth
                             onClick={() => {
                                 const modes = ['off', 'one', 'all'];
-                                const currentIndex = modes.indexOf(playerStatus?.repeat_mode || 'off');
+                                const currentMode = playerStatus?.repeat_mode === 'none' ? 'off' : playerStatus?.repeat_mode || 'off';
+                                const currentIndex = modes.indexOf(currentMode);
                                 const nextMode = modes[(currentIndex + 1) % modes.length];
                                 repeatMutation.mutate(nextMode);
                             }}
@@ -276,7 +285,7 @@ export const Players: React.FC = () => {
                             className="relative"
                         >
                             <Repeat className="w-5 h-5 mr-2" />
-                            Repeat: {playerStatus?.repeat_mode || 'Off'}
+                            Repeat: {playerStatus?.repeat_mode === 'none' ? 'Off' : playerStatus?.repeat_mode || 'Off'}
                             {getRepeatIcon() && (
                                 <span className="ml-2 text-xs font-bold">{getRepeatIcon()}</span>
                             )}
@@ -288,59 +297,59 @@ export const Players: React.FC = () => {
             {/* Song List */}
             <Card title="Songs" subtitle="Select a song to play">
                 <>
-                    <div className="space-y-1">
-                        {paginatedSongs.map((song) => (
-                            <button
-                                key={song.id}
-                                onClick={() => selectSongMutation.mutate(song.id)}
-                                disabled={selectSongMutation.isPending}
-                                className={`w-full px-4 py-2 text-left transition-all flex items-center justify-between group rounded-md ${playerStatus?.song_title === song.title
-                                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium'
-                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                    } disabled:opacity-50`}
-                            >
-                                <div className="flex-1 min-w-0 pr-4">
-                                    <span className="truncate block">
-                                        {song.title}
-                                        {song.artist && (
-                                            <span className="text-gray-500 dark:text-gray-500 font-normal ml-2 text-sm">
-                                                - {song.artist}
-                                            </span>
-                                        )}
-                                    </span>
-                                </div>
-                                <div className="text-right text-sm font-mono text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300">
-                                    {formatDuration(song.duration)}
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Pagination Controls */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-between pt-4 mt-2 border-t border-gray-100 dark:border-gray-700">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                                Page {currentPage} of {totalPages}
-                            </span>
-                            <div className="flex space-x-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages}
-                                >
-                                    <ChevronRight className="w-4 h-4" />
-                                </Button>
-                            </div>
+                    {songs.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <Music className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                            <p>No songs available</p>
+                            <p className="text-sm mt-1">Select a source to load songs</p>
                         </div>
+                    ) : (
+                        <>
+                            <div className="space-y-1">
+                                {paginatedSongs.map((song: Song) => (
+                                    <button
+                                        key={song.id}
+                                        onClick={() => selectSongMutation.mutate(song.id)}
+                                        disabled={selectSongMutation.isPending}
+                                        className={`w-full px-4 py-2 text-left transition-all flex items-center justify-between group rounded-md ${playerStatus?.song_title === song.name
+                                                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium'
+                                                : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                            } disabled:opacity-50`}
+                                    >
+                                        <div className="flex-1 min-w-0 pr-4">
+                                            <span className="truncate block">{song.name}</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Pagination Controls */}
+                            {totalPages > 1 && (
+                                <div className="flex items-center justify-between pt-4 mt-2 border-t border-gray-100 dark:border-gray-700">
+                                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
+                                    <div className="flex space-x-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                        >
+                                            <ChevronLeft className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                            disabled={currentPage === totalPages}
+                                        >
+                                            <ChevronRight className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </>
             </Card>

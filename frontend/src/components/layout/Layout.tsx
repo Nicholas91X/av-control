@@ -9,7 +9,8 @@ import {
     X,
     Mic,
     Video,
-    HardDrive
+    HardDrive,
+    Settings
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { WebSocketStatus } from '../WebSocketStatus';
@@ -25,6 +26,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     const navigation = [
         { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+        { name: 'Presets', href: '/presets', icon: Settings },
         { name: 'Players', href: '/players', icon: Mic },
         { name: 'Recorders', href: '/recorders', icon: HardDrive },
         { name: 'Controls', href: '/controls', icon: Video },
