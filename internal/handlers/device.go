@@ -133,14 +133,19 @@ func (h *Handler) GetSongs(c *gin.Context) {
 // SelectSong
 func (h *Handler) SelectSong(c *gin.Context) {
 	var req struct {
-		ID int `json:"id" binding:"required"`
+		ID *int `json:"id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.respondError(c, http.StatusBadRequest, err.Error(), "INVALID_REQUEST")
 		return
 	}
 
-	if err := h.hwClient.SelectSong(req.ID); err != nil {
+	if req.ID == nil {
+		h.respondError(c, http.StatusBadRequest, "song ID is required", "INVALID_REQUEST")
+		return
+	}
+
+	if err := h.hwClient.SelectSong(*req.ID); err != nil {
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
@@ -148,7 +153,7 @@ func (h *Handler) SelectSong(c *gin.Context) {
 	userID := c.GetString("user_id")
 	username := c.GetString("username")
 	if h.hub != nil {
-		h.hub.BroadcastCommandExecuted(userID, username, "player.song.select", gin.H{"id": req.ID})
+		h.hub.BroadcastCommandExecuted(userID, username, "player.song.select", gin.H{"id": *req.ID})
 	}
 
 	h.respondSuccess(c, nil)
