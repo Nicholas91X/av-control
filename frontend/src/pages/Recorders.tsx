@@ -30,7 +30,7 @@ export const Recorders: React.FC = () => {
     // Mutations
     const startRecordingMutation = useMutation({
         mutationFn: async () => {
-            return api.post('/device/recorder/start', {});
+            return api.post('/device/recorder/start');
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recorder', 'status'] });

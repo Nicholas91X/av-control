@@ -299,7 +299,14 @@ export const Players: React.FC = () => {
                             className="relative"
                         >
                             <Repeat className="w-5 h-5 mr-2" />
-                            Repeat: {playerStatus?.repeat_mode === 'none' ? 'Off' : playerStatus?.repeat_mode || 'Off'}
+                            Repeat: {(() => {
+                                const displayMap: Record<string, string> = {
+                                    'none': 'Off',
+                                    'song': 'One',
+                                    'list': 'All'
+                                };
+                                return displayMap[playerStatus?.repeat_mode || 'none'] || 'Off';
+                            })()}
                             {getRepeatIcon() && (
                                 <span className="ml-2 text-xs font-bold">{getRepeatIcon()}</span>
                             )}

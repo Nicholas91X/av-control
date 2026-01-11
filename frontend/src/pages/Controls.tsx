@@ -45,12 +45,16 @@ export const Controls: React.FC = () => {
 
             for (const control of controls) {
                 try {
-                    const response = await api.get(`/device/controls/${control.id}`);
-                    values[control.id] = response.data;
+                    // Fetch volume
+                    const volumeResponse = await api.get(`/device/controls/volume/${control.id}`);
+                    values[control.id] = {
+                        id: control.id,
+                        volume: volumeResponse.data.volume
+                    };
 
-                    // Fetch mute value if second_id exists
+                    // Fetch mute se esiste second_id
                     if (control.second_id) {
-                        const muteResponse = await api.get(`/device/controls/${control.second_id}`);
+                        const muteResponse = await api.get(`/device/controls/mute/${control.second_id}`);
                         values[control.id] = {
                             ...values[control.id],
                             mute: muteResponse.data.mute,
@@ -109,20 +113,22 @@ export const Controls: React.FC = () => {
             }
         },
         onSettled: (_data, _error, variables) => {
-            // Refetch the specific control value and its parent/child if necessary
             const control = controls.find(c => c.id === variables.id || c.second_id === variables.id);
             if (control) {
-                api.get(`/device/controls/${control.id}`).then((response) => {
+                // Fetch volume per control principale
+                api.get(`/device/controls/volume/${control.id}`).then((response) => {
                     setControlValues((prev) => ({
                         ...prev,
                         [control.id]: {
                             ...prev[control.id],
-                            ...response.data
+                            volume: response.data.volume
                         },
                     }));
                 });
+
+                // Fetch mute se esiste second_id
                 if (control.second_id) {
-                    api.get(`/device/controls/${control.second_id}`).then((response) => {
+                    api.get(`/device/controls/mute/${control.second_id}`).then((response) => {
                         setControlValues((prev) => ({
                             ...prev,
                             [control.id]: {

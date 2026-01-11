@@ -261,7 +261,9 @@ func main() {
 			controls := device.Group("/controls")
 			{
 				controls.GET("", deviceHandler.GetControls)
-				controls.GET("/:id", deviceHandler.GetControlValue)
+				controls.GET("/volume/:id", deviceHandler.GetControlVolume) // NEW!
+				controls.GET("/mute/:id", deviceHandler.GetControlMute)     // NEW!
+				controls.GET("/:id", deviceHandler.GetControlValue)         // Fallback generico
 				controls.POST("/:id", deviceHandler.SetControlValue)
 			}
 		}

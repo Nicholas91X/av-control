@@ -353,6 +353,62 @@ func (h *Handler) GetControlValue(c *gin.Context) {
 	h.respondSuccess(c, val)
 }
 
+// GetControlVolume - Fetch volume value directly
+func (h *Handler) GetControlVolume(c *gin.Context) {
+	controlID := c.Param("id")
+	if controlID == "" {
+		h.respondError(c, http.StatusBadRequest, "Missing control ID", "INVALID_REQUEST")
+		return
+	}
+
+	// Cast to RealHardwareClient to access internal methods
+	realClient, ok := h.hwClient.(*hardware.RealHardwareClient)
+	if !ok {
+		h.respondError(c, http.StatusInternalServerError, "Hardware client not available", "HARDWARE_ERROR")
+		return
+	}
+
+	var response struct {
+		ID     int     `json:"id"`
+		Volume float64 `json:"volume"`
+	}
+
+	if err := realClient.GetDirect("/api/device/controls/volume/"+controlID, &response); err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+
+	h.respondSuccess(c, gin.H{"volume": response.Volume})
+}
+
+// GetControlMute - Fetch mute value directly
+func (h *Handler) GetControlMute(c *gin.Context) {
+	controlID := c.Param("id")
+	if controlID == "" {
+		h.respondError(c, http.StatusBadRequest, "Missing control ID", "INVALID_REQUEST")
+		return
+	}
+
+	// Cast to RealHardwareClient
+	realClient, ok := h.hwClient.(*hardware.RealHardwareClient)
+	if !ok {
+		h.respondError(c, http.StatusInternalServerError, "Hardware client not available", "HARDWARE_ERROR")
+		return
+	}
+
+	var response struct {
+		ID   int  `json:"id"`
+		Mute bool `json:"mute"`
+	}
+
+	if err := realClient.GetDirect("/api/device/controls/mute/"+controlID, &response); err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+
+	h.respondSuccess(c, gin.H{"mute": response.Mute})
+}
+
 func (h *Handler) SetControlValue(c *gin.Context) {
 	controlID := c.Param("id")
 	if controlID == "" {

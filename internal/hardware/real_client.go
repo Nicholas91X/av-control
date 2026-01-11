@@ -249,3 +249,8 @@ func (r *RealHardwareClient) GetSystemStatus() (*models.SystemStatus, error) {
 	err := r.get("/api/device/status", &response)
 	return &response, err
 }
+
+// GetDirect esegue una GET request diretta (pubblico per handler)
+func (r *RealHardwareClient) GetDirect(path string, result interface{}) error {
+	return r.get(path, result)
+}
