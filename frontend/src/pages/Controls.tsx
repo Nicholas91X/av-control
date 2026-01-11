@@ -74,14 +74,65 @@ export const Controls: React.FC = () => {
         mutationFn: async ({ id, value }: { id: number; value: number | boolean }) => {
             await api.post(`/device/controls/${id}`, { value });
         },
-        onSuccess: (_, variables) => {
-            // Refetch the specific control value
-            api.get(`/device/controls/${variables.id}`).then((response) => {
-                setControlValues((prev) => ({
-                    ...prev,
-                    [variables.id]: response.data,
-                }));
+        onMutate: async ({ id, value }) => {
+            await queryClient.cancelQueries({ queryKey: ['controls'] });
+            const previousValues = { ...controlValues };
+
+            setControlValues((prev) => {
+                const next = { ...prev };
+
+                // Se è un volume ID principale
+                if (next[id]) {
+                    if (typeof value === 'number') {
+                        next[id] = { ...next[id], volume: value };
+                    } else {
+                        next[id] = { ...next[id], mute: value };
+                    }
+                } else {
+                    // Se è un second_id, trova il control che lo possiede
+                    const ownerControl = controls.find(c => c.second_id === id);
+                    if (ownerControl && next[ownerControl.id]) {
+                        next[ownerControl.id] = {
+                            ...next[ownerControl.id],
+                            mute: value as boolean
+                        };
+                    }
+                }
+                return next;
             });
+
+            return { previousValues };
+        },
+        onError: (_err, _variables, context) => {
+            if (context?.previousValues) {
+                setControlValues(context.previousValues);
+            }
+        },
+        onSettled: (_data, _error, variables) => {
+            // Refetch the specific control value and its parent/child if necessary
+            const control = controls.find(c => c.id === variables.id || c.second_id === variables.id);
+            if (control) {
+                api.get(`/device/controls/${control.id}`).then((response) => {
+                    setControlValues((prev) => ({
+                        ...prev,
+                        [control.id]: {
+                            ...prev[control.id],
+                            ...response.data
+                        },
+                    }));
+                });
+                if (control.second_id) {
+                    api.get(`/device/controls/${control.second_id}`).then((response) => {
+                        setControlValues((prev) => ({
+                            ...prev,
+                            [control.id]: {
+                                ...prev[control.id],
+                                mute: response.data.mute
+                            },
+                        }));
+                    });
+                }
+            }
 
             // Remove from pending
             setPendingValues((prev) => {
@@ -109,7 +160,7 @@ export const Controls: React.FC = () => {
 
     const handleMuteToggle = (control: Control) => {
         const muteId = control.second_id || control.id;
-        const currentMute = controlValues[control.id]?.mute || false;
+        const currentMute = controlValues[control.id]?.mute ?? false;
         setControlMutation.mutate({ id: muteId, value: !currentMute });
     };
 

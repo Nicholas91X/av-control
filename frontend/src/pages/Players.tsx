@@ -28,7 +28,6 @@ interface PlayerStatus {
 export const Players: React.FC = () => {
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
-    const [selectedSource, setSelectedSource] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
 
@@ -60,7 +59,7 @@ export const Players: React.FC = () => {
             const response = await api.get('/device/player/status');
             return response.data;
         },
-        refetchInterval: 3000, // Poll every 3 seconds
+        refetchInterval: 1000, // Poll every 1 second
     });
 
     // Mutations
@@ -68,8 +67,7 @@ export const Players: React.FC = () => {
         mutationFn: async (sourceId: number) => {
             await api.post('/device/player/source', { id: sourceId });
         },
-        onSuccess: (_: unknown, sourceId: number) => {
-            setSelectedSource(sourceId);
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['player', 'songs'] });
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         },
@@ -110,8 +108,13 @@ export const Players: React.FC = () => {
     });
 
     const repeatMutation = useMutation({
-        mutationFn: async (mode: string) => api.post('/device/player/repeat', { mode }),
-        onSuccess: () => refetchStatus(),
+        mutationFn: async (mode: string) => {
+            const apiMode = mode === 'off' ? 'none' : mode;
+            return api.post('/device/player/repeat', { mode: apiMode });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+        },
     });
 
     // Handle WebSocket updates
@@ -153,9 +156,9 @@ export const Players: React.FC = () => {
                                 key={source.id}
                                 onClick={() => selectSourceMutation.mutate(source.id)}
                                 disabled={selectSourceMutation.isPending}
-                                className={`w-full px-4 py-3 rounded-lg text-left transition-all ${selectedSource === source.id
-                                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500'
-                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                                className={`w-full px-4 py-3 rounded-lg text-left transition-all ${parseInt(playerStatus?.current_source || '-1') === source.id
+                                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500'
+                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                                     } disabled:opacity-50`}
                             >
                                 <div className="flex items-center space-x-3">
@@ -175,10 +178,10 @@ export const Players: React.FC = () => {
                             <div className="flex items-center space-x-2">
                                 <span
                                     className={`w-3 h-3 rounded-full ${playerStatus?.state === 'playing'
-                                            ? 'bg-green-500 animate-pulse'
-                                            : playerStatus?.state === 'paused'
-                                                ? 'bg-yellow-500'
-                                                : 'bg-gray-400'
+                                        ? 'bg-green-500 animate-pulse'
+                                        : playerStatus?.state === 'paused'
+                                            ? 'bg-yellow-500'
+                                            : 'bg-gray-400'
                                         }`}
                                 />
                                 <span className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
@@ -312,8 +315,8 @@ export const Players: React.FC = () => {
                                         onClick={() => selectSongMutation.mutate(song.id)}
                                         disabled={selectSongMutation.isPending}
                                         className={`w-full px-4 py-2 text-left transition-all flex items-center justify-between group rounded-md ${playerStatus?.song_title === song.name
-                                                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium'
-                                                : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium'
+                                            : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
                                             } disabled:opacity-50`}
                                     >
                                         <div className="flex-1 min-w-0 pr-4">

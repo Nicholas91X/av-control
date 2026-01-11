@@ -5,8 +5,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { Login } from './pages/Login';
 import { Layout } from './components/layout/Layout';
-import { Card } from './components/ui/Card';
 import { RealtimeNotifications } from './components/RealtimeNotifications';
+import { Dashboard } from './pages/Dashboard';
 import { Players } from './pages/Players';
 import { Recorders } from './pages/Recorders';
 import { Controls } from './pages/Controls';
@@ -54,27 +54,7 @@ function App() {
                 path="/"
                 element={
                   <ProtectedRoute>
-                    <div className="space-y-6">
-                      <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-                        <p className="text-gray-500 dark:text-gray-400">System overview and quick actions</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <Card title="System Status">
-                          <div className="flex items-center space-x-2">
-                            <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                            <span className="text-gray-700 dark:text-gray-300 font-medium">Online</span>
-                          </div>
-                        </Card>
-                        <Card title="Active Devices">
-                          <p className="text-3xl font-bold text-gray-900 dark:text-white">12</p>
-                        </Card>
-                        <Card title="Network">
-                          <p className="text-gray-600 dark:text-gray-300">Stable (1ms latency)</p>
-                        </Card>
-                      </div>
-                    </div>
+                    <Dashboard />
                   </ProtectedRoute>
                 }
               />
