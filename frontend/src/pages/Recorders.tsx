@@ -30,8 +30,7 @@ export const Recorders: React.FC = () => {
     // Mutations
     const startRecordingMutation = useMutation({
         mutationFn: async () => {
-            const filename = `recording_${new Date().toISOString().replace(/[:.]/g, '-')}.mp4`;
-            return api.post('/device/recorder/start', { filename });
+            return api.post('/device/recorder/start', {});
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recorder', 'status'] });
@@ -69,16 +68,14 @@ export const Recorders: React.FC = () => {
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">State</p>
                             <div className="flex items-center space-x-3">
                                 <span
-                                    className={`w-4 h-4 rounded-full ${
-                                        isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-400'
-                                    }`}
+                                    className={`w-4 h-4 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-400'
+                                        }`}
                                 />
                                 <span
-                                    className={`text-xl font-bold ${
-                                        isRecording
-                                            ? 'text-red-600 dark:text-red-400'
-                                            : 'text-gray-700 dark:text-gray-300'
-                                    }`}
+                                    className={`text-xl font-bold ${isRecording
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'text-gray-700 dark:text-gray-300'
+                                        }`}
                                 >
                                     {isRecording ? 'RECORDING' : 'Stopped'}
                                 </span>

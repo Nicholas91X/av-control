@@ -109,7 +109,12 @@ export const Players: React.FC = () => {
 
     const repeatMutation = useMutation({
         mutationFn: async (mode: string) => {
-            const apiMode = mode === 'off' ? 'none' : mode;
+            const modeMap: Record<string, string> = {
+                'off': 'none',
+                'one': 'song',
+                'all': 'list'
+            };
+            const apiMode = modeMap[mode] || 'none';
             return api.post('/device/player/repeat', { mode: apiMode });
         },
         onSuccess: () => {
@@ -278,8 +283,14 @@ export const Players: React.FC = () => {
                             variant="secondary"
                             fullWidth
                             onClick={() => {
+                                const daemonToFrontend: Record<string, string> = {
+                                    'none': 'off',
+                                    'song': 'one',
+                                    'list': 'all'
+                                };
+
                                 const modes = ['off', 'one', 'all'];
-                                const currentMode = playerStatus?.repeat_mode === 'none' ? 'off' : playerStatus?.repeat_mode || 'off';
+                                const currentMode = daemonToFrontend[playerStatus?.repeat_mode || 'none'] || 'off';
                                 const currentIndex = modes.indexOf(currentMode);
                                 const nextMode = modes[(currentIndex + 1) % modes.length];
                                 repeatMutation.mutate(nextMode);

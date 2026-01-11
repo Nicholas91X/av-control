@@ -281,12 +281,10 @@ func (h *Handler) GetPlayerStatus(c *gin.Context) {
 
 func (h *Handler) StartRecording(c *gin.Context) {
 	var req struct {
-		Filename string `json:"filename" binding:"required"`
+		Filename string `json:"filename"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.respondError(c, http.StatusBadRequest, err.Error(), "INVALID_REQUEST")
-		return
-	}
+
+	_ = c.ShouldBindJSON(&req)
 
 	actualFilename, err := h.hwClient.StartRecording(req.Filename)
 	if err != nil {
