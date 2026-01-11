@@ -161,7 +161,11 @@ func (r *RealHardwareClient) GetPlayerStatus() (*models.PlayerStatus, error) {
 // ============================================================================
 
 func (r *RealHardwareClient) StartRecording(filename string) (string, error) {
-	payload := map[string]string{"filename": filename}
+	// Se filename vuoto, non inviare payload (daemon genera automatico)
+	var payload interface{}
+	if filename != "" {
+		payload = map[string]string{"filename": filename}
+	}
 
 	var response struct {
 		Filename string `json:"filename"`

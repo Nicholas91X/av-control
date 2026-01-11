@@ -214,7 +214,14 @@ export const Players: React.FC = () => {
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Repeat Mode</p>
                             <p className="text-gray-900 dark:text-white font-medium capitalize">
-                                {playerStatus?.repeat_mode === 'none' ? 'Off' : playerStatus?.repeat_mode || 'Off'}
+                                {(() => {
+                                    const displayMap: Record<string, string> = {
+                                        'none': 'Off',
+                                        'song': 'One',
+                                        'list': 'All'
+                                    };
+                                    return displayMap[playerStatus?.repeat_mode || 'none'] || 'Off';
+                                })()}
                             </p>
                         </div>
                     </div>
