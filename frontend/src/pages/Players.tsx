@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Card } from '../components/ui/Card';
@@ -31,6 +31,12 @@ export const Players: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
 
+    // ============================================
+    // CRITICAL FIX #1: Stato locale per source selezionata
+    // Il daemon NON ritorna current_source in /player/status
+    // ============================================
+    const [selectedSource, setSelectedSource] = useState<number | null>(null);
+
     // Fetch sources
     const { data: sourcesData } = useQuery<{ sources: Source[] }>({
         queryKey: ['player', 'sources'],
@@ -41,19 +47,32 @@ export const Players: React.FC = () => {
     });
     const sources = sourcesData?.sources || [];
 
-    // Fetch songs
-    const { data: songsData, refetch: refetchSongs } = useQuery<{ songs: Song[] }>({
-        queryKey: ['player', 'songs'],
+    // ============================================
+    // CRITICAL FIX #2: Inizializza selectedSource al primo caricamento
+    // ============================================
+    useEffect(() => {
+        if (sources.length > 0 && selectedSource === null) {
+            setSelectedSource(sources[0].id);
+        }
+    }, [sources, selectedSource]);
+
+    // ============================================
+    // CRITICAL FIX #3: Query key DINAMICA con selectedSource
+    // Questo forza React Query a fare una nuova fetch quando cambia source
+    // ============================================
+    const { data: songsData } = useQuery<{ songs: Song[] }>({
+        queryKey: ['player', 'songs', selectedSource],
         queryFn: async () => {
             const response = await api.get('/device/player/songs');
             return response.data;
         },
-        enabled: true,
+        enabled: selectedSource !== null,
+        staleTime: 0, // Disabilita cache per forzare refresh
     });
     const songs = songsData?.songs || [];
 
     // Fetch player status
-    const { data: playerStatus, refetch: refetchStatus } = useQuery<PlayerStatus>({
+    const { data: playerStatus } = useQuery<PlayerStatus>({
         queryKey: ['player', 'status'],
         queryFn: async () => {
             const response = await api.get('/device/player/status');
@@ -62,14 +81,20 @@ export const Players: React.FC = () => {
         refetchInterval: 1000, // Poll every 1 second
     });
 
-    // Mutations
+    // ============================================
+    // CRITICAL FIX #4: Mutation con aggiornamento esplicito state + API call
+    // ============================================
     const selectSourceMutation = useMutation({
         mutationFn: async (sourceId: number) => {
+            // Prima aggiorna lo stato locale per feedback immediato
+            setSelectedSource(sourceId);
+            // Poi chiama l'API
             await api.post('/device/player/source', { id: sourceId });
         },
-        onSuccess: async () => {
-            // FIX #1: Refetch esplicito delle songs per evitare doppio click
-            await refetchSongs();
+        onSuccess: () => {
+            // Invalida queries per forzare refetch
+            // La query songs verrà refetchata automaticamente grazie alla queryKey dinamica
+            queryClient.invalidateQueries({ queryKey: ['player', 'songs'] });
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         },
     });
@@ -85,29 +110,43 @@ export const Players: React.FC = () => {
 
     const playMutation = useMutation({
         mutationFn: async () => api.post('/device/player/play'),
-        onSuccess: () => refetchStatus(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+        },
     });
 
     const pauseMutation = useMutation({
         mutationFn: async () => api.post('/device/player/pause'),
-        onSuccess: () => refetchStatus(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+        },
     });
 
     const stopMutation = useMutation({
         mutationFn: async () => api.post('/device/player/stop'),
-        onSuccess: () => refetchStatus(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+        },
     });
 
     const nextMutation = useMutation({
         mutationFn: async () => api.post('/device/player/next'),
-        onSuccess: () => refetchStatus(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+        },
     });
 
     const previousMutation = useMutation({
         mutationFn: async () => api.post('/device/player/previous'),
-        onSuccess: () => refetchStatus(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+        },
     });
 
+    // ============================================
+    // CRITICAL FIX #5: Repeat mutation con OPTIMISTIC UPDATE
+    // Aggiorna la cache PRIMA della risposta API per feedback immediato
+    // ============================================
     const repeatMutation = useMutation({
         mutationFn: async (mode: string) => {
             const modeMap: Record<string, string> = {
@@ -118,19 +157,50 @@ export const Players: React.FC = () => {
             const apiMode = modeMap[mode] || 'none';
             return api.post('/device/player/repeat', { mode: apiMode });
         },
-        onSuccess: async () => {
-            // FIX #2: Refetch esplicito dello status per aggiornare subito il display
-            await refetchStatus();
+        onMutate: async (mode: string) => {
+            // OPTIMISTIC UPDATE: aggiorna la cache PRIMA della risposta
+            const modeMap: Record<string, string> = {
+                'off': 'none',
+                'one': 'song',
+                'all': 'list'
+            };
+            const newRepeatMode = modeMap[mode] as 'song' | 'list' | 'none';
+
+            // Cancella queries in volo per evitare race conditions
+            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
+
+            // Salva il valore precedente per rollback
+            const previousStatus = queryClient.getQueryData<PlayerStatus>(['player', 'status']);
+
+            // Aggiorna la cache con il nuovo valore
+            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    repeat_mode: newRepeatMode
+                };
+            });
+
+            return { previousStatus };
+        },
+        onError: (_err, _mode, context) => {
+            // Rollback in caso di errore
+            if (context?.previousStatus) {
+                queryClient.setQueryData(['player', 'status'], context.previousStatus);
+            }
+        },
+        onSettled: () => {
+            // Ricarica dopo successo O errore per confermare stato reale
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         },
     });
 
     // Handle WebSocket updates
-    React.useEffect(() => {
+    useEffect(() => {
         if (lastMessage?.type === 'command_executed' || lastMessage?.type === 'status_update') {
-            refetchStatus();
+            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         }
-    }, [lastMessage, refetchStatus]);
+    }, [lastMessage, queryClient]);
 
     const getRepeatIcon = () => {
         if (playerStatus?.repeat_mode === 'song') return '1';
@@ -164,7 +234,7 @@ export const Players: React.FC = () => {
                                 key={source.id}
                                 onClick={() => selectSourceMutation.mutate(source.id)}
                                 disabled={selectSourceMutation.isPending}
-                                className={`w-full px-4 py-3 rounded-lg text-left transition-all ${parseInt(playerStatus?.current_source || '-1') === source.id
+                                className={`w-full px-4 py-3 rounded-lg text-left transition-all ${selectedSource === source.id
                                     ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500'
                                     : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                                     } disabled:opacity-50`}
@@ -179,12 +249,12 @@ export const Players: React.FC = () => {
                 </Card>
 
                 {/* Player Status */}
-                <Card title="Player Status" subtitle="Current playback state">
+                <Card title="Player Status" subtitle="Current playback information">
                     <div className="space-y-4">
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">State</p>
                             <div className="flex items-center space-x-2">
-                                <span
+                                <div
                                     className={`w-3 h-3 rounded-full ${playerStatus?.state === 'playing'
                                         ? 'bg-green-500 animate-pulse'
                                         : playerStatus?.state === 'paused'
@@ -192,7 +262,7 @@ export const Players: React.FC = () => {
                                             : 'bg-gray-400'
                                         }`}
                                 />
-                                <span className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+                                <span className="text-gray-900 dark:text-white font-medium capitalize">
                                     {playerStatus?.state || 'Unknown'}
                                 </span>
                             </div>
@@ -205,14 +275,12 @@ export const Players: React.FC = () => {
                             </p>
                         </div>
 
-                        {playerStatus?.total_time && playerStatus.total_time > 0 && (
-                            <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Time</p>
-                                <p className="text-gray-900 dark:text-white font-mono">
-                                    {formatTime(playerStatus.current_time)} / {formatTime(playerStatus.total_time)}
-                                </p>
-                            </div>
-                        )}
+                        <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Time</p>
+                            <p className="text-gray-900 dark:text-white font-medium font-mono">
+                                {formatTime(playerStatus?.current_time)} / {formatTime(playerStatus?.total_time)}
+                            </p>
+                        </div>
 
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Repeat Mode</p>
