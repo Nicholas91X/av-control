@@ -86,7 +86,7 @@ GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 go build \
   -ldflags="-s -w -X main.Version=$VERSION -X main.BuildTime=$BUILD_TIME" \
   -trimpath \
   -o av-control-arm32 \
-  cmd/server/main.go
+  ./cmd/server
 
 if [ ! -f "av-control-arm32" ]; then
     echo -e "${RED}❌ Build failed: binary not created${NC}"

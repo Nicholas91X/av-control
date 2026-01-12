@@ -6,9 +6,10 @@ import (
 	"time"
 )
 
-const (
+var (
 	Version   = "1.0.3"
 	BuildDate = "2026-01-11"
+	BuildTime = ""
 )
 
 type VersionInfo struct {
@@ -21,10 +22,15 @@ type VersionInfo struct {
 }
 
 func GetVersionInfo() VersionInfo {
+	bt := BuildTime
+	if bt == "" {
+		bt = time.Now().Format("2006-01-02 15:04:05")
+	}
+
 	return VersionInfo{
 		Version:   Version,
 		BuildDate: BuildDate,
-		BuildTime: time.Now().Format("2006-01-02 15:04:05"),
+		BuildTime: bt,
 		GoVersion: runtime.Version(),
 		OS:        runtime.GOOS,
 		Arch:      runtime.GOARCH,
