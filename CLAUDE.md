@@ -1,121 +1,90 @@
-# CLAUDE.md
+# CLAUDE.md - Project Documentation & Instructions
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides comprehensive guidance for working with the **AV Control System**. Use this as a reference for technology stack, architecture, workflows, and coding standards.
 
 ## Project Overview
+AV Control is a full-stack system designed to control professional audio/video hardware (specifically S-Mix devices). It consists of a **Go backend** acting as a gateway and a **React frontend** for the user interface.
 
-Av-Control is an Audio/Video control system built with Go and Gin framework. The system provides a REST API for controlling audio/video hardware, managing presets, player controls, recording functionality, and user authentication.
+## Technology Stack
+
+### Backend (Go)
+- **Framework**: Gin (HTTP)
+- **Database**: SQLite (via GORM) with WAL mode enabled.
+- **Auth**: JWT-based (HS256), session management (one session per user).
+- **Communication**: REST API + WebSockets for real-time notifications.
+- **Hardware Gateway**: Connects to a local hardware daemon on `localhost:8080`.
+
+### Frontend (React)
+- **Framework**: React 18+ with TypeScript & Vite.
+- **Styling**: Tailwind CSS + Vanilla CSS for custom components.
+- **Icons**: Lucide React.
+- **State/Fetching**: TanStack Query (React Query) for API synchronization.
+- **Communication**: Axios with interceptors for JWT auth.
+
+## Project Structure
+
+```text
+.
+├── cmd/server/             # Application entry point (main.go, version.go)
+├── internal/
+│   ├── database/           # GORM initialization & SQLite setup
+│   ├── handlers/           # HTTP handlers (Device control & Auth)
+│   ├── hardware/           # Hardware Client (Mock vs Real implementation)
+│   ├── middleware/         # JWT Auth & Role-based access control
+│   ├── models/             # Database (GORM) and API/Hardware models
+│   └── services/           # Business logic (Audit logs, WebSocket)
+├── frontend/
+│   ├── src/
+│   │   ├── components/     # UI components (Layout, Cards, Buttons)
+│   │   ├── context/        # React Context (Auth, WebSocket)
+│   │   ├── lib/            # Shared utilities (API client)
+│   │   └── pages/          # Main views (Dashboard, Controls, Players, etc.)
+└── scripts/                # Database backup & management tools
+└── deployment/             # Service files and install scripts
+```
+
+## Hardware Interaction Workflow
+The Go backend usually communicates with a **RealHardwareClient** which makes internal requests to a C++ hardware daemon running on the same board:
+- **Volume/Mute**: Handled separately via `/api/device/controls/volume/:id` and `/api/device/controls/mute/:id`.
+- **Polling**: Frontend polls `/device/player/status` every 1s and `/device/status` every 2s for real-time dashboard updates.
 
 ## Development Commands
 
-### Running the Server
-```bash
-go run cmd/server/main.go
-```
-Server starts on port 8000 at `http://localhost:8000`
+### Backend
+- Run with mock hardware: `go run ./cmd/server -mock`
+- Build for development: `go build ./cmd/server`
 
-### Building
-```bash
-go build -o av-control.exe cmd/server/main.go
-```
+### Frontend
+- Install: `cd frontend && npm install`
+- Run dev: `cd frontend && npm run dev`
+- Build: `cd frontend && npm run build`
 
-### Dependencies
-```bash
-go mod download
-go mod tidy
-```
+### Build & Deploy
+- **Production Build (ARM32)**: `./build-production.sh`
+  - Cross-compiles Go for `linux/arm/v7`.
+  - Builds and bundles the React app into `public/`.
+  - Creates a deployment tarball `av-control-deployment.tar.gz`.
 
-## Architecture
+## Coding Guidelines & Best Practices
 
-### Layer Structure
+### Backend
+- **Error Handling**: Use `h.respondError(c, code, message, error_id)` for consistent API responses.
+- **Audit Logging**: Every hardware command must be logged via `auditService`.
+- **Version Info**: Update `Version` in `cmd/server/version.go` or let `build-production.sh` inject it via ldflags.
 
-The codebase follows a clean architecture pattern with clear separation of concerns:
+### Frontend
+- **API Requests**: Always use the `api` instance from `lib/api` (it handles the Authorization header).
+- **React Query**: 
+  - Use `useQuery` for data fetching with appropriate `refetchInterval`.
+  - Use `useMutation` with **Optimistic Updates** for interactive elements like volume sliders to prevent UI "jump-back".
+- **Responsive Design**: Ensure everything works on small touchscreens (600px - 1024px).
 
-**`cmd/server/main.go`** - Application entry point. Initializes database, creates hardware client (currently MockHardwareClient), sets up Gin router with CORS, and defines all routes. The server is configured to run on port 8000.
-
-**`internal/database/`** - Database initialization using GORM with SQLite (glebarez/sqlite). Handles auto-migration and database seeding. Creates default admin user (username: "admin", password: "admin123") on first run. SQLite is configured with WAL mode for better concurrency.
-
-**`internal/handlers/`** - HTTP request handlers that bridge the API layer and hardware layer. Two handler types:
-- `Handler` - Device control handlers with references to database and hardware client
-- `AuthHandler` - Authentication handlers for login, logout, and token refresh
-All handlers follow a consistent pattern using helper methods `respondError()` and `respondSuccess()`.
-
-**`internal/hardware/`** - Hardware abstraction layer with two implementations:
-- `HardwareClient` interface defines all hardware operations
-- `MockHardwareClient` is the current implementation providing simulated hardware behavior for development and testing
-
-**`internal/middleware/`** - HTTP middleware functions:
-- `JWTAuthMiddleware` - Validates JWT tokens, verifies sessions in database, checks user status
-- `RequireRole` - Role-based access control middleware
-
-**`internal/models/`** - Data models split into two categories:
-- Database models (User, Session, CommandLog, UserAuditLog) using GORM
-- API/Hardware models (Preset, Source, Song, PlayerStatus, etc.) for JSON serialization
-
-### Hardware Client Pattern
-
-The hardware layer uses an interface-based design (`HardwareClient`) to allow swapping between mock and real hardware implementations without changing handler code. Currently, the system uses `MockHardwareClient` which simulates all hardware operations with in-memory state.
-
-To switch to real hardware: implement the `HardwareClient` interface in a new struct and replace the instantiation in `cmd/server/main.go:28`.
-
-### Authentication System
-
-Complete JWT-based authentication system with the following features:
-
-**Session Management:**
-- Only ONE active session allowed per user (enforced at login)
-- Access tokens: 24 hours expiry
-- Refresh tokens: 60 days expiry
-- Tokens stored as SHA256 hashes in database for security
-- Session validation on every protected endpoint access
-
-**Endpoints:**
-- `POST /api/auth/login` - Login with username/password (case-insensitive username)
-- `POST /api/auth/logout` - Logout and invalidate all user sessions (requires auth)
-- `POST /api/auth/refresh` - Generate new access token using refresh token
-
-**Security Features:**
-- Passwords hashed with bcrypt
-- Token-based authentication using JWT (HS256)
-- JWT secret auto-generated on startup (set `JWT_SECRET` env var for production)
-- Session tracking with device info and IP address
-- Active user check on authentication
-- All device endpoints protected with JWT middleware
-
-**User Roles:** admin, priest, technician, volunteer
-
-**Default Credentials:** username: `admin`, password: `admin123`
-
-## API Structure
-
-Base URL: `http://localhost:8000/api`
-
-**Authentication** (Public) - `/api/auth/*`:
-- Login, logout, and refresh token endpoints
-- No authentication required except logout
-
-**Device Endpoints** (Protected) - `/api/device/*`:
-- All endpoints require valid JWT in `Authorization: Bearer <token>` header
-- **Presets** - `/api/device/presets/*` - Load and manage audio/video configuration presets
-- **Player** - `/api/device/player/*` - Control media playback including source selection, song management, play/pause/stop, repeat modes
-- **Recorder** - `/api/device/recorder/*` - Start/stop recording with filename management
-- **Controls** - `/api/device/controls/*` - Manage hardware controls (volume, mute)
-- **System** - `/api/device/status` - Get unified system status including preset, player, recorder, and controls state
-
-**Debug Endpoints** - `/debug/*` - Development endpoints for database inspection and mock client verification (unprotected, remove in production)
-
-## Database
-
-SQLite database at `./av-control.db` with GORM ORM. Tables: users, sessions, command_logs, user_audit_logs.
-
-WAL mode enabled for concurrent access. Auto-migration runs on startup.
-
-## Key Dependencies
-
-- `gin-gonic/gin` - HTTP framework
-- `gorm.io/gorm` - ORM
-- `glebarez/sqlite` - SQLite driver
-- `golang.org/x/crypto/bcrypt` - Password hashing
-- `golang-jwt/jwt/v5` - JWT authentication
-- `google/uuid` - UUID generation
-- `gin-contrib/cors` - CORS middleware (currently allows all origins)
+## Deployment Info
+- **Target OS**: Debian-based linux on ARM32.
+- **Port**: Default 8000.
+- **Environment Variables**:
+  - `GIN_MODE`: `release` or `debug`
+  - `JWT_SECRET`: Mandatory in release mode.
+  - `DATABASE_PATH`: Path to SQLite file.
+  - `PORT`: Server port.
+  - `CORS_ORIGINS`: Allowed frontend origins.
