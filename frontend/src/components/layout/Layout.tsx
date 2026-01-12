@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { WebSocketStatus } from '../WebSocketStatus';
+import { VersionDisplay } from './VersionDisplay';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -143,6 +144,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     />
                 )}
             </div>
+            {/* Footer con versione - AGGIUNGI QUESTO */}
+            <footer className="mt-auto py-3 px-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <div>
+                        © 2026 AV Control System
+                    </div>
+                    <VersionDisplay />
+                </div>
+            </footer>
         </div>
     );
 };

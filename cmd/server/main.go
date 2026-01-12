@@ -22,6 +22,8 @@ import (
 
 func main() {
 
+	PrintVersion()
+
 	// Load .env file (se esiste)
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using system environment variables")
@@ -108,6 +110,10 @@ func main() {
 	// 5. Health Check Route
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	r.GET("/version", func(c *gin.Context) {
+		c.JSON(http.StatusOK, GetVersionInfo())
 	})
 
 	// ========================================

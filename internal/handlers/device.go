@@ -4,6 +4,7 @@ import (
 	"av-control/internal/hardware"
 	"av-control/internal/models"
 	"av-control/internal/services"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -253,11 +254,16 @@ func (h *Handler) SetRepeatMode(c *gin.Context) {
 		return
 	}
 
+	// DEBUG LOG
+	log.Printf("🔁 [REPEAT] Received mode: %s", req.Mode)
+
 	if err := h.hwClient.SetRepeatMode(req.Mode); err != nil {
+		log.Printf("❌ [REPEAT] Hardware error: %v", err)
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
 
+	log.Printf("✅ [REPEAT] Successfully set to: %s", req.Mode)
 	// Broadcast command execution
 	userID := c.GetString("user_id")
 	username := c.GetString("username")
@@ -286,11 +292,17 @@ func (h *Handler) StartRecording(c *gin.Context) {
 
 	_ = c.ShouldBindJSON(&req)
 
+	// DEBUG LOG
+	log.Printf("🎥 [RECORDER] Received filename: '%s' (len=%d)", req.Filename, len(req.Filename))
+
 	actualFilename, err := h.hwClient.StartRecording(req.Filename)
 	if err != nil {
+		log.Printf("❌ [RECORDER] Hardware error: %v", err)
 		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
 		return
 	}
+
+	log.Printf("✅ [RECORDER] Recording started: %s", actualFilename)
 
 	// Broadcast command execution
 	userID := c.GetString("user_id")

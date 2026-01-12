@@ -5,6 +5,16 @@
 # Cross-compila per ARM32 e crea package
 # ==========================================
 
+# Increment version on each build
+VERSION="1.0.3"
+BUILD_DATE=$(date +%Y-%m-%d)
+BUILD_TIME=$(date +%H:%M:%S)
+
+echo "═══════════════════════════════════════════"
+echo "  Building AV Control v$VERSION"
+echo "  Date: $BUILD_DATE $BUILD_TIME"
+echo "═══════════════════════════════════════════"
+
 set -e  # Exit on error
 
 echo "🏗️  VerbumDigital AV Control - Production Build"
