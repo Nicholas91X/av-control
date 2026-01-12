@@ -22,7 +22,7 @@ interface PlayerStatus {
     song_title?: string;
     current_time?: number;
     total_time?: number;
-    repeat_mode: 'off' | 'one' | 'all' | 'none';
+    repeat_mode: 'song' | 'list' | 'none';
 }
 
 export const Players: React.FC = () => {
@@ -42,7 +42,7 @@ export const Players: React.FC = () => {
     const sources = sourcesData?.sources || [];
 
     // Fetch songs
-    const { data: songsData } = useQuery<{ songs: Song[] }>({
+    const { data: songsData, refetch: refetchSongs } = useQuery<{ songs: Song[] }>({
         queryKey: ['player', 'songs'],
         queryFn: async () => {
             const response = await api.get('/device/player/songs');
@@ -67,8 +67,9 @@ export const Players: React.FC = () => {
         mutationFn: async (sourceId: number) => {
             await api.post('/device/player/source', { id: sourceId });
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['player', 'songs'] });
+        onSuccess: async () => {
+            // FIX #1: Refetch esplicito delle songs per evitare doppio click
+            await refetchSongs();
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         },
     });
@@ -117,7 +118,9 @@ export const Players: React.FC = () => {
             const apiMode = modeMap[mode] || 'none';
             return api.post('/device/player/repeat', { mode: apiMode });
         },
-        onSuccess: () => {
+        onSuccess: async () => {
+            // FIX #2: Refetch esplicito dello status per aggiornare subito il display
+            await refetchStatus();
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         },
     });
@@ -130,8 +133,8 @@ export const Players: React.FC = () => {
     }, [lastMessage, refetchStatus]);
 
     const getRepeatIcon = () => {
-        if (playerStatus?.repeat_mode === 'one') return '1';
-        if (playerStatus?.repeat_mode === 'all') return '∞';
+        if (playerStatus?.repeat_mode === 'song') return '1';
+        if (playerStatus?.repeat_mode === 'list') return '∞';
         return '';
     };
 
@@ -355,7 +358,7 @@ export const Players: React.FC = () => {
                             {totalPages > 1 && (
                                 <div className="flex items-center justify-between pt-4 mt-2 border-t border-gray-100 dark:border-gray-700">
                                     <span className="text-sm text-gray-500 dark:text-gray-400">
-                                        Page {currentPage} of {totalPages}
+                                        Page {currentPage} of {totalPages} ({songs.length} songs total)
                                     </span>
                                     <div className="flex space-x-2">
                                         <Button

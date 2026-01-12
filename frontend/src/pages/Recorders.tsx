@@ -3,14 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Circle, Square, Video, Clock } from 'lucide-react';
+import { Circle, Square, Video, Clock, AlertCircle } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 
 interface RecorderStatus {
-    state: 'recording' | 'stopped';
-    current_file?: string;
-    duration?: string;
-    start_time?: string;
+    state: 'recording' | 'stopped' | 'nomedia';
+    current_time?: number;
+    filename?: string;
 }
 
 export const Recorders: React.FC = () => {
@@ -32,14 +31,17 @@ export const Recorders: React.FC = () => {
         mutationFn: async () => {
             return api.post('/device/recorder/start');
         },
-        onSuccess: () => {
+        onSuccess: async () => {
+            // Refetch esplicito per aggiornare subito lo stato
+            await refetchStatus();
             queryClient.invalidateQueries({ queryKey: ['recorder', 'status'] });
         },
     });
 
     const stopRecordingMutation = useMutation({
         mutationFn: async () => api.post('/device/recorder/stop'),
-        onSuccess: () => {
+        onSuccess: async () => {
+            await refetchStatus();
             queryClient.invalidateQueries({ queryKey: ['recorder', 'status'] });
         },
     });
@@ -52,6 +54,14 @@ export const Recorders: React.FC = () => {
     }, [lastMessage, refetchStatus]);
 
     const isRecording = recorderStatus?.state === 'recording';
+    const isNoMedia = recorderStatus?.state === 'nomedia';
+
+    const formatTime = (seconds?: number) => {
+        if (!seconds) return '00:00';
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
 
     return (
         <div className="space-y-6">
@@ -59,6 +69,24 @@ export const Recorders: React.FC = () => {
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recorders</h1>
                 <p className="text-gray-500 dark:text-gray-400">Control video/audio recording</p>
             </div>
+
+            {/* FIX #3: Alert per stato nomedia */}
+            {isNoMedia && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded-md">
+                    <div className="flex items-start">
+                        <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5 mr-3 flex-shrink-0" />
+                        <div>
+                            <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                                No Media Source Selected
+                            </h3>
+                            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                                Il recorder è nello stato "nomedia". Potrebbe essere necessario selezionare una sorgente
+                                nella sezione Players o configurare l'input di registrazione prima di avviare una registrazione.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recorder Status */}
@@ -68,50 +96,47 @@ export const Recorders: React.FC = () => {
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">State</p>
                             <div className="flex items-center space-x-3">
                                 <span
-                                    className={`w-4 h-4 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-400'
+                                    className={`w-4 h-4 rounded-full ${isRecording
+                                        ? 'bg-red-500 animate-pulse'
+                                        : isNoMedia
+                                            ? 'bg-yellow-500'
+                                            : 'bg-gray-400'
                                         }`}
                                 />
                                 <span
                                     className={`text-xl font-bold ${isRecording
                                         ? 'text-red-600 dark:text-red-400'
-                                        : 'text-gray-700 dark:text-gray-300'
+                                        : isNoMedia
+                                            ? 'text-yellow-600 dark:text-yellow-400'
+                                            : 'text-gray-700 dark:text-gray-300'
                                         }`}
                                 >
-                                    {isRecording ? 'RECORDING' : 'Stopped'}
+                                    {isRecording ? 'RECORDING' : isNoMedia ? 'NO MEDIA' : 'Stopped'}
                                 </span>
                             </div>
                         </div>
 
-                        {recorderStatus?.current_file && (
+                        {recorderStatus?.filename && recorderStatus.filename !== '' && (
                             <div>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Current File</p>
                                 <div className="flex items-center space-x-2">
                                     <Video className="w-4 h-4 text-gray-400" />
                                     <p className="text-gray-900 dark:text-white font-mono text-sm">
-                                        {recorderStatus.current_file}
+                                        {recorderStatus.filename}
                                     </p>
                                 </div>
                             </div>
                         )}
 
-                        {recorderStatus?.duration && (
+                        {isRecording && recorderStatus?.current_time !== undefined && (
                             <div>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Duration</p>
                                 <div className="flex items-center space-x-2">
                                     <Clock className="w-4 h-4 text-gray-400" />
                                     <p className="text-gray-900 dark:text-white font-mono text-lg font-semibold">
-                                        {recorderStatus.duration}
+                                        {formatTime(recorderStatus.current_time)}
                                     </p>
                                 </div>
-                            </div>
-                        )}
-
-                        {recorderStatus?.start_time && (
-                            <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Started At</p>
-                                <p className="text-gray-900 dark:text-white text-sm">
-                                    {new Date(recorderStatus.start_time).toLocaleString()}
-                                </p>
                             </div>
                         )}
                     </div>
@@ -159,9 +184,10 @@ export const Recorders: React.FC = () => {
                                 Recording Info
                             </h3>
                             <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                                <li>• Recordings are saved to the configured output directory</li>
-                                <li>• File format: MP4 (H.264 video, AAC audio)</li>
-                                <li>• Auto-stop on system shutdown or error</li>
+                                <li>• Le registrazioni vengono salvate nella directory configurata</li>
+                                <li>• Il nome del file viene generato automaticamente se non specificato</li>
+                                <li>• Verificare di aver selezionato una sorgente valida nella sezione Players</li>
+                                <li>• Lo stato "nomedia" indica che non c'è una sorgente attiva per la registrazione</li>
                             </ul>
                         </div>
                     </div>
