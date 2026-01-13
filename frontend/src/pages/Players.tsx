@@ -25,6 +25,8 @@ interface PlayerStatus {
     repeat_mode: 'song' | 'list' | 'none';
 }
 
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const Players: React.FC = () => {
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
@@ -50,12 +52,17 @@ export const Players: React.FC = () => {
 
     // ============================================
     // CRITICAL FIX #2: Inizializza selectedSource al primo caricamento
+    // E sincronizza il backend!
     // ============================================
     useEffect(() => {
         if (sources.length > 0 && selectedSource === null) {
-            setSelectedSource(sources[0].id);
+            const defaultSource = sources[0].id;
+            setSelectedSource(defaultSource);
+            // Forza immediata selezione anche lato backend
+            // Altrimenti la get /songs ritorna vuoto o dati vecchi
+            selectSourceMutation.mutate(defaultSource);
         }
-    }, [sources, selectedSource]);
+    }, [sources]); // Rimosso selectedSource e selectSourceMutation dalle deps evitare loop
 
     // ============================================
     // CRITICAL FIX #3: Query key DINAMICA con selectedSource
@@ -94,7 +101,10 @@ export const Players: React.FC = () => {
         },
         onMutate: () => setIsMutating(true),
         onSettled: () => setIsMutating(false),
-        onSuccess: () => {
+        onSuccess: async () => {
+            // FIX TIMING: Attendi che l'hardware propaghi il cambio sorgente
+            await wait(500);
+
             // Invalida queries per forzare refetch
             // La query songs verrà refetchata automaticamente grazie alla queryKey dinamica
             queryClient.invalidateQueries({ queryKey: ['player', 'songs'] });
@@ -193,7 +203,11 @@ export const Players: React.FC = () => {
                 queryClient.setQueryData(['player', 'status'], context.previousStatus);
             }
         },
-        onSettled: () => {
+        onSettled: async () => {
+            // FIX TIMING: Attendi un po' prima di riabilitare il polling 
+            // e invalidare, per dare tempo all'hardware di aggiornare lo status
+            await wait(1000);
+
             setIsMutating(false); // Resume polling
             // Ricarica dopo successo O errore per confermare stato reale
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
