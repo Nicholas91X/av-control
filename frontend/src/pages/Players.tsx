@@ -22,7 +22,7 @@ interface PlayerStatus {
     song_title?: string;
     current_time?: number;
     total_time?: number;
-    repeat_mode: 'song' | 'list' | 'all' | 'none';
+    repeat_mode: 'song' | 'group' | 'none';
 }
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -165,7 +165,7 @@ export const Players: React.FC = () => {
             const modeMap: Record<string, string> = {
                 'off': 'none',
                 'one': 'song',
-                'all': 'all' // Changed from 'list' to 'all' based on hypothesis
+                'all': 'group' // Correct hardware value found via probe
             };
             const apiMode = modeMap[mode] || 'none';
             return api.post('/device/player/repeat', { mode: apiMode });
@@ -176,9 +176,9 @@ export const Players: React.FC = () => {
             const modeMap: Record<string, string> = {
                 'off': 'none',
                 'one': 'song',
-                'all': 'all' // Optimistic expectation
+                'all': 'group'
             };
-            const newRepeatMode = modeMap[mode] as 'song' | 'list' | 'none';
+            const newRepeatMode = modeMap[mode] as 'song' | 'group' | 'none';
 
             // Cancella queries in volo per evitare race conditions
             await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
@@ -228,7 +228,7 @@ export const Players: React.FC = () => {
 
     const getRepeatIcon = () => {
         if (playerStatus?.repeat_mode === 'song') return '1';
-        if (playerStatus?.repeat_mode === 'list' || playerStatus?.repeat_mode === 'all') return '∞';
+        if (playerStatus?.repeat_mode === 'group') return '∞';
         return '';
     };
 
@@ -316,8 +316,7 @@ export const Players: React.FC = () => {
                                     const displayMap: Record<string, string> = {
                                         'none': 'Off',
                                         'song': 'One',
-                                        'list': 'All',
-                                        'all': 'All'
+                                        'group': 'All'
                                     };
                                     return displayMap[playerStatus?.repeat_mode || 'none'] || 'Off';
                                 })()}
@@ -392,8 +391,7 @@ export const Players: React.FC = () => {
                                 const daemonToFrontend: Record<string, string> = {
                                     'none': 'off',
                                     'song': 'one',
-                                    'list': 'all',
-                                    'all': 'all'
+                                    'group': 'all'
                                 };
 
                                 const modes = ['off', 'one', 'all'];
@@ -410,8 +408,7 @@ export const Players: React.FC = () => {
                                 const displayMap: Record<string, string> = {
                                     'none': 'Off',
                                     'song': 'One',
-                                    'list': 'All',
-                                    'all': 'All'
+                                    'group': 'All'
                                 };
                                 return displayMap[playerStatus?.repeat_mode || 'none'] || 'Off';
                             })()}
