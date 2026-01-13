@@ -216,10 +216,15 @@ export const Players: React.FC = () => {
 
     // Handle WebSocket updates
     useEffect(() => {
+        // CRITICAL FIX #6: Ignora aggiornamenti WS durante le mutazioni
+        // Altrimenti il messaggio 'command_executed' (immediato) fa scattare 
+        // una refetch che sovrascrive l'optimistic update con dati vecchi
+        if (isMutating) return;
+
         if (lastMessage?.type === 'command_executed' || lastMessage?.type === 'status_update') {
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         }
-    }, [lastMessage, queryClient]);
+    }, [lastMessage, queryClient, isMutating]);
 
     const getRepeatIcon = () => {
         if (playerStatus?.repeat_mode === 'song') return '1';

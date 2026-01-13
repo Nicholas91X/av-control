@@ -28,12 +28,12 @@ export const RealtimeNotifications: React.FC = () => {
             timestamp: Date.now(),
         };
 
-        setNotifications(prev => [notification, ...prev].slice(0, 3)); // Keep only last 3
+        setNotifications(prev => [notification, ...prev].slice(0, 2)); // Keep only last 2
 
         // Auto-remove after 5 seconds
         setTimeout(() => {
             setNotifications(prev => prev.filter(n => n.id !== notification.id));
-        }, 5000);
+        }, 2000);
 
         // Note: We intentionally do NOT clear this timer in the cleanup.
         // If we did, a new message arriving <5s later would cancel the dismissal of the previous one.
