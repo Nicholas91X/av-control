@@ -36,6 +36,7 @@ export const Players: React.FC = () => {
     // Il daemon NON ritorna current_source in /player/status
     // ============================================
     const [selectedSource, setSelectedSource] = useState<number | null>(null);
+    const [isMutating, setIsMutating] = useState(false);
 
     // Fetch sources
     const { data: sourcesData } = useQuery<{ sources: Source[] }>({
@@ -78,7 +79,7 @@ export const Players: React.FC = () => {
             const response = await api.get('/device/player/status');
             return response.data;
         },
-        refetchInterval: 1000, // Poll every 1 second
+        refetchInterval: isMutating ? false : 1000, // Poll every 1 second, pause while mutating
     });
 
     // ============================================
@@ -86,11 +87,13 @@ export const Players: React.FC = () => {
     // ============================================
     const selectSourceMutation = useMutation({
         mutationFn: async (sourceId: number) => {
-            // Prima aggiorna lo stato locale per feedback immediato
-            setSelectedSource(sourceId);
-            // Poi chiama l'API
+            // NOTE: setSelectedSource moved to onClick for immediate feedback
+            // Reset songs immediatly to avoid showing stale data
+            queryClient.setQueryData(['player', 'songs', sourceId], []);
             await api.post('/device/player/source', { id: sourceId });
         },
+        onMutate: () => setIsMutating(true),
+        onSettled: () => setIsMutating(false),
         onSuccess: () => {
             // Invalida queries per forzare refetch
             // La query songs verrà refetchata automaticamente grazie alla queryKey dinamica
@@ -158,6 +161,7 @@ export const Players: React.FC = () => {
             return api.post('/device/player/repeat', { mode: apiMode });
         },
         onMutate: async (mode: string) => {
+            setIsMutating(true); // Pause polling
             // OPTIMISTIC UPDATE: aggiorna la cache PRIMA della risposta
             const modeMap: Record<string, string> = {
                 'off': 'none',
@@ -190,6 +194,7 @@ export const Players: React.FC = () => {
             }
         },
         onSettled: () => {
+            setIsMutating(false); // Resume polling
             // Ricarica dopo successo O errore per confermare stato reale
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         },
@@ -232,7 +237,10 @@ export const Players: React.FC = () => {
                         {sources.map((source: Source) => (
                             <button
                                 key={source.id}
-                                onClick={() => selectSourceMutation.mutate(source.id)}
+                                onClick={() => {
+                                    setSelectedSource(source.id); // Immediate visual feedback
+                                    selectSourceMutation.mutate(source.id);
+                                }}
                                 disabled={selectSourceMutation.isPending}
                                 className={`w-full px-4 py-3 rounded-lg text-left transition-all ${selectedSource === source.id
                                     ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500'
