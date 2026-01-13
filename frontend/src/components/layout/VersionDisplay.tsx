@@ -15,7 +15,7 @@ export const VersionDisplay: React.FC = () => {
     const { data: versionData } = useQuery<VersionInfo>({
         queryKey: ['version'],
         queryFn: async () => {
-            const response = await api.get('/version');
+            const response = await api.get('/version', { baseURL: '/' });
             return response.data;
         },
         staleTime: Infinity, // Version non cambia durante la sessione
