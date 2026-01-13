@@ -78,8 +78,8 @@ export const Recorders: React.FC = () => {
                                 No Media Source Selected
                             </h3>
                             <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                                Il recorder è nello stato "nomedia". Potrebbe essere necessario selezionare una sorgente
-                                nella sezione Players o configurare l'input di registrazione prima di avviare una registrazione.
+                                Lo stato "nomedia" indica che non è stata rilevata una memoria esterna.
+                                <strong>Inserire una chiavetta USB</strong> nella porta dedicata (scheda D) per abilitare la registrazione.
                             </p>
                         </div>
                     </div>
