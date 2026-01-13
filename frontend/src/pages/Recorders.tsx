@@ -23,7 +23,7 @@ export const Recorders: React.FC = () => {
             const response = await api.get('/device/recorder/status');
             return response.data;
         },
-        refetchInterval: 2000, // Poll every 2 seconds when recording
+        refetchInterval: 2000,
     });
 
     // Mutations
@@ -32,7 +32,6 @@ export const Recorders: React.FC = () => {
             return api.post('/device/recorder/start');
         },
         onSuccess: async () => {
-            // Refetch esplicito per aggiornare subito lo stato
             await refetchStatus();
             queryClient.invalidateQueries({ queryKey: ['recorder', 'status'] });
         },
@@ -48,7 +47,7 @@ export const Recorders: React.FC = () => {
 
     // Handle WebSocket updates
     React.useEffect(() => {
-        if (lastMessage?.type === 'command_executed' || lastMessage?.type === 'status_update') {
+        if (lastMessage?.type === 'status_update') {
             refetchStatus();
         }
     }, [lastMessage, refetchStatus]);
@@ -70,7 +69,6 @@ export const Recorders: React.FC = () => {
                 <p className="text-gray-500 dark:text-gray-400">Control video/audio recording</p>
             </div>
 
-            {/* FIX #3: Alert per stato nomedia */}
             {isNoMedia && (
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded-md">
                     <div className="flex items-start">
@@ -184,23 +182,13 @@ export const Recorders: React.FC = () => {
                                 Recording Info
                             </h3>
                             <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                                <li>• Le registrazioni vengono salvate nella directory configurata</li>
-                                <li>• Il nome del file viene generato automaticamente se non specificato</li>
-                                <li>• Verificare di aver selezionato una sorgente valida nella sezione Players</li>
-                                <li>• Lo stato "nomedia" indica che non c'è una sorgente attiva per la registrazione</li>
+                                <li>• Le registrazioni vengono salvate in /audio/rec/</li>
+                                <li>• Il nome del file viene generato automaticamente</li>
                             </ul>
                         </div>
                     </div>
                 </Card>
             </div>
-
-            {/* Recording History (Placeholder) */}
-            <Card title="Recent Recordings" subtitle="Last 5 recordings">
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <Video className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>Recording history feature coming soon</p>
-                </div>
-            </Card>
         </div>
     );
 };
