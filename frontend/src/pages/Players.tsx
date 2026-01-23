@@ -23,6 +23,7 @@ import {
     RefreshCw,
     Delete,
     CornerDownLeft,
+    Undo2,
     X
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
@@ -80,6 +81,7 @@ export const Players: React.FC = () => {
     const [fadeValue, setFadeValue] = useState(4);
     const [isFadeDropdownOpen, setIsFadeDropdownOpen] = useState(false);
     const fadeRef = useRef<HTMLDivElement>(null);
+    const [isOTPDashboardOpen, setIsOTPDashboardOpen] = useState(false);
 
     // Fetch controls to find Volume 1 and Volume 2
     const { data: controlsData } = useQuery<{ controls: any[] }>({
@@ -889,6 +891,7 @@ export const Players: React.FC = () => {
                         </div>
 
                         <button
+                            onClick={() => setIsOTPDashboardOpen(true)}
                             className="w-12 h-12 bg-white/5 border border-white/10 border-b-4 border-black/40 rounded-xl flex items-center justify-center text-[10px] font-black text-white/40 hover:text-white hover:bg-white/10 transition-all active:translate-y-1 active:border-b-0 uppercase tracking-tighter"
                         >
                             OTP
@@ -1073,6 +1076,202 @@ export const Players: React.FC = () => {
                                         </>
                                     );
                                 })()}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* OTP Dashboard Overlay - PREMIUM FULL SCREEN VIEW */}
+                {isOTPDashboardOpen && (
+                    <div className="fixed inset-0 z-[200] bg-[#050505] flex flex-col p-8 md:p-12 animate-in fade-in zoom-in-95 duration-500 overflow-hidden">
+                        {/* Background Decorative Glows */}
+                        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+                        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
+
+                        {/* Top Bar: Navigation & Title Section */}
+                        <div className="flex items-center justify-between mb-12 relative z-10">
+                            <div className="space-y-1">
+                                <h2 className="text-xl font-black text-white/30 uppercase tracking-[0.4em]">One Touch Player</h2>
+                                <div className="h-1 w-24 bg-blue-600/50 rounded-full" />
+                            </div>
+
+                            <button
+                                onClick={() => setIsOTPDashboardOpen(false)}
+                                className="w-16 h-16 flex items-center justify-center bg-white/5 border border-white/10 border-b-4 border-black/60 rounded-2xl active:translate-y-1 active:border-b-0 transition-all shadow-2xl group"
+                            >
+                                <Undo2 className="w-8 h-8 text-white/40 group-hover:text-blue-400 transition-colors" />
+                            </button>
+                        </div>
+
+                        {/* Main Interaction Area */}
+                        <div className="flex-1 flex gap-10 items-stretch min-h-0 relative z-10 pb-4">
+
+                            {/* LEFT SIDE: Refined Playback Controls */}
+                            <div className="flex-[1.5] flex flex-col gap-6">
+                                <div className="flex-1 bg-white/[0.02] border border-white/10 rounded-[3rem] p-10 backdrop-blur-3xl shadow-2xl flex flex-col items-center justify-center relative overflow-hidden">
+                                    {/* Center Glow Effect */}
+                                    {playerStatus?.state === 'playing' && (
+                                        <div className="absolute inset-0 bg-blue-600/10 animate-pulse transition-opacity" />
+                                    )}
+
+                                    <div className="relative z-20 flex flex-col items-center gap-10">
+                                        {/* Large Primary Toggle Area */}
+                                        <div className="flex items-center gap-8">
+                                            {playerStatus?.state === 'playing' ? (
+                                                <button
+                                                    onClick={() => pauseMutation.mutate()}
+                                                    className="w-40 h-40 rounded-full bg-blue-600 flex items-center justify-center shadow-[0_0_80px_rgba(37,99,235,0.5)] border-t border-blue-400/50 border-b-8 border-blue-900 active:translate-y-2 active:border-b-0 transition-all ring-8 ring-blue-500/10"
+                                                >
+                                                    <Pause className="w-20 h-20 text-white fill-current" />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => playMutation.mutate()}
+                                                    className="w-40 h-40 rounded-full bg-blue-600 flex items-center justify-center shadow-[0_0_80px_rgba(37,99,235,0.5)] border-t border-blue-400/50 border-b-8 border-blue-900 active:translate-y-2 active:border-b-0 transition-all ring-8 ring-blue-500/10"
+                                                >
+                                                    <Play className="w-20 h-20 text-white fill-current ml-3" />
+                                                </button>
+                                            )}
+
+                                            <button
+                                                onClick={() => stopMutation.mutate()}
+                                                className="w-32 h-32 rounded-[2.5rem] bg-red-600/10 border border-red-500/20 border-b-8 border-red-900 active:translate-y-2 active:border-b-0 flex items-center justify-center text-red-500 hover:bg-red-600 hover:text-white transition-all group shadow-xl"
+                                            >
+                                                <Square className="w-12 h-12 fill-current group-hover:scale-110 transition-transform" />
+                                            </button>
+                                        </div>
+
+                                        {/* Status Bar */}
+                                        <div className={`px-10 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.5em] border ${playerStatus?.state === 'playing' ? 'bg-blue-600/10 text-blue-400 border-blue-500/30' : 'bg-white/5 text-white/20 border-white/10'}`}>
+                                            Player State: {playerStatus?.state || 'Idle'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* RIGHT SIDE: EXACT DASHBOARD FADERS (REPLICATED STYLE) */}
+                            <div className="flex-1 bg-white/[0.02] border border-white/10 rounded-[3rem] p-10 backdrop-blur-3xl shadow-2xl flex justify-around gap-12">
+                                {volumeControls.map((ctrl) => {
+                                    const val = pendingVolumes[ctrl.id] ?? controlValues[ctrl.id]?.volume ?? 0;
+                                    const isMuted = controlValues[ctrl.id]?.mute;
+                                    const min = ctrl.min || -96;
+                                    const max = ctrl.max || 12;
+                                    const range = max - min;
+                                    const percent = ((val - min) / range) * 100;
+
+                                    return (
+                                        <div key={`otp-fader-${ctrl.id}`} className="flex flex-col items-center gap-8 h-full">
+                                            {/* Plus Button */}
+                                            <button
+                                                onClick={() => handleStepVolume(ctrl, 'up')}
+                                                className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-[#252528] border border-white/10 border-b-4 border-black rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0 text-blue-400"
+                                            >
+                                                <Plus className="w-6 h-6" />
+                                            </button>
+
+                                            {/* ANALOG Fader Track */}
+                                            <div className="flex-1 relative w-12 flex flex-col items-center group py-4">
+                                                <div className="absolute inset-y-0 w-2.5 bg-black/80 rounded-full border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,1)] overflow-hidden">
+                                                    <div
+                                                        className="absolute bottom-0 w-full bg-gradient-to-t from-blue-600 to-blue-400 opacity-20 blur-[1px]"
+                                                        style={{ height: `${percent}%` }}
+                                                    />
+                                                </div>
+
+                                                {/* Replicated Fader Cap with Glow */}
+                                                <div
+                                                    className="absolute w-12 h-18 z-20 pointer-events-none"
+                                                    style={{ bottom: `calc(${percent}% - 36px)` }}
+                                                >
+                                                    <div className="w-full h-full bg-gradient-to-b from-[#444] via-[#1a1a1c] to-[#010101] border border-white/20 shadow-[0_10px_20px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded flex flex-col items-center justify-center">
+                                                        <div className="w-full h-1 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,1)] mb-1" />
+                                                        <div className="flex flex-col gap-0.5 opacity-20 mb-1">
+                                                            <div className="w-4 h-px bg-white" />
+                                                            <div className="w-4 h-px bg-white" />
+                                                            <div className="w-4 h-px bg-white" />
+                                                        </div>
+                                                        <div className="font-mono text-[10px] font-bold text-blue-400">
+                                                            {Math.round(val)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <input
+                                                    type="range"
+                                                    min={min}
+                                                    max={max}
+                                                    step={ctrl.step || 0.1}
+                                                    value={val}
+                                                    onChange={(e) => handleSliderChange(ctrl, e)}
+                                                    onMouseUp={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
+                                                    onTouchEnd={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer orientation-vertical z-30"
+                                                    style={{ appearance: 'none', transform: 'rotate(-90deg)', width: '400%' }}
+                                                />
+                                            </div>
+
+                                            {/* Minus Button */}
+                                            <button
+                                                onClick={() => handleStepVolume(ctrl, 'down')}
+                                                className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-[#252528] border border-white/10 border-b-4 border-black rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0 text-blue-400"
+                                            >
+                                                <Minus className="w-6 h-6" />
+                                            </button>
+
+                                            {/* Mute Button */}
+                                            <button
+                                                onClick={() => {
+                                                    const muteId = ctrl.second_id || ctrl.id;
+                                                    setControlMutation.mutate({ id: muteId, value: !isMuted });
+                                                    setControlValues(prev => ({
+                                                        ...prev,
+                                                        [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
+                                                    }));
+                                                }}
+                                                className={`w-14 h-12 rounded-2xl flex items-center justify-center transition-all border shrink-0 border-b-4 active:translate-y-1 active:border-b-0 ${isMuted
+                                                    ? 'bg-red-600 border-red-400 border-b-red-800 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
+                                                    : 'bg-[#1a1a1c] border-white/10 border-b-black text-blue-400 hover:border-blue-500 shadow-lg'
+                                                    }`}
+                                            >
+                                                <VolumeX className="w-7 h-7" />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Footer Content: Unified Title & Timer */}
+                        <div className="mt-8 flex items-center justify-between gap-10 bg-white/[0.02] border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-3xl shadow-2xl relative z-10 shrink-0">
+
+                            {/* RPT SONG (ICON ONLY) */}
+                            <div className="pr-10 border-r border-white/10">
+                                <button
+                                    onClick={() => {
+                                        const isSong = playerStatus?.repeat_mode === 'song';
+                                        repeatMutation.mutate(isSong ? 'off' : 'one');
+                                    }}
+                                    className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all border-b-4 active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
+                                        ? 'bg-blue-600 border-blue-900 text-white shadow-xl shadow-blue-500/20'
+                                        : 'bg-white/5 border-black text-white/40'
+                                        }`}
+                                >
+                                    <Repeat1 className="w-7 h-7" />
+                                </button>
+                            </div>
+
+                            {/* Full Single-Row Title Display */}
+                            <div className="flex-1 min-w-0">
+                                <h1 className="text-5xl font-black text-white tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                                    {playerStatus?.song_title || 'No Media Selected'}
+                                </h1>
+                            </div>
+
+                            {/* Precise Timer */}
+                            <div className="pl-10 text-right">
+                                <div className="font-mono text-5xl font-black text-blue-500 tabular-nums">
+                                    {formatTime(playerStatus?.current_time)}
+                                </div>
                             </div>
                         </div>
                     </div>
