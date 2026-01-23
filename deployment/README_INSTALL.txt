@@ -10,12 +10,6 @@ Files included:
 - scripts/install.sh : Automatic installation script
 - scripts/av-control.service : Systemd service definition
 
-PREREQUISITES:
---------------
-- Target device: A13-Olinuxino (or compatible ARMv7 Linux system)
-- Root access (SSH or Terminal)
-- Helper tools: tar, systemctl
-
 INSTALLATION STEPS:
 -------------------
 
@@ -56,7 +50,3 @@ TROUBLESHOOTING:
 - Ensure port 80 is free. The application listens on port 80 by default.
 
 - Database: The database is automatically created at /var/lib/av-control/av-control.db
-
-SUPPORT:
---------
-For any issues, please contact the development team.
