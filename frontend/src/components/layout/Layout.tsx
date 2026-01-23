@@ -147,7 +147,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                                     className="flex items-center space-x-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white px-5 py-3 rounded-2xl border border-white/10 transition-all active:scale-95 group shadow-2xl backdrop-blur-md"
                                 >
                                     <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
-                                    <span className="font-bold tracking-widest uppercase text-xs">Torna alla Dashboard</span>
+                                    <span className="font-bold tracking-widest uppercase text-xs">Dashboard</span>
                                 </button>
                             </div>
                         )}

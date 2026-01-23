@@ -1,10 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Play, Pause, Square, SkipForward, SkipBack, Repeat, Music, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+    Play,
+    Pause,
+    Square,
+    SkipForward,
+    SkipBack,
+    Repeat,
+    Music,
+    Check,
+    ChevronUp,
+    ChevronDown,
+    Search,
+    VolumeX,
+    SkipBack as FastRewind,
+    SkipForward as FastForward,
+    ArrowRight
+} from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
+import { useIsTablet } from '../hooks/useIsTablet';
 
 interface Source {
     id: number;
@@ -28,14 +43,13 @@ interface PlayerStatus {
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const Players: React.FC = () => {
+    const isTablet = useIsTablet();
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
-    const [currentPage, setCurrentPage] = useState(1);
-    const pageSize = 10;
+    const songListRef = useRef<HTMLDivElement>(null);
 
     // ============================================
-    // CRITICAL FIX #1: Stato locale per source selezionata
-    // Il daemon NON ritorna current_source in /player/status
+    // STATE & QUERIES
     // ============================================
     const [selectedSource, setSelectedSource] = useState<number | null>(null);
     const [isMutating, setIsMutating] = useState(false);
@@ -50,63 +64,49 @@ export const Players: React.FC = () => {
     });
     const sources = sourcesData?.sources || [];
 
-    // ============================================
-    // CRITICAL FIX #2: Inizializza selectedSource al primo caricamento
-    // E sincronizza il backend!
-    // ============================================
+    // Sync source selection
     useEffect(() => {
         if (sources.length > 0 && selectedSource === null) {
             const defaultSource = sources[0].id;
             setSelectedSource(defaultSource);
-            // Forza immediata selezione anche lato backend
-            // Altrimenti la get /songs ritorna vuoto o dati vecchi
             selectSourceMutation.mutate(defaultSource);
         }
-    }, [sources]); // Rimosso selectedSource e selectSourceMutation dalle deps evitare loop
+    }, [sources]);
 
-    // ============================================
-    // CRITICAL FIX #3: Query key DINAMICA con selectedSource
-    // Questo forza React Query a fare una nuova fetch quando cambia source
-    // ============================================
-    const { data: songsData } = useQuery<{ songs: Song[] }>({
+    // Fetch songs for selected source
+    const { data: songsData, isLoading: isLoadingSongs } = useQuery<{ songs: Song[] }>({
         queryKey: ['player', 'songs', selectedSource],
         queryFn: async () => {
             const response = await api.get('/device/player/songs');
             return response.data;
         },
         enabled: selectedSource !== null,
-        staleTime: 0, // Disabilita cache per forzare refresh
+        staleTime: 0,
     });
     const songs = songsData?.songs || [];
 
-    // Fetch player status
+    // Fetch player status (Polling)
     const { data: playerStatus } = useQuery<PlayerStatus>({
         queryKey: ['player', 'status'],
         queryFn: async () => {
             const response = await api.get('/device/player/status');
             return response.data;
         },
-        refetchInterval: isMutating ? false : 1000, // Poll every 1 second, pause while mutating
+        refetchInterval: isMutating ? false : 1000,
     });
 
     // ============================================
-    // CRITICAL FIX #4: Mutation con aggiornamento esplicito state + API call
+    // MUTATIONS
     // ============================================
     const selectSourceMutation = useMutation({
         mutationFn: async (sourceId: number) => {
-            // NOTE: setSelectedSource moved to onClick for immediate feedback
-            // Reset songs immediatly to avoid showing stale data
             queryClient.setQueryData(['player', 'songs', sourceId], []);
             await api.post('/device/player/source', { id: sourceId });
         },
         onMutate: () => setIsMutating(true),
         onSettled: () => setIsMutating(false),
         onSuccess: async () => {
-            // FIX TIMING: Attendi che l'hardware propaghi il cambio sorgente
-            await wait(500);
-
-            // Invalida queries per forzare refetch
-            // La query songs verrà refetchata automaticamente grazie alla queryKey dinamica
+            await wait(200);
             queryClient.invalidateQueries({ queryKey: ['player', 'songs'] });
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         },
@@ -123,362 +123,527 @@ export const Players: React.FC = () => {
 
     const playMutation = useMutation({
         mutationFn: async () => api.post('/device/player/play'),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
-        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const pauseMutation = useMutation({
         mutationFn: async () => api.post('/device/player/pause'),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
-        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const stopMutation = useMutation({
         mutationFn: async () => api.post('/device/player/stop'),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
-        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const nextMutation = useMutation({
         mutationFn: async () => api.post('/device/player/next'),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
-        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const previousMutation = useMutation({
         mutationFn: async () => api.post('/device/player/previous'),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
-        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
-    // ============================================
-    // CRITICAL FIX #5: Repeat mutation con OPTIMISTIC UPDATE
-    // Aggiorna la cache PRIMA della risposta API per feedback immediato
-    // ============================================
     const repeatMutation = useMutation({
         mutationFn: async (mode: string) => {
             const modeMap: Record<string, string> = {
                 'off': 'none',
                 'one': 'song',
-                'all': 'group' // Correct hardware value found via probe
-            };
-            const apiMode = modeMap[mode] || 'none';
-            return api.post('/device/player/repeat', { mode: apiMode });
-        },
-        onMutate: async (mode: string) => {
-            setIsMutating(true); // Pause polling
-            // OPTIMISTIC UPDATE: aggiorna la cache PRIMA della risposta
-            const modeMap: Record<string, string> = {
-                'off': 'none',
-                'one': 'song',
                 'all': 'group'
             };
-            const newRepeatMode = modeMap[mode] as 'song' | 'group' | 'none';
-
-            // Cancella queries in volo per evitare race conditions
+            return api.post('/device/player/repeat', { mode: modeMap[mode] || 'none' });
+        },
+        onMutate: async (mode: string) => {
+            setIsMutating(true);
+            const modeMap: Record<string, 'song' | 'group' | 'none'> = {
+                'off': 'none', 'one': 'song', 'all': 'group'
+            };
             await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
-
-            // Salva il valore precedente per rollback
             const previousStatus = queryClient.getQueryData<PlayerStatus>(['player', 'status']);
-
-            // Aggiorna la cache con il nuovo valore
             queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
                 if (!old) return old;
-                return {
-                    ...old,
-                    repeat_mode: newRepeatMode
-                };
+                return { ...old, repeat_mode: modeMap[mode] };
             });
-
             return { previousStatus };
         },
-        onError: (_err, _mode, context) => {
-            // Rollback in caso di errore
-            if (context?.previousStatus) {
-                queryClient.setQueryData(['player', 'status'], context.previousStatus);
-            }
-        },
         onSettled: async () => {
-            // FIX TIMING: Attendi un po' prima di riabilitare il polling 
-            // e invalidare, per dare tempo all'hardware di aggiornare lo status
-            await wait(1000);
-
-            setIsMutating(false); // Resume polling
-            // Ricarica dopo successo O errore per confermare stato reale
+            await wait(500);
+            setIsMutating(false);
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         },
     });
 
-    // Handle WebSocket updates
+    // WebSocket updates
     useEffect(() => {
-        // CRITICAL FIX #6: Ignora aggiornamenti WS durante le mutazioni
-        // Altrimenti il messaggio 'command_executed' (immediato) fa scattare 
-        // una refetch che sovrascrive l'optimistic update con dati vecchi
         if (isMutating) return;
-
         if (lastMessage?.type === 'command_executed' || lastMessage?.type === 'status_update') {
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         }
     }, [lastMessage, queryClient, isMutating]);
 
-    const getRepeatIcon = () => {
-        if (playerStatus?.repeat_mode === 'song') return '1';
-        if (playerStatus?.repeat_mode === 'group') return '∞';
-        return '';
-    };
-
+    // Helpers
     const formatTime = (seconds?: number) => {
         if (!seconds) return '00:00';
         const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
+        const s = Math.floor(seconds % 60);
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
+    const handleScrollList = (direction: 'up' | 'down') => {
+        if (songListRef.current) {
+            const scrollAmount = 300;
+            songListRef.current.scrollBy({
+                top: direction === 'up' ? -scrollAmount : scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    // ============================================
+    // RENDER TABLET VIEW
+    // ============================================
+    if (isTablet) {
+        return (
+            <div className="h-screen bg-[#0a0a0c] flex flex-col overflow-hidden text-white font-sans">
+                {/* Main Content Grid */}
+                <div className="flex-1 flex overflow-hidden p-6 gap-6">
+
+                    {/* Column 1: Sources (Left) */}
+                    <div className="w-[20%] flex flex-col gap-4 justify-end pb-2">
+                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-2">
+                            <h2 className="text-blue-400 font-bold tracking-widest uppercase text-xs">Sources</h2>
+                        </div>
+                        <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar-hidden">
+                            {sources.map((source) => {
+                                const isSelected = selectedSource === source.id;
+                                return (
+                                    <button
+                                        key={source.id}
+                                        onClick={() => {
+                                            setSelectedSource(source.id);
+                                            selectSourceMutation.mutate(source.id);
+                                        }}
+                                        className={`w-full text-left p-6 rounded-xl font-bold text-xl transition-all duration-300 ${isSelected
+                                            ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]'
+                                            : 'bg-white/5 text-blue-200/40 hover:bg-white/10'
+                                            }`}
+                                    >
+                                        {source.name}
+                                    </button>
+                                );
+                            })}
+                            <div className="mt-4 p-4 text-[10px] text-white/20 font-mono tracking-tighter">
+                                Internal: 2919MB / 10685MB
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Column 2: Songs & Transport (Center) */}
+                    <div className="flex-1 flex flex-col gap-6">
+                        {/* Songs Library */}
+                        <div
+                            ref={songListRef}
+                            className="flex-1 bg-white/5 border border-white/10 rounded-2xl overflow-y-auto custom-scrollbar-hidden"
+                        >
+                            {isLoadingSongs ? (
+                                <div className="h-full flex items-center justify-center">
+                                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-white/5">
+                                    {songs.map((song, index) => {
+                                        const isPlaying = playerStatus?.song_title === song.name;
+                                        return (
+                                            <button
+                                                key={song.id}
+                                                onClick={() => selectSongMutation.mutate(song.id)}
+                                                className={`w-full flex items-center p-5 text-left transition-all ${isPlaying
+                                                    ? 'bg-blue-600/20 text-blue-400'
+                                                    : 'hover:bg-white/5 text-white/70'
+                                                    }`}
+                                            >
+                                                <span className="w-12 font-mono text-xl opacity-40">{(index + 1).toString().padStart(1, ' ')}</span>
+                                                <span className="text-2xl font-bold tracking-tight uppercase truncate">{song.name}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Status Bar */}
+                        <div className="bg-black/60 border-2 border-green-500/40 rounded-xl p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-md text-sm font-bold uppercase tracking-widest border border-green-500/30">
+                                    {playerStatus?.state || 'Stopped'}
+                                </span>
+                                <div className="h-4 w-px bg-white/10" />
+                                <span className="text-green-500 font-bold text-xl tracking-tight">
+                                    {playerStatus?.song_title || 'Nessun brano'}
+                                </span>
+                            </div>
+                            <div className="text-green-500 font-mono text-lg font-black">
+                                {formatTime(playerStatus?.current_time)}
+                            </div>
+                        </div>
+
+                        {/* Transport Controls */}
+                        <div className="grid grid-cols-7 gap-3 mb-2">
+                            <button onClick={() => previousMutation.mutate()} className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl">
+                                <SkipBack className="w-10 h-10 text-blue-400 fill-blue-400/20" />
+                            </button>
+                            <button className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl">
+                                <FastRewind className="w-10 h-10 text-blue-400 fill-blue-400/20 -scale-x-100" />
+                            </button>
+
+                            {playerStatus?.state === 'playing' ? (
+                                <button onClick={() => pauseMutation.mutate()} className="h-20 flex items-center justify-center bg-blue-600 hover:bg-blue-500 border border-blue-400/50 rounded-xl shadow-[0_0_30px_rgba(37,99,235,0.3)] col-span-1">
+                                    <Pause className="w-10 h-10 text-white fill-white" />
+                                </button>
+                            ) : (
+                                <button onClick={() => playMutation.mutate()} className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl col-span-1">
+                                    <Play className="w-10 h-10 text-blue-400 fill-blue-400/20 ml-1" />
+                                </button>
+                            )}
+
+                            <button onClick={() => stopMutation.mutate()} className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl">
+                                <Square className="w-10 h-10 text-blue-400 fill-blue-400/20" />
+                            </button>
+                            <button className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl">
+                                <FastForward className="w-10 h-10 text-blue-400 fill-blue-400/20" />
+                            </button>
+                            <button onClick={() => nextMutation.mutate()} className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl">
+                                <SkipForward className="w-10 h-10 text-blue-400 fill-blue-400/20" />
+                            </button>
+                        </div>
+
+                        {/* Seek Bar */}
+                        <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-4 rounded-xl">
+                            <div className="h-10 w-24 bg-blue-600/20 border border-blue-500/40 rounded overflow-hidden flex items-center px-1">
+                                <div className="h-8 w-1/2 bg-blue-500 rounded-sm shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                            </div>
+                            <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]"
+                                    style={{ width: `${((playerStatus?.current_time || 0) / (playerStatus?.total_time || 1)) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Column 3: Volume & Nav (Right) */}
+                    <div className="w-[10%] flex flex-col gap-4 pb-2">
+                        <div className="flex-1 flex flex-col items-center justify-between gap-6 bg-white/5 border border-white/10 rounded-2xl py-8">
+                            <button onClick={() => handleScrollList('up')} className="p-4 bg-blue-600 rounded-xl shadow-lg active:scale-95 transition-transform">
+                                <ChevronUp className="w-10 h-10 text-white" />
+                            </button>
+
+                            <div className="flex-1 flex flex-row gap-8 items-center py-4">
+                                {/* Vertical Sliders */}
+                                {[0, 1].map(i => (
+                                    <div key={i} className="h-full w-10 bg-black/40 border border-white/10 rounded-lg relative flex items-end overflow-hidden">
+                                        <div className="absolute top-0 w-full h-[60%] border-b border-white/5" />
+                                        <div className="absolute top-[20%] w-full h-[60%] border-b border-white/5" />
+                                        <div className="absolute top-[40%] w-full h-[60%] border-b border-white/5" />
+                                        <div className="absolute top-[60%] w-full h-[60%] border-b border-white/5" />
+                                        <div className="absolute top-[80%] w-full h-[60%] border-b border-white/5" />
+
+                                        <div
+                                            className="w-full bg-blue-600 shadow-[0_0_20px_rgba(59,130,246,0.5)] flex items-center justify-center transition-all duration-300"
+                                            style={{ height: '40%' }}
+                                        >
+                                            <div className="w-full h-2 bg-blue-400" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button onClick={() => handleScrollList('down')} className="p-4 bg-blue-600 rounded-xl shadow-lg active:scale-95 transition-transform">
+                                <ChevronDown className="w-10 h-10 text-white" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom Utility Bar */}
+                <div className="h-20 bg-black border-t border-white/10 flex items-center px-6 gap-4">
+                    <button className="px-8 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/60 hover:text-white">
+                        Songs Management
+                    </button>
+
+                    <div className="flex gap-2 ml-4">
+                        <button className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.5)] border border-blue-400/50 text-[10px] font-black whitespace-nowrap">PLAY ALL</button>
+                        <button className="w-12 h-12 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center text-[8px] font-black text-white/40 whitespace-nowrap">
+                            <Repeat className="w-4 h-4 mb-0.5" />
+                            RPT SONG
+                        </button>
+                    </div>
+
+                    <div className="bg-white/5 border border-white/10 rounded-lg px-6 h-12 flex items-center gap-4 text-xs font-black uppercase tracking-widest text-white/40">
+                        <span>One Touch Play</span>
+                        <div className="h-6 w-px bg-white/10" />
+                        <div className="flex items-center gap-2">
+                            <span>Fade 4</span>
+                            <ChevronDown className="w-4 h-4" />
+                        </div>
+                    </div>
+
+                    <div className="ml-auto flex gap-4 pr-4">
+                        <button className="flex items-center gap-2 px-6 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/40 hover:text-white whitespace-nowrap">
+                            <Search className="w-4 h-4" /> Filter
+                        </button>
+                        <button className="flex items-center gap-2 px-6 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/40 hover:text-white whitespace-nowrap">
+                            <Search className="w-4 h-4" /> Find
+                        </button>
+                        <button className="w-12 h-12 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-blue-400"><VolumeX className="w-6 h-6" /></button>
+                        <button className="w-12 h-12 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-blue-400"><VolumeX className="w-6 h-6" /></button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ============================================
+    // RENDER STANDARD VIEW
+    // ============================================
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
     const paginatedSongs = songs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
     const totalPages = Math.ceil(songs.length / pageSize);
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Players</h1>
-                <p className="text-gray-500 dark:text-gray-400">Control audio/video playback</p>
+        <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Players</h1>
+                    <p className="text-gray-500 dark:text-gray-400">Control audio/video playback and sources</p>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Source Selection */}
-                <Card title="Source" subtitle="Select audio/video source">
-                    <div className="space-y-2">
+                <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-1">Source</h3>
+                    <div className="grid gap-3">
                         {sources.map((source: Source) => (
                             <button
                                 key={source.id}
                                 onClick={() => {
-                                    setSelectedSource(source.id); // Immediate visual feedback
+                                    setSelectedSource(source.id);
                                     selectSourceMutation.mutate(source.id);
                                 }}
                                 disabled={selectSourceMutation.isPending}
-                                className={`w-full px-4 py-3 rounded-lg text-left transition-all ${selectedSource === source.id
-                                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500'
-                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
-                                    } disabled:opacity-50`}
+                                className={`w-full px-6 py-5 rounded-2xl text-left transition-all relative overflow-hidden group ${selectedSource === source.id
+                                    ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20'
+                                    : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-800 hover:border-blue-400 dark:hover:border-blue-600'
+                                    } disabled:opacity-50 font-bold flex items-center justify-between`}
                             >
-                                <div className="flex items-center space-x-3">
-                                    <Music className="w-5 h-5" />
-                                    <span className="font-medium">{source.name}</span>
+                                <div className="flex items-center space-x-4">
+                                    <div className={`p-2 rounded-lg ${selectedSource === source.id ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                                        <Music className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-lg">{source.name}</span>
                                 </div>
+                                {selectedSource === source.id ? (
+                                    <Check className="w-5 h-5 animate-in zoom-in duration-300" />
+                                ) : (
+                                    <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
                             </button>
                         ))}
                     </div>
-                </Card>
+                </div>
 
-                {/* Player Status */}
-                <Card title="Player Status" subtitle="Current playback information">
-                    <div className="space-y-4">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">State</p>
-                            <div className="flex items-center space-x-2">
-                                <div
-                                    className={`w-3 h-3 rounded-full ${playerStatus?.state === 'playing'
-                                        ? 'bg-green-500 animate-pulse'
-                                        : playerStatus?.state === 'paused'
-                                            ? 'bg-yellow-500'
-                                            : 'bg-gray-400'
-                                        }`}
-                                />
-                                <span className="text-gray-900 dark:text-white font-medium capitalize">
-                                    {playerStatus?.state || 'Unknown'}
-                                </span>
+                {/* Player Status & Info */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-1">Playback</h3>
+                    <div className="bg-white dark:bg-dark-surface rounded-[2rem] p-8 border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
+                        {/* Status Backdrop Glow */}
+                        <div className={`absolute -top-24 -right-24 w-48 h-48 blur-[80px] rounded-full opacity-20 transition-colors duration-1000 ${playerStatus?.state === 'playing' ? 'bg-green-500' : 'bg-blue-500'}`} />
+
+                        <div className="relative z-10 space-y-8">
+                            <div className="flex items-center justify-between">
+                                <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${playerStatus?.state === 'playing' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
+                                    {playerStatus?.state || 'Idle'}
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-mono text-3xl font-black text-gray-900 dark:text-white tabular-nums">
+                                        {formatTime(playerStatus?.current_time)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Now Playing</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white leading-tight min-h-[4rem]">
+                                    {playerStatus?.song_title || 'Ready to play'}
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="h-2 bg-gray-100 dark:bg-gray-800/50 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-blue-600 transition-all duration-700 ease-out shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+                                        style={{ width: `${((playerStatus?.current_time || 0) / (playerStatus?.total_time || 1)) * 100}%` }}
+                                    />
+                                </div>
+                                <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                                    <span>{formatTime(playerStatus?.current_time)}</span>
+                                    <span>{formatTime(playerStatus?.total_time)}</span>
+                                </div>
                             </div>
                         </div>
-
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Current Song</p>
-                            <p className="text-gray-900 dark:text-white font-medium">
-                                {playerStatus?.song_title || 'No song selected'}
-                            </p>
-                        </div>
-
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Time</p>
-                            <p className="text-gray-900 dark:text-white font-medium font-mono">
-                                {formatTime(playerStatus?.current_time)} / {formatTime(playerStatus?.total_time)}
-                            </p>
-                        </div>
-
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Repeat Mode</p>
-                            <p className="text-gray-900 dark:text-white font-medium capitalize">
-                                {(() => {
-                                    const displayMap: Record<string, string> = {
-                                        'none': 'Off',
-                                        'song': 'One',
-                                        'group': 'All'
-                                    };
-                                    return displayMap[playerStatus?.repeat_mode || 'none'] || 'Off';
-                                })()}
-                            </p>
-                        </div>
                     </div>
-                </Card>
+                </div>
 
-                {/* Playback Controls */}
-                <Card title="Controls" subtitle="Playback actions">
-                    <div className="space-y-4">
-                        {/* Main Controls */}
-                        <div className="flex justify-center space-x-2">
-                            <Button
-                                variant="secondary"
-                                size="lg"
-                                onClick={() => previousMutation.mutate()}
-                                disabled={previousMutation.isPending}
-                                className="p-3"
-                            >
-                                <SkipBack className="w-5 h-5" />
-                            </Button>
+                {/* Main Controls Panel */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-1">Controls</h3>
+                    <div className="bg-white dark:bg-dark-surface rounded-[2rem] p-8 border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
+                        <div className="flex items-center justify-center gap-4">
+                            <button onClick={() => previousMutation.mutate()} className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 transition-all active:scale-95 border border-transparent">
+                                <SkipBack className="w-8 h-8" />
+                            </button>
 
                             {playerStatus?.state === 'playing' ? (
-                                <Button
-                                    variant="primary"
-                                    size="lg"
-                                    onClick={() => pauseMutation.mutate()}
-                                    disabled={pauseMutation.isPending}
-                                    className="p-3"
-                                >
-                                    <Pause className="w-5 h-5" />
-                                </Button>
+                                <button onClick={() => pauseMutation.mutate()} className="w-24 h-24 rounded-[2rem] bg-blue-600 text-white flex items-center justify-center shadow-2xl shadow-blue-500/40 hover:bg-blue-700 transition-all active:scale-90 ring-4 ring-blue-500/10">
+                                    <Pause className="w-10 h-10 fill-current" />
+                                </button>
                             ) : (
-                                <Button
-                                    variant="primary"
-                                    size="lg"
-                                    onClick={() => playMutation.mutate()}
-                                    disabled={playMutation.isPending}
-                                    className="p-3"
-                                >
-                                    <Play className="w-5 h-5" />
-                                </Button>
+                                <button onClick={() => playMutation.mutate()} className="w-24 h-24 rounded-[2rem] bg-blue-600 text-white flex items-center justify-center shadow-2xl shadow-blue-500/40 hover:bg-blue-700 transition-all active:scale-90 ring-4 ring-blue-500/10">
+                                    <Play className="w-10 h-10 fill-current ml-1" />
+                                </button>
                             )}
 
-                            <Button
-                                variant="danger"
-                                size="lg"
-                                onClick={() => stopMutation.mutate()}
-                                disabled={stopMutation.isPending}
-                                className="p-3"
-                            >
-                                <Square className="w-5 h-5" />
-                            </Button>
-
-                            <Button
-                                variant="secondary"
-                                size="lg"
-                                onClick={() => nextMutation.mutate()}
-                                disabled={nextMutation.isPending}
-                                className="p-3"
-                            >
-                                <SkipForward className="w-5 h-5" />
-                            </Button>
+                            <button onClick={() => nextMutation.mutate()} className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 transition-all active:scale-95 border border-transparent">
+                                <SkipForward className="w-8 h-8" />
+                            </button>
                         </div>
 
-                        {/* Repeat Toggle */}
-                        <Button
-                            variant="secondary"
-                            fullWidth
-                            onClick={() => {
-                                const daemonToFrontend: Record<string, string> = {
-                                    'none': 'off',
-                                    'song': 'one',
-                                    'group': 'all'
-                                };
-
-                                const modes = ['off', 'one', 'all'];
-                                const currentMode = daemonToFrontend[playerStatus?.repeat_mode || 'none'] || 'off';
-                                const currentIndex = modes.indexOf(currentMode);
-                                const nextMode = modes[(currentIndex + 1) % modes.length];
-                                repeatMutation.mutate(nextMode);
-                            }}
-                            disabled={repeatMutation.isPending}
-                            className="relative"
-                        >
-                            <Repeat className="w-5 h-5 mr-2" />
-                            Repeat: {(() => {
-                                const displayMap: Record<string, string> = {
-                                    'none': 'Off',
-                                    'song': 'One',
-                                    'group': 'All'
-                                };
-                                return displayMap[playerStatus?.repeat_mode || 'none'] || 'Off';
-                            })()}
-                            {getRepeatIcon() && (
-                                <span className="ml-2 text-xs font-bold">{getRepeatIcon()}</span>
-                            )}
-                        </Button>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button onClick={() => stopMutation.mutate()} className="group flex items-center justify-center gap-3 py-4 rounded-xl font-black uppercase tracking-widest text-xs border-2 border-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-98">
+                                <Square className="w-4 h-4 fill-current group-hover:scale-110" /> Stop
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const modes = ['off', 'one', 'all'];
+                                    const current = playerStatus?.repeat_mode === 'song' ? 'one' : playerStatus?.repeat_mode === 'group' ? 'all' : 'off';
+                                    const next = modes[(modes.indexOf(current) + 1) % modes.length];
+                                    repeatMutation.mutate(next);
+                                }}
+                                className={`flex items-center justify-center gap-3 py-4 rounded-xl font-black uppercase tracking-widest text-xs border-2 transition-all active:scale-98 ${playerStatus?.repeat_mode !== 'none'
+                                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                    : 'border-blue-500/10 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                    }`}
+                            >
+                                <Repeat className="w-4 h-4" />
+                                {playerStatus?.repeat_mode === 'song' ? 'One' : playerStatus?.repeat_mode === 'group' ? 'All' : 'Off'}
+                            </button>
+                        </div>
                     </div>
-                </Card>
+                </div>
             </div>
 
-            {/* Song List */}
-            <Card title="Songs" subtitle="Select a song to play">
-                <>
+            {/* Song Library */}
+            <div className="space-y-4 pt-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-1">Media Library</h3>
+                    {songs.length > 0 && (
+                        <span className="text-[10px] font-black text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full uppercase tracking-tighter">
+                            {songs.length} Tracks available
+                        </span>
+                    )}
+                </div>
+
+                <div className="bg-white dark:bg-dark-surface rounded-[2.5rem] p-6 border border-gray-100 dark:border-gray-800 shadow-sm">
                     {songs.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                            <Music className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                            <p>No songs available</p>
-                            <p className="text-sm mt-1">Select a source to load songs</p>
+                        <div className="text-center py-24 flex flex-col items-center justify-center">
+                            <div className="w-20 h-20 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mb-6">
+                                <Music className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+                            </div>
+                            <h4 className="text-xl font-bold text-gray-900 dark:text-white">Empty Archive</h4>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2">Select a different source or upload media to begin.</p>
                         </div>
                     ) : (
-                        <>
-                            <div className="space-y-1">
-                                {paginatedSongs.map((song: Song) => (
+                        <div className="grid gap-2">
+                            {paginatedSongs.map((song: Song, index) => {
+                                const isCurrent = playerStatus?.song_title === song.name;
+                                return (
                                     <button
                                         key={song.id}
                                         onClick={() => selectSongMutation.mutate(song.id)}
-                                        disabled={selectSongMutation.isPending}
-                                        className={`w-full px-4 py-2 text-left transition-all flex items-center justify-between group rounded-md ${playerStatus?.song_title === song.name
-                                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium'
-                                            : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                            } disabled:opacity-50`}
+                                        className={`w-full group px-6 py-5 text-left transition-all flex items-center justify-between rounded-2xl ${isCurrent
+                                            ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20'
+                                            : 'hover:bg-blue-50 dark:hover:bg-blue-900/10 text-gray-700 dark:text-gray-300'
+                                            }`}
                                     >
-                                        <div className="flex-1 min-w-0 pr-4">
-                                            <span className="truncate block">{song.name}</span>
+                                        <div className="flex items-center space-x-6 flex-1 min-w-0">
+                                            <span className={`font-mono text-sm font-bold w-6 transition-colors ${isCurrent ? 'text-blue-200' : 'text-gray-400'}`}>
+                                                {((currentPage - 1) * pageSize + index + 1).toString().padStart(2, '0')}
+                                            </span>
+                                            <div className="flex-1 min-w-0 pr-8">
+                                                <span className="truncate text-lg font-bold block tracking-tight uppercase">{song.name}</span>
+                                                <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isCurrent ? 'text-blue-100/60' : 'text-gray-400/80 group-hover:text-blue-400'}`}>
+                                                    Audio Track • PCM 44.1kHz
+                                                </span>
+                                            </div>
                                         </div>
+                                        {isCurrent && (
+                                            <div className="flex items-center space-x-2 animate-in slide-in-from-right-4 duration-500">
+                                                <div className="flex items-end gap-1 h-4 px-2">
+                                                    <div className="w-1 bg-white animate-pulse" style={{ height: '60%' }} />
+                                                    <div className="w-1 bg-white animate-pulse delay-75" style={{ height: '100%' }} />
+                                                    <div className="w-1 bg-white animate-pulse delay-150" style={{ height: '40%' }} />
+                                                </div>
+                                                <Check className="w-6 h-6" />
+                                            </div>
+                                        )}
                                     </button>
-                                ))}
-                            </div>
-
-                            {/* Pagination Controls */}
-                            {totalPages > 1 && (
-                                <div className="flex items-center justify-between pt-4 mt-2 border-t border-gray-100 dark:border-gray-700">
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                                        Page {currentPage} of {totalPages} ({songs.length} songs total)
-                                    </span>
-                                    <div className="flex space-x-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                            disabled={currentPage === 1}
-                                        >
-                                            <ChevronLeft className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                                            disabled={currentPage === totalPages}
-                                        >
-                                            <ChevronRight className="w-4 h-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                        </>
+                                );
+                            })}
+                        </div>
                     )}
-                </>
-            </Card>
+
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-8 mt-4 border-t border-gray-50 dark:border-gray-800">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none"
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Page Information</span>
+                                <span className="text-xl font-black text-gray-900 dark:text-white mt-1">
+                                    {currentPage} <span className="text-gray-300 dark:text-gray-700 mx-2">/</span> {totalPages}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <style>{`
+                .custom-scrollbar-hidden::-webkit-scrollbar {
+                    display: none;
+                }
+                .custom-scrollbar-hidden {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </div>
     );
 };
