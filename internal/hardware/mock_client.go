@@ -19,7 +19,7 @@ type MockHardwareClient struct {
 	currentSongID    int
 	playerState      string
 	repeatMode       string
-	currentSongTime  int
+	currentSongTime  float64
 	lastStatusUpdate time.Time
 
 	// Recorder
@@ -62,7 +62,7 @@ func NewMockHardwareClient() *MockHardwareClient {
 		currentSongID:    0,
 		playerState:      "stopped",
 		repeatMode:       "none",
-		currentSongTime:  0,
+		currentSongTime:  0.0,
 		lastStatusUpdate: time.Now(),
 		recorderState:    "stopped",
 		controls: []models.Control{
@@ -113,7 +113,7 @@ func (m *MockHardwareClient) SelectSource(sourceID int) error {
 		if s.ID == sourceID {
 			m.currentSource = sourceID
 			m.playerState = "stopped"
-			m.currentSongTime = 0
+			m.currentSongTime = 0.0
 			return nil
 		}
 	}
@@ -129,7 +129,7 @@ func (m *MockHardwareClient) SelectSong(songID int) error {
 		if s.ID == songID {
 			m.currentSongID = songID
 			m.playerState = "stopped"
-			m.currentSongTime = 0
+			m.currentSongTime = 0.0
 			return nil
 		}
 	}
@@ -144,7 +144,7 @@ func (m *MockHardwareClient) Play() error {
 
 func (m *MockHardwareClient) Pause() error {
 	if m.playerState == "playing" {
-		elapsed := int(time.Since(m.lastStatusUpdate).Seconds())
+		elapsed := time.Since(m.lastStatusUpdate).Seconds()
 		m.currentSongTime += elapsed
 	}
 	m.playerState = "paused"
@@ -153,7 +153,7 @@ func (m *MockHardwareClient) Pause() error {
 
 func (m *MockHardwareClient) Stop() error {
 	m.playerState = "stopped"
-	m.currentSongTime = 0
+	m.currentSongTime = 0.0
 	return nil
 }
 
@@ -170,7 +170,7 @@ func (m *MockHardwareClient) Next() error {
 	if !found && len(m.songs) > 0 {
 		m.currentSongID = m.songs[0].ID
 	}
-	m.currentSongTime = 0
+	m.currentSongTime = 0.0
 	return nil
 }
 
@@ -187,12 +187,12 @@ func (m *MockHardwareClient) Previous() error {
 	if !found && len(m.songs) > 0 {
 		m.currentSongID = m.songs[0].ID
 	}
-	m.currentSongTime = 0
+	m.currentSongTime = 0.0
 	return nil
 }
 
 func (m *MockHardwareClient) Seek(timeInSeconds int) error {
-	m.currentSongTime = timeInSeconds
+	m.currentSongTime = float64(timeInSeconds)
 	m.lastStatusUpdate = time.Now()
 	return nil
 }
@@ -204,7 +204,7 @@ func (m *MockHardwareClient) SetRepeatMode(mode string) error {
 
 func (m *MockHardwareClient) GetPlayerStatus() (*models.PlayerStatus, error) {
 	if m.playerState == "playing" {
-		elapsed := int(time.Since(m.lastStatusUpdate).Seconds())
+		elapsed := time.Since(m.lastStatusUpdate).Seconds()
 		m.currentSongTime += elapsed
 		m.lastStatusUpdate = time.Now()
 	}
@@ -217,16 +217,19 @@ func (m *MockHardwareClient) GetPlayerStatus() (*models.PlayerStatus, error) {
 		}
 	}
 
-	totalTime := 300
+	totalTime := 120 // Base 2 minutes
+	if m.currentSongID > 0 {
+		totalTime = 120 + (m.currentSongID * 35) // Add 35s per song ID
+	}
 
-	if m.currentSongTime > totalTime {
-		m.currentSongTime = totalTime
+	if m.currentSongTime > float64(totalTime) {
+		m.currentSongTime = float64(totalTime)
 	}
 
 	return &models.PlayerStatus{
 		SongTitle:   songTitle,
 		State:       m.playerState,
-		CurrentTime: m.currentSongTime,
+		CurrentTime: int(m.currentSongTime),
 		TotalTime:   totalTime,
 		RepeatMode:  m.repeatMode,
 	}, nil

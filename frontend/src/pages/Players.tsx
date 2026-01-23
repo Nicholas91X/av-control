@@ -13,8 +13,8 @@ import {
     ChevronDown,
     Search,
     VolumeX,
-    SkipBack as FastRewind,
-    SkipForward as FastForward,
+    Rewind as FastRewind,
+    FastForward,
     ArrowRight,
     Plus,
     Minus,
@@ -57,6 +57,11 @@ export const Players: React.FC = () => {
     const [isMutating, setIsMutating] = useState(false);
     const [pendingVolumes, setPendingVolumes] = useState<Record<number, number>>({});
     const [controlValues, setControlValues] = useState<Record<number, any>>({});
+    const [isSeeking, setIsSeeking] = useState(false);
+    const [seekingTime, setSeekingTime] = useState(0);
+    const lastSeekTimeRef = useRef<number>(0);
+    const lastTransportActionTimeRef = useRef<number>(0);
+    const lastKnownPlayheadRef = useRef<{ time: number; timestamp: number }>({ time: 0, timestamp: 0 });
 
     // Fetch controls to find Volume 1 and Volume 2
     const { data: controlsData } = useQuery<{ controls: any[] }>({
@@ -207,32 +212,104 @@ export const Players: React.FC = () => {
 
     const playMutation = useMutation({
         mutationFn: async () => api.post('/device/player/play'),
+        onMutate: async () => {
+            const now = Date.now();
+            lastTransportActionTimeRef.current = now;
+            // Capture current position before play starts to avoid reset
+            const currentStatus = queryClient.getQueryData<PlayerStatus>(['player', 'status']);
+            if (currentStatus) {
+                lastKnownPlayheadRef.current = { time: currentStatus.current_time || 0, timestamp: now };
+            }
+
+            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
+            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
+                if (!old) return old;
+                return { ...old, state: 'playing' };
+            });
+        },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const pauseMutation = useMutation({
         mutationFn: async () => api.post('/device/player/pause'),
+        onMutate: async () => {
+            const now = Date.now();
+            lastTransportActionTimeRef.current = now;
+
+            const currentStatus = queryClient.getQueryData<PlayerStatus>(['player', 'status']);
+            if (currentStatus) {
+                lastKnownPlayheadRef.current = { time: currentStatus.current_time || 0, timestamp: now };
+            }
+
+            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
+            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
+                if (!old) return old;
+                return { ...old, state: 'paused' };
+            });
+        },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const stopMutation = useMutation({
         mutationFn: async () => api.post('/device/player/stop'),
+        onMutate: async () => {
+            lastTransportActionTimeRef.current = Date.now();
+            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
+            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
+                if (!old) return old;
+                return { ...old, state: 'stopped', current_time: 0 };
+            });
+        },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const nextMutation = useMutation({
         mutationFn: async () => api.post('/device/player/next'),
+        onMutate: async () => {
+            lastTransportActionTimeRef.current = Date.now();
+            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
+            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
+                if (!old) return old;
+                return { ...old, current_time: 0 };
+            });
+        },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const previousMutation = useMutation({
         mutationFn: async () => api.post('/device/player/previous'),
+        onMutate: async () => {
+            lastTransportActionTimeRef.current = Date.now();
+            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
+            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
+                if (!old) return old;
+                return { ...old, current_time: 0 };
+            });
+        },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const seekMutation = useMutation({
         mutationFn: async (time: number) => api.post('/device/player/seek', { time }),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
+        onMutate: async (time: number) => {
+            setIsMutating(true);
+            lastTransportActionTimeRef.current = Date.now();
+            lastSeekTimeRef.current = Date.now();
+            lastKnownPlayheadRef.current = { time, timestamp: Date.now() };
+
+            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
+            const previousStatus = queryClient.getQueryData<PlayerStatus>(['player', 'status']);
+            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
+                if (!old) return old;
+                return { ...old, current_time: time };
+            });
+            return { previousStatus };
+        },
+        onSuccess: () => {
+            // Keep local data fresh
+            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+        },
+        onSettled: () => setIsMutating(false),
     });
 
     const repeatMutation = useMutation({
@@ -360,93 +437,172 @@ export const Players: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Status Bar */}
                         {(() => {
                             const status = getStatusDisplay(playerStatus?.state);
+
+                            // TRANSPORT STABILITY ENGINE
+                            const now = Date.now();
+                            const isPlaying = playerStatus?.state === 'playing';
+                            const timeSinceLastAction = now - lastTransportActionTimeRef.current;
+                            const isInGracePeriod = timeSinceLastAction < 10000; // Increased to 10s for max safety
+
+                            let effectiveTime: number;
+
+                            if (isSeeking) {
+                                effectiveTime = seekingTime;
+                            } else if (isInGracePeriod) {
+                                // During grace period, calculate local projection
+                                const baseTime = lastKnownPlayheadRef.current.time;
+                                const elapsed = isPlaying ? Math.floor((now - lastKnownPlayheadRef.current.timestamp) / 1000) : 0;
+                                effectiveTime = Math.min(baseTime + elapsed, playerStatus?.total_time || 999);
+                            } else {
+                                effectiveTime = playerStatus?.current_time || 0;
+                                lastKnownPlayheadRef.current = { time: effectiveTime, timestamp: now };
+                            }
+
+                            const progressPercent = ((effectiveTime / (playerStatus?.total_time || 1)) * 100);
+
                             return (
-                                <div className={`bg-black/60 border-2 ${status.border} rounded-xl p-3 flex items-center justify-between`}>
-                                    <div className="flex items-center gap-4">
-                                        <span className={`${status.bg} ${status.color} px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-widest border ${status.border} shadow-[0_0_15px_rgba(0,0,0,0.5)]`}>
-                                            {status.text}
-                                        </span>
-                                        <div className="h-4 w-px bg-white/10" />
-                                        <span className={`${status.color} font-bold text-xl tracking-tight uppercase truncate max-w-[400px]`}>
-                                            {playerStatus?.song_title || 'Nessun brano'}
-                                        </span>
+                                <>
+                                    {/* Status Bar */}
+                                    <div className={`bg-black/60 border-2 ${status.border} rounded-xl p-3 flex items-center justify-between`}>
+                                        <div className="flex items-center gap-4">
+                                            <span className={`${status.bg} ${status.color} px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-widest border ${status.border} shadow-[0_0_15px_rgba(0,0,0,0.5)]`}>
+                                                {status.text}
+                                            </span>
+                                            <div className="h-4 w-px bg-white/10" />
+                                            <span className={`${status.color} font-bold text-xl tracking-tight uppercase truncate max-w-[400px]`}>
+                                                {playerStatus?.song_title || 'Nessun brano'}
+                                            </span>
+                                        </div>
+                                        <div className={`${status.color} font-mono text-xl font-black tabular-nums`}>
+                                            {formatTime(effectiveTime)}
+                                        </div>
                                     </div>
-                                    <div className={`${status.color} font-mono text-xl font-black tabular-nums`}>
-                                        {formatTime(playerStatus?.current_time)}
+
+                                    {/* Transport Controls */}
+                                    <div className="flex justify-between gap-3 mb-2">
+                                        {/* 1) Brano precedente */}
+                                        <button onClick={() => previousMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
+                                            <SkipBack className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
+                                        </button>
+
+                                        {/* 2) Traccia indietro di 5 secondi */}
+                                        <button
+                                            onClick={() => {
+                                                const newTime = Math.max(0, effectiveTime - 5);
+                                                lastTransportActionTimeRef.current = Date.now();
+                                                lastKnownPlayheadRef.current = { time: newTime, timestamp: Date.now() };
+                                                seekMutation.mutate(newTime);
+                                            }}
+                                            className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group"
+                                        >
+                                            <FastRewind className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
+                                        </button>
+
+                                        {/* 3) Play/Pause */}
+                                        {isPlaying ? (
+                                            <button onClick={() => pauseMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-blue-600 hover:bg-blue-500 border border-blue-400/50 rounded-xl shadow-[0_0_30px_rgba(37,99,235,0.3)] transition-all active:scale-95 group">
+                                                <Pause className="w-10 h-10 text-white fill-white group-active:scale-90 transition-transform" />
+                                            </button>
+                                        ) : (
+                                            <button onClick={() => playMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
+                                                <Play className="w-10 h-10 text-blue-400 fill-blue-400/10 ml-1 group-active:scale-90 transition-transform" />
+                                            </button>
+                                        )}
+
+                                        {/* 4) Stop */}
+                                        <button onClick={() => stopMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
+                                            <Square className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
+                                        </button>
+
+                                        {/* 5) Traccia avanti di 5 secondi */}
+                                        <button
+                                            onClick={() => {
+                                                const newTime = Math.min(playerStatus?.total_time || 999, effectiveTime + 5);
+                                                lastTransportActionTimeRef.current = Date.now();
+                                                lastKnownPlayheadRef.current = { time: newTime, timestamp: Date.now() };
+                                                seekMutation.mutate(newTime);
+                                            }}
+                                            className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group"
+                                        >
+                                            <FastForward className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
+                                        </button>
+
+                                        {/* 6) Brano successivo */}
+                                        <button onClick={() => nextMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
+                                            <SkipForward className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
+                                        </button>
                                     </div>
-                                </div>
+
+                                    {/* Seek Bar - Modern & Elegant */}
+                                    <div className="flex flex-col gap-2 bg-white/5 border border-white/10 p-6 rounded-2xl">
+                                        <div className="relative h-4 flex items-center">
+                                            {/* Track Background */}
+                                            <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full" />
+
+                                            {/* Active Progress Track */}
+                                            <div
+                                                className={`absolute left-0 h-1.5 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.6)] ${!isSeeking ? 'transition-all duration-500' : ''}`}
+                                                style={{ width: `${progressPercent}%` }}
+                                            />
+
+                                            {/* Interactive Slider - LARGE TOUCH AREA */}
+                                            <input
+                                                type="range"
+                                                min={0}
+                                                max={playerStatus?.total_time || 100}
+                                                value={effectiveTime}
+                                                onMouseDown={() => {
+                                                    setIsSeeking(true);
+                                                    setSeekingTime(effectiveTime);
+                                                }}
+                                                onTouchStart={() => {
+                                                    setIsSeeking(true);
+                                                    setSeekingTime(effectiveTime);
+                                                }}
+                                                onInput={(e) => {
+                                                    setSeekingTime(parseInt((e.target as HTMLInputElement).value));
+                                                }}
+                                                onChange={(e) => {
+                                                    const newVal = parseInt(e.target.value);
+                                                    setSeekingTime(newVal);
+                                                }}
+                                                onMouseUp={(e) => {
+                                                    const val = parseInt((e.target as HTMLInputElement).value);
+                                                    lastTransportActionTimeRef.current = Date.now();
+                                                    lastKnownPlayheadRef.current = { time: val, timestamp: Date.now() };
+                                                    seekMutation.mutate(val);
+                                                    setTimeout(() => setIsSeeking(false), 50);
+                                                }}
+                                                onTouchEnd={(e) => {
+                                                    const val = parseInt((e.target as HTMLInputElement).value);
+                                                    lastTransportActionTimeRef.current = Date.now();
+                                                    lastKnownPlayheadRef.current = { time: val, timestamp: Date.now() };
+                                                    seekMutation.mutate(val);
+                                                    setTimeout(() => setIsSeeking(false), 50);
+                                                }}
+                                                className="absolute inset-x-0 w-full h-20 -top-8 opacity-0 cursor-pointer z-30"
+                                            />
+
+                                            {/* Elegant Handle */}
+                                            <div
+                                                className={`absolute w-6 h-6 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.6)] pointer-events-none z-10 border-2 border-blue-500 ${!isSeeking ? 'transition-all duration-500' : 'transition-transform'}`}
+                                                style={{
+                                                    left: `calc(${progressPercent}% - 12px)`,
+                                                    transform: isSeeking ? 'scale(1.2)' : 'scale(1)'
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between text-[10px] font-black text-white/30 tracking-widest uppercase">
+                                            <span>{formatTime(effectiveTime)}</span>
+                                            <span>{formatTime(playerStatus?.total_time)}</span>
+                                        </div>
+                                    </div>
+                                </>
                             );
                         })()}
 
-                        {/* Transport Controls */}
-                        <div className="flex justify-between gap-3 mb-2">
-                            <button onClick={() => previousMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
-                                <SkipBack className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
-                            </button>
-                            <button className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
-                                <FastRewind className="w-10 h-10 text-blue-400 fill-blue-400/10 -scale-x-100 group-active:scale-90 transition-transform" />
-                            </button>
-
-                            {playerStatus?.state === 'playing' ? (
-                                <button onClick={() => pauseMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-blue-600 hover:bg-blue-500 border border-blue-400/50 rounded-xl shadow-[0_0_30px_rgba(37,99,235,0.3)] transition-all active:scale-95 group">
-                                    <Pause className="w-10 h-10 text-white fill-white group-active:scale-90 transition-transform" />
-                                </button>
-                            ) : (
-                                <button onClick={() => playMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
-                                    <Play className="w-10 h-10 text-blue-400 fill-blue-400/10 ml-1 group-active:scale-90 transition-transform" />
-                                </button>
-                            )}
-
-                            <button onClick={() => stopMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
-                                <Square className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
-                            </button>
-                            <button className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
-                                <FastForward className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
-                            </button>
-                            <button onClick={() => nextMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
-                                <SkipForward className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
-                            </button>
-                        </div>
-
-                        {/* Seek Bar - Modern & Elegant */}
-                        <div className="flex flex-col gap-2 bg-white/5 border border-white/10 p-6 rounded-2xl">
-                            <div className="relative h-4 flex items-center">
-                                {/* Track Background */}
-                                <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full" />
-
-                                {/* Active Progress Track */}
-                                <div
-                                    className="absolute left-0 h-1.5 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.6)]"
-                                    style={{ width: `${((playerStatus?.current_time || 0) / (playerStatus?.total_time || 1)) * 100}%` }}
-                                />
-
-                                {/* Interactive Slider */}
-                                <input
-                                    type="range"
-                                    min={0}
-                                    max={playerStatus?.total_time || 100}
-                                    value={playerStatus?.current_time || 0}
-                                    onChange={(e) => {
-                                        const newVal = parseInt(e.target.value);
-                                        seekMutation.mutate(newVal);
-                                    }}
-                                    className="absolute inset-x-0 w-full opacity-0 cursor-pointer h-full z-10"
-                                />
-
-                                {/* Elegant Handle */}
-                                <div
-                                    className="absolute w-5 h-5 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.4)] pointer-events-none z-0 border-2 border-blue-500"
-                                    style={{ left: `calc(${((playerStatus?.current_time || 0) / (playerStatus?.total_time || 1)) * 100}% - 10px)` }}
-                                />
-                            </div>
-                            <div className="flex justify-between text-[10px] font-black text-white/30 tracking-widest uppercase">
-                                <span>{formatTime(playerStatus?.current_time)}</span>
-                                <span>{formatTime(playerStatus?.total_time)}</span>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Column 3: Volume & Nav (Right) - ANALOG MIXER STYLE */}
