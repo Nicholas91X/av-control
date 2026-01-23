@@ -55,6 +55,7 @@ export const TabletDashboard: React.FC = () => {
 
     const homeModal = useModalAnimation(false);
     const infoModal = useModalAnimation(false);
+    const logoutModal = useModalAnimation(false);
 
     const { data: versionData } = useQuery({
         queryKey: ['version'],
@@ -114,8 +115,8 @@ export const TabletDashboard: React.FC = () => {
 
                         {/* Logout Button */}
                         <button
-                            onClick={logout}
-                            className="p-3 text-red-500/40 hover:text-red-500 transition-all bg-red-500/5 rounded-xl border border-red-500/10 hover:border-red-500/20 active:scale-95 shadow-lg"
+                            onClick={logoutModal.open}
+                            className="p-3 text-red-500/40 hover:text-red-500 transition-all bg-red-500/5 rounded-xl border border-red-500/10 border-red-500/20 active:scale-95 shadow-lg"
                             title="Logout"
                         >
                             <LogOut size={24} />
@@ -278,6 +279,44 @@ export const TabletDashboard: React.FC = () => {
                             <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
                                 <span className="text-white/40 font-medium">Architettura</span>
                                 <span className="font-mono uppercase text-white/60">{versionData?.arch || 'ARMv7'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {logoutModal.isRendered && (
+                <div className={`fixed inset-0 z-50 flex items-center justify-center p-8 transition-opacity duration-500 ease-in-out ${logoutModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xl transition-opacity duration-500" onClick={logoutModal.close} />
+                    <div className={`
+                        relative bg-[#1a1a1a] border border-white/10 p-12 rounded-[2.5rem] max-w-md w-full shadow-2xl transition-all duration-500 ease-out
+                        ${logoutModal.isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-90 translate-y-4 opacity-0'}
+                    `}>
+                        <div className="flex flex-col items-center text-center">
+                            <div className="p-6 bg-red-500/10 rounded-full text-red-500 mb-6">
+                                <LogOut size={48} />
+                            </div>
+                            <h2 className="text-3xl font-bold mb-4 tracking-tight">Conferma Logout</h2>
+                            <p className="text-lg text-white/60 mb-8 leading-relaxed">
+                                Sei sicuro di voler uscire? Una volta disconnesso, sarà necessario <span className="text-white font-semibold">reimmettere le tue credenziali</span> di accesso.
+                            </p>
+
+                            <div className="flex w-full space-x-4">
+                                <button
+                                    onClick={logoutModal.close}
+                                    className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl font-semibold transition-all active:scale-95"
+                                >
+                                    Annulla
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        logoutModal.close();
+                                        logout();
+                                    }}
+                                    className="flex-1 py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 transition-all active:scale-95"
+                                >
+                                    Esci
+                                </button>
                             </div>
                         </div>
                     </div>
