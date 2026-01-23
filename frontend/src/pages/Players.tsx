@@ -408,33 +408,29 @@ export const Players: React.FC = () => {
                     </div>
 
                     {/* Column 3: Volume & Nav (Right) - ANALOG MIXER STYLE */}
-                    <div className="w-[17%] flex flex-col gap-4 pb-2">
-                        <div className="flex-1 flex flex-col items-center justify-between bg-gradient-to-b from-white/10 to-transparent border border-white/20 rounded-[3rem] py-8 overflow-hidden relative backdrop-blur-xl shadow-2xl">
-                            {/* Step Up Buttons */}
-                            <div className="flex gap-4 px-10 w-full justify-center z-10">
-                                {volumeControls.map(ctrl => (
-                                    <button
-                                        key={`up-${ctrl.id}`}
-                                        onClick={() => handleStepVolume(ctrl, 'up')}
-                                        className="flex-1 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border-2 border-white/10 rounded-2xl transition-all active:scale-90 shadow-lg"
-                                    >
-                                        <Plus className="w-6 h-6 text-blue-400" />
-                                    </button>
-                                ))}
-                            </div>
+                    <div className="w-[18%] flex flex-col gap-4 pb-2">
+                        {/* Main Fader Box */}
+                        <div className="flex-1 flex flex-row justify-center gap-8 bg-gradient-to-b from-white/10 to-transparent border border-white/20 rounded-[3rem] py-10 px-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                            {volumeControls.map(ctrl => {
+                                const val = ctrl.id in pendingVolumes ? pendingVolumes[ctrl.id] : (controlValues[ctrl.id]?.volume ?? 0);
+                                const min = ctrl.min ?? -96;
+                                const max = ctrl.max ?? 12;
+                                const range = max - min;
+                                const percent = ((val - min) / range) * 100;
 
-                            {/* Sliders Container (The Mixer Tracks) */}
-                            <div className="flex-1 flex flex-row gap-20 items-stretch py-12 px-14 w-full justify-center relative">
-                                {volumeControls.map(ctrl => {
-                                    const val = ctrl.id in pendingVolumes ? pendingVolumes[ctrl.id] : (controlValues[ctrl.id]?.volume ?? 0);
-                                    const min = ctrl.min ?? -96;
-                                    const max = ctrl.max ?? 12;
-                                    const range = max - min;
-                                    const percent = ((val - min) / range) * 100;
+                                return (
+                                    <div key={`channel-${ctrl.id}`} className="flex flex-col items-center gap-8 h-full">
+                                        {/* Plus Button */}
+                                        <button
+                                            onClick={() => handleStepVolume(ctrl, 'up')}
+                                            className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border-2 border-white/10 rounded-2xl transition-all active:scale-95 shadow-lg shrink-0"
+                                        >
+                                            <Plus className="w-6 h-6 text-blue-400" />
+                                        </button>
 
-                                    return (
-                                        <div key={`slider-${ctrl.id}`} className="relative h-full w-12 flex flex-col items-center group">
-                                            {/* Track Slot - Reduced Width */}
+                                        {/* Fader Track */}
+                                        <div className="flex-1 relative w-12 flex flex-col items-center group py-4">
+                                            {/* Track Slot */}
                                             <div className="absolute inset-y-0 w-2.5 bg-black/80 rounded-full border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,1)] overflow-hidden">
                                                 <div
                                                     className="absolute bottom-0 w-full bg-gradient-to-t from-blue-600 to-blue-400 opacity-20 blur-[1px]"
@@ -442,20 +438,18 @@ export const Players: React.FC = () => {
                                                 />
                                             </div>
 
-                                            {/* Fader Cap - Compact & Professional (w-12 h-18) */}
+                                            {/* Fader Cap */}
                                             <div
                                                 className="absolute w-12 h-18 z-20 pointer-events-none"
                                                 style={{ bottom: `calc(${percent}% - 36px)` }}
                                             >
                                                 <div className="w-full h-full bg-gradient-to-b from-[#444] via-[#1a1a1c] to-[#000] border border-white/20 shadow-[0_10px_20px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded flex flex-col items-center justify-center">
                                                     <div className="w-full h-1 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,1)] mb-1" />
-
                                                     <div className="flex flex-col gap-0.5 opacity-20 mb-1">
                                                         <div className="w-4 h-px bg-white" />
                                                         <div className="w-4 h-px bg-white" />
                                                         <div className="w-4 h-px bg-white" />
                                                     </div>
-
                                                     <div className="font-mono text-[9px] font-bold text-blue-400">
                                                         {Math.round(val)}
                                                     </div>
@@ -480,26 +474,21 @@ export const Players: React.FC = () => {
                                                 }}
                                             />
                                         </div>
-                                    );
-                                })}
-                            </div>
 
-                            {/* Step Down Buttons */}
-                            <div className="flex gap-4 px-12 w-full justify-center z-10">
-                                {volumeControls.map(ctrl => (
-                                    <button
-                                        key={`down-${ctrl.id}`}
-                                        onClick={() => handleStepVolume(ctrl, 'down')}
-                                        className="flex-1 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border-2 border-white/10 rounded-2xl transition-all active:scale-90 shadow-lg"
-                                    >
-                                        <Minus className="w-6 h-6 text-blue-400" />
-                                    </button>
-                                ))}
-                            </div>
+                                        {/* Minus Button */}
+                                        <button
+                                            onClick={() => handleStepVolume(ctrl, 'down')}
+                                            className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border-2 border-white/10 rounded-2xl transition-all active:scale-95 shadow-lg shrink-0"
+                                        >
+                                            <Minus className="w-6 h-6 text-blue-400" />
+                                        </button>
+                                    </div>
+                                );
+                            })}
                         </div>
 
-                        {/* Mute Buttons Row */}
-                        <div className="grid grid-cols-2 gap-4 px-3">
+                        {/* Mute Section - Perfectly matching widths */}
+                        <div className="flex justify-center gap-8 px-6">
                             {volumeControls.map(ctrl => {
                                 const isMuted = controlValues[ctrl.id]?.mute;
                                 return (
@@ -513,7 +502,7 @@ export const Players: React.FC = () => {
                                                 [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
                                             }));
                                         }}
-                                        className={`h-14 rounded-2xl flex items-center justify-center transition-all border-2 ${isMuted
+                                        className={`w-14 h-12 rounded-2xl flex items-center justify-center transition-all border-2 ${isMuted
                                             ? 'bg-red-600 border-red-400 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
                                             : 'bg-[#1a1a1c] border-white/10 text-blue-400 hover:border-blue-500 shadow-lg'
                                             }`}
