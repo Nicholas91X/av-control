@@ -150,14 +150,14 @@ export const TabletDashboard: React.FC = () => {
                         <TabletTile
                             icon={Power}
                             label="STANDBY"
-                            size="large"
+                            size="small"
                             glowColor="#f97316" // Orange
                             onClick={() => setIsStandby(true)}
                         />
                         <TabletTile
                             icon={Home}
                             label="HOME"
-                            size="xl"
+                            size="large"
                             glowColor="#3b82f6"
                             className="border-white/10"
                             onClick={homeModal.open}
@@ -165,7 +165,7 @@ export const TabletDashboard: React.FC = () => {
                         <TabletTile
                             icon={Wrench}
                             label="IMPOSTAZIONI"
-                            size="large"
+                            size="small"
                             glowColor="#64748b" // Slate
                             className="opacity-40"
                             onClick={() => { }}
