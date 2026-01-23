@@ -847,86 +847,96 @@ export const Players: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Bottom Utility Bar */}
-                <div className="h-20 bg-black border-t border-white/10 flex items-center px-6 gap-4 shrink-0">
-                    <button className="px-8 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/60 hover:text-white">
-                        Songs Management
-                    </button>
+                {/* Bottom Utility Bar - REDESIGNED TRIPARTITE LAYOUT */}
+                <div className="h-24 bg-black border-t border-white/10 flex items-center px-6 gap-3 shrink-0 relative z-50">
 
-                    <div className="flex gap-2 ml-4">
-                        <button
-                            onClick={() => {
-                                const isGroup = playerStatus?.repeat_mode === 'group';
-                                repeatMutation.mutate(isGroup ? 'off' : 'all');
-                            }}
-                            className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all border shadow-lg ${playerStatus?.repeat_mode === 'group'
-                                ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
-                                : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10'
-                                }`}
-                        >
-                            <ListMusic className="w-6 h-6" />
-                        </button>
-                        <button
-                            onClick={() => {
-                                const isSong = playerStatus?.repeat_mode === 'song';
-                                repeatMutation.mutate(isSong ? 'off' : 'one');
-                            }}
-                            className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all border shadow-lg ${playerStatus?.repeat_mode === 'song'
-                                ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
-                                : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10'
-                                }`}
-                        >
-                            <Repeat1 className="w-6 h-6" />
+                    {/* SECTION 1: MEDIA MANAGEMENT */}
+                    <div className="flex-1 flex items-center">
+                        <button className="px-6 h-12 bg-white/5 border border-white/10 border-b-4 border-black/40 rounded-xl text-sm font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 transition-all active:translate-y-1 active:border-b-0">
+                            Songs Management
                         </button>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="w-px h-8 bg-white/10" />
+
+                    {/* SECTION 2: PLAYBACK CONTROLS */}
+                    <div className="flex-[1.5] flex items-center justify-center gap-4">
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => {
+                                    const isGroup = playerStatus?.repeat_mode === 'group';
+                                    repeatMutation.mutate(isGroup ? 'off' : 'all');
+                                }}
+                                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border border-b-4 shadow-lg active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'group'
+                                    ? 'bg-blue-600 border-blue-400 border-b-blue-900/60 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
+                                    : 'bg-white/5 border-white/10 border-b-black/40 text-white/40 hover:text-white hover:bg-white/10'
+                                    }`}
+                            >
+                                <ListMusic className="w-6 h-6" />
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const isSong = playerStatus?.repeat_mode === 'song';
+                                    repeatMutation.mutate(isSong ? 'off' : 'one');
+                                }}
+                                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border border-b-4 shadow-lg active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
+                                    ? 'bg-blue-600 border-blue-400 border-b-blue-900/60 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
+                                    : 'bg-white/5 border-white/10 border-b-black/40 text-white/40 hover:text-white hover:bg-white/10'
+                                    }`}
+                            >
+                                <Repeat1 className="w-6 h-6" />
+                            </button>
+                        </div>
+
                         <button
-                            className="w-12 h-12 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-[10px] font-black text-white/40 hover:text-white hover:bg-white/10 transition-all uppercase tracking-tighter"
+                            className="w-12 h-12 bg-white/5 border border-white/10 border-b-4 border-black/40 rounded-xl flex items-center justify-center text-[10px] font-black text-white/40 hover:text-white hover:bg-white/10 transition-all active:translate-y-1 active:border-b-0 uppercase tracking-tighter"
                         >
                             OTP
                         </button>
-                    </div>
 
-                    <div
-                        ref={fadeRef}
-                        className="relative bg-white/5 border border-white/10 rounded-lg px-5 h-12 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/10 transition-all select-none"
-                        onClick={() => setIsFadeDropdownOpen(!isFadeDropdownOpen)}
-                    >
-                        <div className="flex items-center gap-2 text-white/60">
-                            <span>Fade</span>
-                            <span className="w-4 text-center text-blue-400 font-black">{fadeValue}</span>
-                            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isFadeDropdownOpen ? 'rotate-180' : ''}`} />
-                        </div>
-
-                        {/* Fade Dropdown Menu */}
-                        {isFadeDropdownOpen && (
-                            <div className="absolute bottom-full left-0 mb-2 w-full min-w-[120px] bg-[#0a0a0c]/90 border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-2 duration-200 z-[110]">
-                                <div className="flex flex-col">
-                                    {[0, 1, 2, 3, 4, 5].map((val) => (
-                                        <button
-                                            key={val}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setFadeValue(val);
-                                                setIsFadeDropdownOpen(false);
-                                            }}
-                                            className={`w-full h-12 flex items-center justify-between px-6 transition-all border-b border-white/5 last:border-0 ${fadeValue === val
-                                                ? 'bg-blue-600 text-white'
-                                                : 'hover:bg-white/5 text-white/40 hover:text-white'
-                                                }`}
-                                        >
-                                            <span className="font-black text-sm">{val}</span>
-                                            {fadeValue === val && <Check className="w-4 h-4" />}
-                                        </button>
-                                    ))}
-                                </div>
+                        <div
+                            ref={fadeRef}
+                            className="relative bg-white/5 border border-white/10 border-b-4 border-black/40 rounded-xl px-5 h-12 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/10 transition-all select-none active:translate-y-1 active:border-b-0"
+                            onClick={() => setIsFadeDropdownOpen(!isFadeDropdownOpen)}
+                        >
+                            <div className="flex items-center gap-2 text-white/60">
+                                <span>Fade</span>
+                                <span className="w-4 text-center text-blue-400 font-black">{fadeValue}</span>
+                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isFadeDropdownOpen ? 'rotate-180' : ''}`} />
                             </div>
-                        )}
+
+                            {/* Fade Dropdown Menu */}
+                            {isFadeDropdownOpen && (
+                                <div className="absolute bottom-full left-0 mb-4 w-full min-w-[120px] bg-[#0a0a0c]/95 border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-2 duration-200 z-[110]">
+                                    <div className="flex flex-col">
+                                        {[0, 1, 2, 3, 4, 5].map((val) => (
+                                            <button
+                                                key={val}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setFadeValue(val);
+                                                    setIsFadeDropdownOpen(false);
+                                                }}
+                                                className={`w-full h-12 flex items-center justify-between px-6 transition-all border-b border-white/5 last:border-0 ${fadeValue === val
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'hover:bg-white/5 text-white/40 hover:text-white'
+                                                    }`}
+                                            >
+                                                <span className="font-black text-sm">{val}</span>
+                                                {fadeValue === val && <Check className="w-4 h-4" />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="ml-auto flex gap-4 pr-4 flex-1 justify-end">
-                        <button className="flex items-center gap-2 px-8 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/40 hover:text-white whitespace-nowrap transition-all hover:bg-white/10">
+                    <div className="w-px h-8 bg-white/10" />
+
+                    {/* SECTION 3: NAVIGATION & SEARCH */}
+                    <div className={`flex-1 flex justify-end ${isSearchActive ? 'gap-2' : 'gap-4'}`}>
+                        <button className={`flex items-center gap-2 h-12 bg-white/5 border border-white/10 border-b-4 border-black/40 rounded-xl text-sm font-black uppercase tracking-widest text-white/40 hover:text-white whitespace-nowrap transition-all hover:bg-white/10 active:translate-y-1 active:border-b-0 ${isSearchActive ? 'px-4' : 'px-8'}`}>
                             <Search className="w-4 h-4" /> Filter
                         </button>
 
@@ -936,7 +946,7 @@ export const Players: React.FC = () => {
                                     setSearchQuery('');
                                     setIsSearchModalOpen(true);
                                 }}
-                                className="flex items-center gap-2 px-8 h-12 bg-blue-600/10 border border-blue-500/30 rounded-lg text-sm font-black uppercase tracking-widest text-blue-400 hover:text-white hover:bg-blue-600/20 whitespace-nowrap transition-all"
+                                className="flex items-center gap-2 px-8 h-12 bg-blue-600/10 border border-blue-500/30 border-b-4 border-blue-900/60 rounded-xl text-sm font-black uppercase tracking-widest text-blue-400 hover:text-white hover:bg-blue-600/20 whitespace-nowrap transition-all active:translate-y-1 active:border-b-0"
                             >
                                 <Search className="w-4 h-4" /> Cerca
                             </button>
@@ -944,14 +954,14 @@ export const Players: React.FC = () => {
                             <>
                                 <button
                                     onClick={findNext}
-                                    className="flex items-center gap-2 px-8 h-12 bg-blue-600 border border-blue-400/50 rounded-lg text-sm font-black uppercase tracking-widest text-white whitespace-nowrap shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all active:scale-95 group"
+                                    className="flex items-center gap-2 px-4 h-12 bg-blue-600 border border-blue-400/50 border-b-4 border-blue-900/60 rounded-xl text-sm font-black uppercase tracking-widest text-white whitespace-nowrap shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all active:translate-y-1 active:border-b-0 group"
                                 >
                                     <SkipForward className="w-4 h-4 group-active:translate-x-1 transition-transform" />
                                     Succ
                                 </button>
                                 <button
                                     onClick={clearSearch}
-                                    className="flex items-center gap-2 px-8 h-12 bg-[#1a1a1c] border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 whitespace-nowrap transition-all active:scale-95"
+                                    className="flex items-center gap-2 px-4 h-12 bg-[#1a1a1c] border border-white/10 border-b-4 border-black/40 rounded-xl text-sm font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 whitespace-nowrap transition-all active:translate-y-1 active:border-b-0"
                                 >
                                     <X className="w-4 h-4" /> Fine
                                 </button>
@@ -976,7 +986,7 @@ export const Players: React.FC = () => {
                                 </div>
                                 <button
                                     onClick={() => setIsSearchModalOpen(false)}
-                                    className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all active:scale-90"
+                                    className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
                                 >
                                     <X className="w-7 h-7 text-white/40" />
                                 </button>
@@ -1027,10 +1037,9 @@ export const Players: React.FC = () => {
                                                         <button
                                                             key={key}
                                                             onClick={() => setSearchQuery(prev => prev + key)}
-                                                            className="flex-1 h-16 bg-white/5 hover:bg-white/10 border-t border-white/10 rounded-2xl text-2xl font-bold transition-all active:scale-95 shadow-2xl relative overflow-hidden group"
+                                                            className="flex-1 h-16 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-2xl font-bold transition-all active:translate-y-1 active:border-b-0 shadow-2xl relative overflow-hidden group"
                                                         >
-                                                            <div className="absolute inset-x-0 bottom-0 h-1.5 bg-black/20" />
-                                                            <span className="relative z-10 text-white group-active:translate-y-0.5 transition-transform">{key}</span>
+                                                            <span className="relative z-10 text-white">{key}</span>
                                                         </button>
                                                     ))}
                                                 </div>
@@ -1038,25 +1047,25 @@ export const Players: React.FC = () => {
                                             <div className="flex justify-center gap-3 mt-2">
                                                 <button
                                                     onClick={() => setKeyboardLayout(keyboardLayout === 'alpha' ? 'symbols' : 'alpha')}
-                                                    className="w-28 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 rounded-2xl text-lg font-black tracking-widest transition-all active:scale-95 shadow-2xl text-blue-400"
+                                                    className="w-28 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
                                                 >
                                                     {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
                                                 </button>
                                                 <button
                                                     onClick={() => setSearchQuery(prev => prev + ' ')}
-                                                    className="flex-[4] h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 rounded-2xl text-sm font-black tracking-[0.5em] transition-all active:scale-95 shadow-2xl text-white/30 uppercase"
+                                                    className="flex-[4] h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-sm font-black tracking-[0.5em] transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-white/30 uppercase"
                                                 >
                                                     SPAZIO
                                                 </button>
                                                 <button
                                                     onClick={() => setSearchQuery(prev => prev.slice(0, -1))}
-                                                    className="w-28 h-20 bg-red-900/10 hover:bg-red-900/20 border-t border-red-500/10 rounded-2xl flex items-center justify-center transition-all active:scale-95 shadow-2xl text-red-500/60"
+                                                    className="w-28 h-20 bg-red-900/10 hover:bg-red-900/20 border-t border-red-500/10 border-b-4 border-red-900/60 rounded-2xl flex items-center justify-center transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-red-500/60"
                                                 >
                                                     <Delete className="w-7 h-7" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleSearch(searchQuery)}
-                                                    className="flex-[1.5] h-20 bg-blue-600 hover:bg-blue-500 border-t border-blue-400/50 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:scale-95 shadow-[0_10px_30px_rgba(37,99,235,0.4)] text-white"
+                                                    className="flex-[1.5] h-20 bg-blue-600 hover:bg-blue-500 border-t border-blue-400/50 border-b-4 border-blue-900/60 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-[0_10px_30px_rgba(37,99,235,0.4)] text-white"
                                                 >
                                                     VAI <CornerDownLeft className="w-6 h-6" />
                                                 </button>
