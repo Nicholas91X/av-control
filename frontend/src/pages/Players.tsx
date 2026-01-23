@@ -10,13 +10,15 @@ import {
     Repeat,
     Music,
     Check,
-    ChevronUp,
     ChevronDown,
     Search,
     VolumeX,
     SkipBack as FastRewind,
     SkipForward as FastForward,
-    ArrowRight
+    ArrowRight,
+    Plus,
+    Minus,
+    GripVertical
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useIsTablet } from '../hooks/useIsTablet';
@@ -53,6 +55,81 @@ export const Players: React.FC = () => {
     // ============================================
     const [selectedSource, setSelectedSource] = useState<number | null>(null);
     const [isMutating, setIsMutating] = useState(false);
+    const [pendingVolumes, setPendingVolumes] = useState<Record<number, number>>({});
+    const [controlValues, setControlValues] = useState<Record<number, any>>({});
+
+    // Fetch controls to find Volume 1 and Volume 2
+    const { data: controlsData } = useQuery<{ controls: any[] }>({
+        queryKey: ['controls'],
+        queryFn: async () => {
+            const response = await api.get('/device/controls');
+            return response.data;
+        },
+    });
+    const allControls = controlsData?.controls || [];
+    const volumeControls = allControls
+        .filter(c => c.type === 'volume_mute' || c.name.toLowerCase().includes('volume'))
+        .slice(0, 2);
+
+    // Fetch values for our volume controls
+    useEffect(() => {
+        const fetchValues = async () => {
+            const values: Record<number, any> = {};
+            for (const ctrl of volumeControls) {
+                try {
+                    const volRes = await api.get(`/device/controls/volume/${ctrl.id}`);
+                    let mute = false;
+                    if (ctrl.second_id) {
+                        const muteRes = await api.get(`/device/controls/mute/${ctrl.second_id}`);
+                        mute = muteRes.data.mute;
+                    }
+                    values[ctrl.id] = { volume: volRes.data.volume, mute };
+                } catch (e) { console.error(e); }
+            }
+            setControlValues(values);
+        };
+        if (volumeControls.length > 0) fetchValues();
+    }, [volumeControls.length]);
+
+    const setControlMutation = useMutation({
+        mutationFn: async ({ id, value }: { id: number; value: number | boolean }) => {
+            await api.post(`/device/controls/${id}`, { value });
+        },
+        onSuccess: (_data, variables) => {
+            // Se è un'azione sul volume, non invalidiamo tutto per evitare glitch visivi
+            // Ma aggiorniamo solo se non è un volume
+            const control = volumeControls.find(c => c.id === variables.id || c.second_id === variables.id);
+            if (!control) {
+                queryClient.invalidateQueries({ queryKey: ['controls'] });
+            }
+        }
+    });
+
+    const handleStepVolume = (control: any, direction: 'up' | 'down') => {
+        const current = controlValues[control.id]?.volume ?? 0;
+        const step = control.step || 1;
+        const next = direction === 'up' ? current + step : current - step;
+        const clamped = Math.max(control.min || -96, Math.min(control.max || 12, next));
+        setControlMutation.mutate({ id: control.id, value: clamped });
+        setControlValues(prev => ({
+            ...prev,
+            [control.id]: { ...prev[control.id], volume: clamped }
+        }));
+    };
+
+    const handleSliderChange = (control: any, e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = parseFloat(e.target.value);
+        setPendingVolumes(prev => ({ ...prev, [control.id]: val }));
+    };
+
+    const handleSliderRelease = (control: any, val: number) => {
+        setControlMutation.mutate({ id: control.id, value: val });
+        setPendingVolumes(prev => {
+            const next = { ...prev };
+            delete next[control.id];
+            return next;
+        });
+    };
 
     // Fetch sources
     const { data: sourcesData } = useQuery<{ sources: Source[] }>({
@@ -191,15 +268,6 @@ export const Players: React.FC = () => {
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    const handleScrollList = (direction: 'up' | 'down') => {
-        if (songListRef.current) {
-            const scrollAmount = 300;
-            songListRef.current.scrollBy({
-                top: direction === 'up' ? -scrollAmount : scrollAmount,
-                behavior: 'smooth'
-            });
-        }
-    };
 
     // ============================================
     // RENDER TABLET VIEW
@@ -333,36 +401,136 @@ export const Players: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Column 3: Volume & Nav (Right) */}
-                    <div className="w-[10%] flex flex-col gap-4 pb-2">
-                        <div className="flex-1 flex flex-col items-center justify-between gap-6 bg-white/5 border border-white/10 rounded-2xl py-8">
-                            <button onClick={() => handleScrollList('up')} className="p-4 bg-blue-600 rounded-xl shadow-lg active:scale-95 transition-transform">
-                                <ChevronUp className="w-10 h-10 text-white" />
-                            </button>
-
-                            <div className="flex-1 flex flex-row gap-8 items-center py-4">
-                                {/* Vertical Sliders */}
-                                {[0, 1].map(i => (
-                                    <div key={i} className="h-full w-10 bg-black/40 border border-white/10 rounded-lg relative flex items-end overflow-hidden">
-                                        <div className="absolute top-0 w-full h-[60%] border-b border-white/5" />
-                                        <div className="absolute top-[20%] w-full h-[60%] border-b border-white/5" />
-                                        <div className="absolute top-[40%] w-full h-[60%] border-b border-white/5" />
-                                        <div className="absolute top-[60%] w-full h-[60%] border-b border-white/5" />
-                                        <div className="absolute top-[80%] w-full h-[60%] border-b border-white/5" />
-
-                                        <div
-                                            className="w-full bg-blue-600 shadow-[0_0_20px_rgba(59,130,246,0.5)] flex items-center justify-center transition-all duration-300"
-                                            style={{ height: '40%' }}
-                                        >
-                                            <div className="w-full h-2 bg-blue-400" />
-                                        </div>
-                                    </div>
+                    {/* Column 3: Volume & Nav (Right) - ANALOG MIXER STYLE */}
+                    <div className="w-[15%] flex flex-col gap-4 pb-2">
+                        <div className="flex-1 flex flex-col items-center justify-between bg-gradient-to-b from-white/10 to-transparent border border-white/20 rounded-[3rem] py-8 overflow-hidden relative backdrop-blur-xl shadow-2xl">
+                            {/* Step Up Buttons */}
+                            <div className="flex gap-4 px-8 w-full justify-center z-10">
+                                {volumeControls.map(ctrl => (
+                                    <button
+                                        key={`up-${ctrl.id}`}
+                                        onClick={() => handleStepVolume(ctrl, 'up')}
+                                        className="flex-1 h-12 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border border-white/10 rounded-xl transition-all active:scale-90 shadow-lg"
+                                    >
+                                        <Plus className="w-5 h-5 text-blue-400" />
+                                    </button>
                                 ))}
                             </div>
 
-                            <button onClick={() => handleScrollList('down')} className="p-4 bg-blue-600 rounded-xl shadow-lg active:scale-95 transition-transform">
-                                <ChevronDown className="w-10 h-10 text-white" />
-                            </button>
+                            {/* Sliders Container (The Mixer Tracks) */}
+                            <div className="flex-1 flex flex-row gap-16 items-stretch py-12 px-10 w-full justify-center relative">
+                                {volumeControls.map(ctrl => {
+                                    const val = ctrl.id in pendingVolumes ? pendingVolumes[ctrl.id] : (controlValues[ctrl.id]?.volume ?? 0);
+                                    const min = ctrl.min ?? -96;
+                                    const max = ctrl.max ?? 12;
+                                    const range = max - min;
+                                    const percent = ((val - min) / range) * 100;
+
+                                    return (
+                                        <div key={`slider-${ctrl.id}`} className="relative h-full w-16 flex flex-col items-center group">
+                                            {/* Track Slot - Deeper & Modern */}
+                                            <div className="absolute inset-y-0 w-3 bg-black/80 rounded-full border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,1)] overflow-hidden">
+                                                <div
+                                                    className="absolute bottom-0 w-full bg-gradient-to-t from-blue-600 to-blue-400 opacity-30 blur-[1px]"
+                                                    style={{ height: `${percent}%` }}
+                                                />
+                                            </div>
+
+                                            {/* Scale Markings - Moved Further Left & Better Spaced */}
+                                            <div className="absolute inset-y-0 -left-10 flex flex-col justify-between py-1 text-[8px] font-mono text-blue-400/20 pointer-events-none uppercase tracking-tighter">
+                                                <span className="text-blue-400/40">+12</span>
+                                                <span>+6</span>
+                                                <span className="text-white/30 font-bold">0</span>
+                                                <span>-6</span>
+                                                <span>-12</span>
+                                                <span>-24</span>
+                                                <span>-40</span>
+                                                <span>-60</span>
+                                                <span className="text-blue-400/40">-96</span>
+                                            </div>
+
+                                            {/* Fader Cap (The Professional Handle) */}
+                                            <div
+                                                className="absolute w-16 h-28 z-20 pointer-events-none"
+                                                style={{ bottom: `calc(${percent}% - 56px)` }}
+                                            >
+                                                <div className="w-full h-full bg-gradient-to-b from-[#2a2a2c] via-[#1a1a1c] to-[#0a0a0c] border-[1px] border-white/20 shadow-[0_20px_40px_rgba(0,0,0,1),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-lg flex flex-col items-center justify-center">
+                                                    {/* Central indicator line */}
+                                                    <div className="w-full h-[3px] bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,1)] mb-2" />
+
+                                                    {/* Texture dots */}
+                                                    <div className="flex flex-col gap-1 opacity-20 mb-2">
+                                                        <div className="flex gap-1"><div className="w-1 h-1 bg-white rounded-full" /><div className="w-1 h-1 bg-white rounded-full" /></div>
+                                                        <div className="flex gap-1"><div className="w-1 h-1 bg-white rounded-full" /><div className="w-1 h-1 bg-white rounded-full" /></div>
+                                                        <div className="flex gap-1"><div className="w-1 h-1 bg-white rounded-full" /><div className="w-1 h-1 bg-white rounded-full" /></div>
+                                                    </div>
+
+                                                    <div className="font-mono text-[10px] font-black text-blue-400 drop-shadow-[0_0_5px_rgba(59,130,246,0.5)]">
+                                                        {val.toFixed(1)}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Interaction Layer - Proper Vertical Range */}
+                                            <input
+                                                type="range"
+                                                min={min}
+                                                max={max}
+                                                step={ctrl.step || 0.1}
+                                                value={val}
+                                                onChange={(e) => handleSliderChange(ctrl, e)}
+                                                onMouseUp={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
+                                                onTouchEnd={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
+                                                className="absolute inset-x-0 -inset-y-0 opacity-0 cursor-pointer h-full w-[200%] -left-[50%] z-30"
+                                                style={{
+                                                    appearance: 'slider-vertical',
+                                                    WebkitAppearance: 'slider-vertical',
+                                                    width: '64px',
+                                                }}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Step Down Buttons */}
+                            <div className="flex gap-4 px-8 w-full justify-center z-10">
+                                {volumeControls.map(ctrl => (
+                                    <button
+                                        key={`down-${ctrl.id}`}
+                                        onClick={() => handleStepVolume(ctrl, 'down')}
+                                        className="flex-1 h-12 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border border-white/10 rounded-xl transition-all active:scale-90 shadow-lg"
+                                    >
+                                        <Minus className="w-5 h-5 text-blue-400" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Mute Buttons Row (Refined) */}
+                        <div className="grid grid-cols-2 gap-4 px-2">
+                            {volumeControls.map(ctrl => {
+                                const isMuted = controlValues[ctrl.id]?.mute;
+                                return (
+                                    <button
+                                        key={`mute-${ctrl.id}`}
+                                        onClick={() => {
+                                            const muteId = ctrl.second_id || ctrl.id;
+                                            setControlMutation.mutate({ id: muteId, value: !isMuted });
+                                            setControlValues(prev => ({
+                                                ...prev,
+                                                [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
+                                            }));
+                                        }}
+                                        className={`h-16 rounded-[2rem] flex items-center justify-center transition-all border-2 ${isMuted
+                                            ? 'bg-red-600 border-red-400 text-white shadow-[0_0_30px_rgba(220,38,38,0.4)]'
+                                            : 'bg-[#1a1a1c] border-white/10 text-blue-400 hover:border-blue-500 shadow-xl'
+                                            }`}
+                                    >
+                                        <VolumeX className={`w-8 h-8 ${isMuted ? 'animate-pulse' : ''}`} />
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -390,15 +558,13 @@ export const Players: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="ml-auto flex gap-4 pr-4">
-                        <button className="flex items-center gap-2 px-6 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/40 hover:text-white whitespace-nowrap">
+                    <div className="ml-auto flex gap-4 pr-4 flex-1 justify-end">
+                        <button className="flex items-center gap-2 px-8 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/40 hover:text-white whitespace-nowrap transition-all hover:bg-white/10">
                             <Search className="w-4 h-4" /> Filter
                         </button>
-                        <button className="flex items-center gap-2 px-6 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/40 hover:text-white whitespace-nowrap">
+                        <button className="flex items-center gap-2 px-8 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/40 hover:text-white whitespace-nowrap transition-all hover:bg-white/10">
                             <Search className="w-4 h-4" /> Find
                         </button>
-                        <button className="w-12 h-12 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-blue-400"><VolumeX className="w-6 h-6" /></button>
-                        <button className="w-12 h-12 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-blue-400"><VolumeX className="w-6 h-6" /></button>
                     </div>
                 </div>
             </div>
