@@ -34,6 +34,7 @@ frontend/node_modules/
 
 # Build output
 dist/
+dev-dist/
 dist-ssr/
 frontend/dist/
 frontend/dist-ssr/

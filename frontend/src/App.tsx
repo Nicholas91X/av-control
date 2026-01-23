@@ -12,6 +12,8 @@ import { Recorders } from './pages/Recorders';
 import { Controls } from './pages/Controls';
 import { Presets } from './pages/Presets';
 import { UserManagement } from './pages/UserManagement';
+import { TabletDashboard } from './pages/TabletDashboard';
+import { useIsTablet } from './hooks/useIsTablet';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -42,6 +44,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <Layout>{children}</Layout>;
 };
 
+const DashboardSwitcher: React.FC = () => {
+  const isTablet = useIsTablet();
+  return isTablet ? <TabletDashboard /> : <Dashboard />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -54,7 +61,7 @@ function App() {
                 path="/"
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <DashboardSwitcher />
                   </ProtectedRoute>
                 }
               />
