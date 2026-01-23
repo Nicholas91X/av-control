@@ -413,6 +413,7 @@ export const Players: React.FC = () => {
                         <div className="flex-1 flex flex-row justify-center gap-8 bg-gradient-to-b from-white/10 to-transparent border border-white/20 rounded-[3rem] py-10 px-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
                             {volumeControls.map(ctrl => {
                                 const val = ctrl.id in pendingVolumes ? pendingVolumes[ctrl.id] : (controlValues[ctrl.id]?.volume ?? 0);
+                                const isMuted = controlValues[ctrl.id]?.mute;
                                 const min = ctrl.min ?? -96;
                                 const max = ctrl.max ?? 12;
                                 const range = max - min;
@@ -482,33 +483,25 @@ export const Players: React.FC = () => {
                                         >
                                             <Minus className="w-6 h-6 text-blue-400" />
                                         </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
 
-                        {/* Mute Section - Perfectly matching widths */}
-                        <div className="flex justify-center gap-8 px-6">
-                            {volumeControls.map(ctrl => {
-                                const isMuted = controlValues[ctrl.id]?.mute;
-                                return (
-                                    <button
-                                        key={`mute-${ctrl.id}`}
-                                        onClick={() => {
-                                            const muteId = ctrl.second_id || ctrl.id;
-                                            setControlMutation.mutate({ id: muteId, value: !isMuted });
-                                            setControlValues(prev => ({
-                                                ...prev,
-                                                [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
-                                            }));
-                                        }}
-                                        className={`w-14 h-12 rounded-2xl flex items-center justify-center transition-all border-2 ${isMuted
-                                            ? 'bg-red-600 border-red-400 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
-                                            : 'bg-[#1a1a1c] border-white/10 text-blue-400 hover:border-blue-500 shadow-lg'
-                                            }`}
-                                    >
-                                        <VolumeX className={`w-7 h-7 ${isMuted ? 'animate-pulse' : ''}`} />
-                                    </button>
+                                        {/* Mute Button - Now inside the box for perfect alignment */}
+                                        <button
+                                            onClick={() => {
+                                                const muteId = ctrl.second_id || ctrl.id;
+                                                setControlMutation.mutate({ id: muteId, value: !isMuted });
+                                                setControlValues(prev => ({
+                                                    ...prev,
+                                                    [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
+                                                }));
+                                            }}
+                                            className={`w-14 h-12 rounded-2xl flex items-center justify-center transition-all border-2 shrink-0 ${isMuted
+                                                ? 'bg-red-600 border-red-400 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
+                                                : 'bg-[#1a1a1c] border-white/10 text-blue-400 hover:border-blue-500 shadow-lg'
+                                                }`}
+                                        >
+                                            <VolumeX className={`w-7 h-7 ${isMuted ? 'animate-pulse' : ''}`} />
+                                        </button>
+                                    </div>
                                 );
                             })}
                         </div>
