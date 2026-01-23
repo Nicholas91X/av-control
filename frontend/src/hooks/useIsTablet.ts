@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 
 export const useIsTablet = () => {
-    const [isTablet, setIsTablet] = useState(false);
+    const [isTablet, setIsTablet] = useState(() =>
+        typeof window !== 'undefined' ? window.matchMedia('(min-width: 700px)').matches : false
+    );
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(min-width: 700px)');

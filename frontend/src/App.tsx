@@ -1,6 +1,7 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { Login } from './pages/Login';
@@ -11,9 +12,11 @@ import { Players } from './pages/Players';
 import { Recorders } from './pages/Recorders';
 import { Controls } from './pages/Controls';
 import { Presets } from './pages/Presets';
+import { Scenario } from './pages/Scenario';
 import { UserManagement } from './pages/UserManagement';
 import { TabletDashboard } from './pages/TabletDashboard';
 import { useIsTablet } from './hooks/useIsTablet';
+import { PageTransition } from './components/layout/PageTransition';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -26,27 +29,106 @@ const queryClient = new QueryClient({
   },
 });
 
+const LoadingScreen: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+  </div>
+);
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-      </div>
-    );
-  }
+  if (isLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Layout>{children}</Layout>;
+  return <>{children}</>;
 };
 
 const DashboardSwitcher: React.FC = () => {
   const isTablet = useIsTablet();
   return isTablet ? <TabletDashboard /> : <Dashboard />;
+};
+
+const ScenarioSwitcher: React.FC = () => {
+  const isTablet = useIsTablet();
+  return isTablet ? <Scenario /> : <Presets />;
+};
+
+const AppContent: React.FC = () => {
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
+
+  if (isLoginPage) {
+    return (
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </AnimatePresence>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <Layout>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route
+              path="/"
+              element={
+                <PageTransition>
+                  <DashboardSwitcher />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/presets"
+              element={
+                <PageTransition>
+                  <ScenarioSwitcher />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/players"
+              element={
+                <PageTransition>
+                  <Players />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/recorders"
+              element={
+                <PageTransition>
+                  <Recorders />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/controls"
+              element={
+                <PageTransition>
+                  <Controls />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <PageTransition>
+                  <UserManagement />
+                </PageTransition>
+              }
+            />
+            {/* Fallback for authenticated routes */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AnimatePresence>
+      </Layout>
+    </ProtectedRoute>
+  );
 };
 
 function App() {
@@ -55,57 +137,7 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <WebSocketProvider>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <DashboardSwitcher />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/presets"
-                element={
-                  <ProtectedRoute>
-                    <Presets />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/players"
-                element={
-                  <ProtectedRoute>
-                    <Players />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/recorders"
-                element={
-                  <ProtectedRoute>
-                    <Recorders />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/controls"
-                element={
-                  <ProtectedRoute>
-                    <Controls />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/users"
-                element={
-                  <ProtectedRoute>
-                    <UserManagement />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
+            <AppContent />
             <RealtimeNotifications />
           </WebSocketProvider>
         </AuthProvider>
