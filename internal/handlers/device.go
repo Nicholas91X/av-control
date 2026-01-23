@@ -245,6 +245,30 @@ func (h *Handler) Previous(c *gin.Context) {
 	h.respondSuccess(c, nil)
 }
 
+func (h *Handler) Seek(c *gin.Context) {
+	var req struct {
+		Time int `json:"time"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.respondError(c, http.StatusBadRequest, err.Error(), "INVALID_REQUEST")
+		return
+	}
+
+	if err := h.hwClient.Seek(req.Time); err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+
+	// Broadcast command execution
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "player.seek", gin.H{"time": req.Time})
+	}
+
+	h.respondSuccess(c, nil)
+}
+
 func (h *Handler) SetRepeatMode(c *gin.Context) {
 	var req struct {
 		Mode string `json:"mode" binding:"required"`

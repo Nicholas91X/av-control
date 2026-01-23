@@ -18,6 +18,7 @@ type HardwareClient interface {
 	Stop() error
 	Next() error
 	Previous() error
+	Seek(time int) error
 	SetRepeatMode(mode string) error
 	GetPlayerStatus() (*models.PlayerStatus, error)
 

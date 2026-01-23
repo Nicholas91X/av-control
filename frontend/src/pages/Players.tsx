@@ -230,6 +230,11 @@ export const Players: React.FC = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
+    const seekMutation = useMutation({
+        mutationFn: async (time: number) => api.post('/device/player/seek', { time }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
+    });
+
     const repeatMutation = useMutation({
         mutationFn: async (mode: string) => {
             const modeMap: Record<string, string> = {
@@ -273,6 +278,13 @@ export const Players: React.FC = () => {
         const m = Math.floor(seconds / 60);
         const s = Math.floor(seconds % 60);
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    const getStatusDisplay = (state?: string) => {
+        const s = state?.toLowerCase() || 'stopped';
+        if (s === 'playing') return { text: 'IN RIPRODUZIONE', color: 'text-green-400', bg: 'bg-green-500/20', border: 'border-green-500/30' };
+        if (s === 'paused') return { text: 'IN PAUSA', color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' };
+        return { text: 'FERMO', color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' };
     };
 
 
@@ -349,61 +361,90 @@ export const Players: React.FC = () => {
                         </div>
 
                         {/* Status Bar */}
-                        <div className="bg-black/60 border-2 border-green-500/40 rounded-xl p-3 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-md text-sm font-bold uppercase tracking-widest border border-green-500/30">
-                                    {playerStatus?.state || 'Stopped'}
-                                </span>
-                                <div className="h-4 w-px bg-white/10" />
-                                <span className="text-green-500 font-bold text-xl tracking-tight">
-                                    {playerStatus?.song_title || 'Nessun brano'}
-                                </span>
-                            </div>
-                            <div className="text-green-500 font-mono text-lg font-black">
-                                {formatTime(playerStatus?.current_time)}
-                            </div>
-                        </div>
+                        {(() => {
+                            const status = getStatusDisplay(playerStatus?.state);
+                            return (
+                                <div className={`bg-black/60 border-2 ${status.border} rounded-xl p-3 flex items-center justify-between`}>
+                                    <div className="flex items-center gap-4">
+                                        <span className={`${status.bg} ${status.color} px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-widest border ${status.border} shadow-[0_0_15px_rgba(0,0,0,0.5)]`}>
+                                            {status.text}
+                                        </span>
+                                        <div className="h-4 w-px bg-white/10" />
+                                        <span className={`${status.color} font-bold text-xl tracking-tight uppercase truncate max-w-[400px]`}>
+                                            {playerStatus?.song_title || 'Nessun brano'}
+                                        </span>
+                                    </div>
+                                    <div className={`${status.color} font-mono text-xl font-black tabular-nums`}>
+                                        {formatTime(playerStatus?.current_time)}
+                                    </div>
+                                </div>
+                            );
+                        })()}
 
                         {/* Transport Controls */}
-                        <div className="grid grid-cols-7 gap-3 mb-2">
-                            <button onClick={() => previousMutation.mutate()} className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl">
-                                <SkipBack className="w-10 h-10 text-blue-400 fill-blue-400/20" />
+                        <div className="flex justify-between gap-3 mb-2">
+                            <button onClick={() => previousMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
+                                <SkipBack className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
                             </button>
-                            <button className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl">
-                                <FastRewind className="w-10 h-10 text-blue-400 fill-blue-400/20 -scale-x-100" />
+                            <button className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
+                                <FastRewind className="w-10 h-10 text-blue-400 fill-blue-400/10 -scale-x-100 group-active:scale-90 transition-transform" />
                             </button>
 
                             {playerStatus?.state === 'playing' ? (
-                                <button onClick={() => pauseMutation.mutate()} className="h-20 flex items-center justify-center bg-blue-600 hover:bg-blue-500 border border-blue-400/50 rounded-xl shadow-[0_0_30px_rgba(37,99,235,0.3)] col-span-1">
-                                    <Pause className="w-10 h-10 text-white fill-white" />
+                                <button onClick={() => pauseMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-blue-600 hover:bg-blue-500 border border-blue-400/50 rounded-xl shadow-[0_0_30px_rgba(37,99,235,0.3)] transition-all active:scale-95 group">
+                                    <Pause className="w-10 h-10 text-white fill-white group-active:scale-90 transition-transform" />
                                 </button>
                             ) : (
-                                <button onClick={() => playMutation.mutate()} className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl col-span-1">
-                                    <Play className="w-10 h-10 text-blue-400 fill-blue-400/20 ml-1" />
+                                <button onClick={() => playMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
+                                    <Play className="w-10 h-10 text-blue-400 fill-blue-400/10 ml-1 group-active:scale-90 transition-transform" />
                                 </button>
                             )}
 
-                            <button onClick={() => stopMutation.mutate()} className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl">
-                                <Square className="w-10 h-10 text-blue-400 fill-blue-400/20" />
+                            <button onClick={() => stopMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
+                                <Square className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
                             </button>
-                            <button className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl">
-                                <FastForward className="w-10 h-10 text-blue-400 fill-blue-400/20" />
+                            <button className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
+                                <FastForward className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
                             </button>
-                            <button onClick={() => nextMutation.mutate()} className="h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl">
-                                <SkipForward className="w-10 h-10 text-blue-400 fill-blue-400/20" />
+                            <button onClick={() => nextMutation.mutate()} className="flex-1 h-20 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all active:scale-95 group">
+                                <SkipForward className="w-10 h-10 text-blue-400 fill-blue-400/10 group-active:scale-90 transition-transform" />
                             </button>
                         </div>
 
-                        {/* Seek Bar */}
-                        <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-4 rounded-xl">
-                            <div className="h-10 w-24 bg-blue-600/20 border border-blue-500/40 rounded overflow-hidden flex items-center px-1">
-                                <div className="h-8 w-1/2 bg-blue-500 rounded-sm shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                            </div>
-                            <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        {/* Seek Bar - Modern & Elegant */}
+                        <div className="flex flex-col gap-2 bg-white/5 border border-white/10 p-6 rounded-2xl">
+                            <div className="relative h-4 flex items-center">
+                                {/* Track Background */}
+                                <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full" />
+
+                                {/* Active Progress Track */}
                                 <div
-                                    className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]"
+                                    className="absolute left-0 h-1.5 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.6)]"
                                     style={{ width: `${((playerStatus?.current_time || 0) / (playerStatus?.total_time || 1)) * 100}%` }}
                                 />
+
+                                {/* Interactive Slider */}
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={playerStatus?.total_time || 100}
+                                    value={playerStatus?.current_time || 0}
+                                    onChange={(e) => {
+                                        const newVal = parseInt(e.target.value);
+                                        seekMutation.mutate(newVal);
+                                    }}
+                                    className="absolute inset-x-0 w-full opacity-0 cursor-pointer h-full z-10"
+                                />
+
+                                {/* Elegant Handle */}
+                                <div
+                                    className="absolute w-5 h-5 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.4)] pointer-events-none z-0 border-2 border-blue-500"
+                                    style={{ left: `calc(${((playerStatus?.current_time || 0) / (playerStatus?.total_time || 1)) * 100}% - 10px)` }}
+                                />
+                            </div>
+                            <div className="flex justify-between text-[10px] font-black text-white/30 tracking-widest uppercase">
+                                <span>{formatTime(playerStatus?.current_time)}</span>
+                                <span>{formatTime(playerStatus?.total_time)}</span>
                             </div>
                         </div>
                     </div>
@@ -471,8 +512,8 @@ export const Players: React.FC = () => {
                                                     onTouchEnd={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
                                                     className="absolute inset-x-0 -inset-y-0 opacity-0 cursor-pointer h-full w-[150%] -left-[25%] z-30"
                                                     style={{
-                                                        appearance: 'slider-vertical',
-                                                        WebkitAppearance: 'slider-vertical',
+                                                        appearance: 'slider-vertical' as any,
+                                                        WebkitAppearance: 'slider-vertical' as any,
                                                         width: '48px',
                                                     }}
                                                 />

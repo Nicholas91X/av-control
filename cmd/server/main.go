@@ -251,6 +251,7 @@ func main() {
 				player.POST("/stop", deviceHandler.Stop)
 				player.POST("/next", deviceHandler.Next)
 				player.POST("/previous", deviceHandler.Previous)
+				player.POST("/seek", deviceHandler.Seek)
 				player.POST("/repeat", deviceHandler.SetRepeatMode)
 				player.GET("/status", deviceHandler.GetPlayerStatus)
 			}

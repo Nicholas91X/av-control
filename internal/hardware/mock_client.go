@@ -191,6 +191,12 @@ func (m *MockHardwareClient) Previous() error {
 	return nil
 }
 
+func (m *MockHardwareClient) Seek(timeInSeconds int) error {
+	m.currentSongTime = timeInSeconds
+	m.lastStatusUpdate = time.Now()
+	return nil
+}
+
 func (m *MockHardwareClient) SetRepeatMode(mode string) error {
 	m.repeatMode = mode
 	return nil

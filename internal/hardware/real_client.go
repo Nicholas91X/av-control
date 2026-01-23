@@ -145,6 +145,11 @@ func (r *RealHardwareClient) Previous() error {
 	return r.post("/api/device/player/previous", nil, nil)
 }
 
+func (r *RealHardwareClient) Seek(time int) error {
+	payload := map[string]int{"time": time}
+	return r.post("/api/device/player/seek", payload, nil)
+}
+
 func (r *RealHardwareClient) SetRepeatMode(mode string) error {
 	payload := map[string]string{"mode": mode}
 	return r.post("/api/device/player/repeat", payload, nil)
