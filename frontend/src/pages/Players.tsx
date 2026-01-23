@@ -860,8 +860,8 @@ export const Players: React.FC = () => {
                                 repeatMutation.mutate(isGroup ? 'off' : 'all');
                             }}
                             className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all border shadow-lg ${playerStatus?.repeat_mode === 'group'
-                                    ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
-                                    : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10'
+                                ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
+                                : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10'
                                 }`}
                         >
                             <ListMusic className="w-6 h-6" />
@@ -872,21 +872,27 @@ export const Players: React.FC = () => {
                                 repeatMutation.mutate(isSong ? 'off' : 'one');
                             }}
                             className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all border shadow-lg ${playerStatus?.repeat_mode === 'song'
-                                    ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
-                                    : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10'
+                                ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
+                                : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10'
                                 }`}
                         >
                             <Repeat1 className="w-6 h-6" />
                         </button>
                     </div>
 
+                    <div className="flex gap-2">
+                        <button
+                            className="w-12 h-12 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-[10px] font-black text-white/40 hover:text-white hover:bg-white/10 transition-all uppercase tracking-tighter"
+                        >
+                            OTP
+                        </button>
+                    </div>
+
                     <div
                         ref={fadeRef}
-                        className="relative bg-white/5 border border-white/10 rounded-lg px-6 h-12 flex items-center gap-4 text-xs font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/10 transition-all select-none"
+                        className="relative bg-white/5 border border-white/10 rounded-lg px-5 h-12 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/10 transition-all select-none"
                         onClick={() => setIsFadeDropdownOpen(!isFadeDropdownOpen)}
                     >
-                        <span>One Touch Play</span>
-                        <div className="h-6 w-px bg-white/10" />
                         <div className="flex items-center gap-2 text-white/60">
                             <span>Fade</span>
                             <span className="w-4 text-center text-blue-400 font-black">{fadeValue}</span>
@@ -895,7 +901,7 @@ export const Players: React.FC = () => {
 
                         {/* Fade Dropdown Menu */}
                         {isFadeDropdownOpen && (
-                            <div className="absolute bottom-full left-0 mb-2 w-full bg-[#0a0a0c]/90 border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-2 duration-200 z-[110]">
+                            <div className="absolute bottom-full left-0 mb-2 w-full min-w-[120px] bg-[#0a0a0c]/90 border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-2 duration-200 z-[110]">
                                 <div className="flex flex-col">
                                     {[0, 1, 2, 3, 4, 5].map((val) => (
                                         <button
