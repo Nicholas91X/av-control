@@ -26,9 +26,35 @@ export const TabletDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
     const { status } = useWebSocket();
-    const [showHomeInfo, setShowHomeInfo] = useState(false);
-    const [showHardwareInfo, setShowHardwareInfo] = useState(false);
     const [isStandby, setIsStandby] = useState(false);
+
+    // Modal state management with animations
+    const useModalAnimation = (initialState: boolean) => {
+        const [isOpen, setIsOpen] = useState(initialState);
+        const [isRendered, setIsRendered] = useState(initialState);
+        const [isAnimating, setIsAnimating] = useState(false);
+
+        const open = () => {
+            setIsRendered(true);
+            setIsAnimating(true);
+            setTimeout(() => setIsOpen(true), 10);
+            setTimeout(() => setIsAnimating(false), 500);
+        };
+
+        const close = () => {
+            setIsOpen(false);
+            setIsAnimating(true);
+            setTimeout(() => {
+                setIsRendered(false);
+                setIsAnimating(false);
+            }, 500); // Match transition duration
+        };
+
+        return { isOpen, isRendered, isAnimating, open, close };
+    };
+
+    const homeModal = useModalAnimation(false);
+    const infoModal = useModalAnimation(false);
 
     const { data: versionData } = useQuery({
         queryKey: ['version'],
@@ -107,7 +133,7 @@ export const TabletDashboard: React.FC = () => {
                     <div className="flex items-center space-x-3 z-10">
                         {/* Info Button */}
                         <button
-                            onClick={() => setShowHardwareInfo(true)}
+                            onClick={infoModal.open}
                             className="p-3 text-white/40 hover:text-white transition-all bg-white/5 rounded-xl border border-white/10 hover:border-white/20 active:scale-95 shadow-lg"
                             title="Informazioni"
                         >
@@ -134,7 +160,7 @@ export const TabletDashboard: React.FC = () => {
                             size="xl"
                             glowColor="#3b82f6"
                             className="border-white/10"
-                            onClick={() => setShowHomeInfo(true)}
+                            onClick={homeModal.open}
                         />
                         <TabletTile
                             icon={Wrench}
@@ -194,17 +220,20 @@ export const TabletDashboard: React.FC = () => {
             </div>
 
             {/* Modals */}
-            {showHomeInfo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-8">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowHomeInfo(false)} />
-                    <div className="relative bg-[#1a1a1a] border border-white/10 p-12 rounded-[2rem] max-w-2xl w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+            {homeModal.isRendered && (
+                <div className={`fixed inset-0 z-50 flex items-center justify-center p-8 transition-opacity duration-500 ease-in-out ${homeModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xl transition-opacity duration-500" onClick={homeModal.close} />
+                    <div className={`
+                        relative bg-[#1a1a1a] border border-white/10 p-12 rounded-[2.5rem] max-w-2xl w-full shadow-2xl transition-all duration-500 ease-out
+                        ${homeModal.isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-90 translate-y-4 opacity-0'}
+                    `}>
                         <button
-                            onClick={() => setShowHomeInfo(false)}
-                            className="absolute top-8 right-8 text-white/50 hover:text-white"
+                            onClick={homeModal.close}
+                            className="absolute top-8 right-8 text-white/30 hover:text-white transition-colors"
                         >
                             <X size={32} />
                         </button>
-                        <h2 className="text-4xl font-bold mb-8 text-blue-400">Informazioni Sistema</h2>
+                        <h2 className="text-4xl font-bold mb-8 text-blue-400 tracking-tight">Informazioni Sistema</h2>
                         <div className="space-y-6 text-xl text-white/80 leading-relaxed">
                             <div className="flex justify-between border-b border-white/5 pb-4">
                                 <span className="text-white/40">Produttore</span>
@@ -223,29 +252,32 @@ export const TabletDashboard: React.FC = () => {
                 </div>
             )}
 
-            {showHardwareInfo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-8">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowHardwareInfo(false)} />
-                    <div className="relative bg-[#1a1a1a] border border-white/10 p-12 rounded-[2rem] max-w-lg w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+            {infoModal.isRendered && (
+                <div className={`fixed inset-0 z-50 flex items-center justify-center p-8 transition-opacity duration-500 ease-in-out ${infoModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xl transition-opacity duration-500" onClick={infoModal.close} />
+                    <div className={`
+                        relative bg-[#1a1a1a] border border-white/10 p-12 rounded-[2.5rem] max-w-lg w-full shadow-2xl transition-all duration-500 ease-out
+                        ${infoModal.isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-90 translate-y-4 opacity-0'}
+                    `}>
                         <button
-                            onClick={() => setShowHardwareInfo(false)}
-                            className="absolute top-8 right-8 text-white/50 hover:text-white"
+                            onClick={infoModal.close}
+                            className="absolute top-8 right-8 text-white/30 hover:text-white transition-colors"
                         >
                             <X size={32} />
                         </button>
-                        <h2 className="text-3xl font-bold mb-8">Hardware & Software</h2>
+                        <h2 className="text-3xl font-bold mb-8 tracking-tight">Hardware & Software</h2>
                         <div className="space-y-4">
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between">
-                                <span className="text-white/40">Versione SW</span>
-                                <span className="font-mono text-blue-400">{versionData?.version || 'Unknown'}</span>
+                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
+                                <span className="text-white/40 font-medium">Versione SW</span>
+                                <span className="font-mono text-blue-400 font-bold">{versionData?.version || 'Unknown'}</span>
                             </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between">
-                                <span className="text-white/40">Build Date</span>
-                                <span className="font-mono">{versionData?.build_date || 'Unknown'}</span>
+                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
+                                <span className="text-white/40 font-medium">Build Date</span>
+                                <span className="font-mono text-white/80">{versionData?.build_date || 'Unknown'}</span>
                             </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between">
-                                <span className="text-white/40">Architettura</span>
-                                <span className="font-mono uppercase">{versionData?.arch || 'ARMv7'}</span>
+                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
+                                <span className="text-white/40 font-medium">Architettura</span>
+                                <span className="font-mono uppercase text-white/60">{versionData?.arch || 'ARMv7'}</span>
                             </div>
                         </div>
                     </div>

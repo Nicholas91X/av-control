@@ -33,17 +33,24 @@ export const TabletTile: React.FC<TabletTileProps> = ({
         <button
             onClick={onClick}
             className={`
-                relative flex flex-col items-center justify-center rounded-2xl transition-all duration-300
+                relative flex flex-col items-center justify-center rounded-2xl transition-all duration-500 ease-out
                 hover:scale-105 active:scale-95
                 bg-[#1a1a1a] border border-white/10
                 group overflow-hidden shadow-2xl
                 ${sizeClasses[size as keyof typeof sizeClasses]}
                 ${className}
+                active:shadow-inner
             `}
             style={{
                 boxShadow: glowColor ? `0 0 30px ${glowColor}22, inset 0 0 10px rgba(255,255,255,0.05)` : 'inset 0 0 10px rgba(255,255,255,0.05)',
+                backgroundColor: undefined // Will be overridden by tailwind or hover if needed
             }}
         >
+            {/* Tap Background Overlay */}
+            <div
+                className="absolute inset-0 opacity-0 active:opacity-20 transition-opacity duration-300 pointer-events-none"
+                style={{ backgroundColor: glowColor || '#3b82f6' }}
+            />
             {/* Background Grain/Texture (Simulated) */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-repeat"
                 style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/dark-matter.png")' }} />
