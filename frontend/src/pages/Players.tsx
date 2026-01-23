@@ -8,7 +8,9 @@ import {
     SkipForward,
     SkipBack,
     Repeat,
+    Repeat1,
     Music,
+    ListMusic,
     Check,
     ChevronDown,
     Search,
@@ -852,10 +854,29 @@ export const Players: React.FC = () => {
                     </button>
 
                     <div className="flex gap-2 ml-4">
-                        <button className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.5)] border border-blue-400/50 text-[10px] font-black whitespace-nowrap">PLAY ALL</button>
-                        <button className="w-12 h-12 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center text-[8px] font-black text-white/40 whitespace-nowrap">
-                            <Repeat className="w-4 h-4 mb-0.5" />
-                            RPT SONG
+                        <button
+                            onClick={() => {
+                                const isGroup = playerStatus?.repeat_mode === 'group';
+                                repeatMutation.mutate(isGroup ? 'off' : 'all');
+                            }}
+                            className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all border shadow-lg ${playerStatus?.repeat_mode === 'group'
+                                    ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
+                                    : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10'
+                                }`}
+                        >
+                            <ListMusic className="w-6 h-6" />
+                        </button>
+                        <button
+                            onClick={() => {
+                                const isSong = playerStatus?.repeat_mode === 'song';
+                                repeatMutation.mutate(isSong ? 'off' : 'one');
+                            }}
+                            className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all border shadow-lg ${playerStatus?.repeat_mode === 'song'
+                                    ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
+                                    : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10'
+                                }`}
+                        >
+                            <Repeat1 className="w-6 h-6" />
                         </button>
                     </div>
 
@@ -885,8 +906,8 @@ export const Players: React.FC = () => {
                                                 setIsFadeDropdownOpen(false);
                                             }}
                                             className={`w-full h-12 flex items-center justify-between px-6 transition-all border-b border-white/5 last:border-0 ${fadeValue === val
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'hover:bg-white/5 text-white/40 hover:text-white'
+                                                ? 'bg-blue-600 text-white'
+                                                : 'hover:bg-white/5 text-white/40 hover:text-white'
                                                 }`}
                                         >
                                             <span className="font-black text-sm">{val}</span>
