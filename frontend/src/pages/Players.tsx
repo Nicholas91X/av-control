@@ -94,6 +94,8 @@ export const Players: React.FC = () => {
         mutationFn: async ({ id, value }: { id: number; value: number | boolean }) => {
             await api.post(`/device/controls/${id}`, { value });
         },
+        onMutate: () => setIsMutating(true),
+        onSettled: () => setIsMutating(false),
         onSuccess: (_data, variables) => {
             // Se è un'azione sul volume, non invalidiamo tutto per evitare glitch visivi
             // Ma aggiorniamo solo se non è un volume
@@ -409,14 +411,14 @@ export const Players: React.FC = () => {
                     <div className="w-[17%] flex flex-col gap-4 pb-2">
                         <div className="flex-1 flex flex-col items-center justify-between bg-gradient-to-b from-white/10 to-transparent border border-white/20 rounded-[3rem] py-8 overflow-hidden relative backdrop-blur-xl shadow-2xl">
                             {/* Step Up Buttons */}
-                            <div className="flex gap-4 px-12 w-full justify-center z-10">
+                            <div className="flex gap-4 px-10 w-full justify-center z-10">
                                 {volumeControls.map(ctrl => (
                                     <button
                                         key={`up-${ctrl.id}`}
                                         onClick={() => handleStepVolume(ctrl, 'up')}
-                                        className="flex-1 h-10 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border border-white/10 rounded-xl transition-all active:scale-90 shadow-lg"
+                                        className="flex-1 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border-2 border-white/10 rounded-2xl transition-all active:scale-90 shadow-lg"
                                     >
-                                        <Plus className="w-4 h-4 text-blue-400" />
+                                        <Plus className="w-6 h-6 text-blue-400" />
                                     </button>
                                 ))}
                             </div>
@@ -438,19 +440,6 @@ export const Players: React.FC = () => {
                                                     className="absolute bottom-0 w-full bg-gradient-to-t from-blue-600 to-blue-400 opacity-20 blur-[1px]"
                                                     style={{ height: `${percent}%` }}
                                                 />
-                                            </div>
-
-                                            {/* Scale Markings - Moved Further Left */}
-                                            <div className="absolute inset-y-0 -left-12 flex flex-col justify-between py-1 text-[7px] font-mono text-blue-400/20 pointer-events-none uppercase tracking-tighter">
-                                                <span className="text-blue-400/40">+12</span>
-                                                <span>+6</span>
-                                                <span className="text-white/40 font-bold">0</span>
-                                                <span>-6</span>
-                                                <span>-12</span>
-                                                <span>-24</span>
-                                                <span>-40</span>
-                                                <span>-60</span>
-                                                <span className="text-blue-400/40">-96</span>
                                             </div>
 
                                             {/* Fader Cap - Compact & Professional (w-12 h-18) */}
@@ -501,9 +490,9 @@ export const Players: React.FC = () => {
                                     <button
                                         key={`down-${ctrl.id}`}
                                         onClick={() => handleStepVolume(ctrl, 'down')}
-                                        className="flex-1 h-10 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border border-white/10 rounded-xl transition-all active:scale-90 shadow-lg"
+                                        className="flex-1 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border-2 border-white/10 rounded-2xl transition-all active:scale-90 shadow-lg"
                                     >
-                                        <Minus className="w-4 h-4 text-blue-400" />
+                                        <Minus className="w-6 h-6 text-blue-400" />
                                     </button>
                                 ))}
                             </div>
@@ -524,12 +513,12 @@ export const Players: React.FC = () => {
                                                 [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
                                             }));
                                         }}
-                                        className={`h-12 rounded-2xl flex items-center justify-center transition-all border-2 ${isMuted
+                                        className={`h-14 rounded-2xl flex items-center justify-center transition-all border-2 ${isMuted
                                             ? 'bg-red-600 border-red-400 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
-                                            : 'bg-[#1a1a1c] border-white/10 text-blue-400 hover:border-blue-500 shadow-xl'
+                                            : 'bg-[#1a1a1c] border-white/10 text-blue-400 hover:border-blue-500 shadow-lg'
                                             }`}
                                     >
-                                        <VolumeX className={`w-6 h-6 ${isMuted ? 'animate-pulse' : ''}`} />
+                                        <VolumeX className={`w-7 h-7 ${isMuted ? 'animate-pulse' : ''}`} />
                                     </button>
                                 );
                             })}
