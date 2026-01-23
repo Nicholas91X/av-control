@@ -887,45 +887,50 @@ export const Players: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Search Modal */}
+                {/* Search Modal - PREMIUM DESIGN */}
                 {isSearchModalOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-                        <div className="w-full max-w-4xl bg-[#1e1e20] border border-white/10 rounded-[3rem] p-8 shadow-2xl flex flex-col gap-8 animate-in fade-in zoom-in duration-300">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+                        <div className="w-full max-w-4xl bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-10 backdrop-blur-xl animate-in zoom-in duration-500">
+
                             {/* Modal Header */}
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-3xl font-black uppercase tracking-tighter text-blue-400 flex items-center gap-3">
-                                    <Search className="w-8 h-8" />
-                                    Cerca Brano
-                                </h2>
+                            <div className="flex items-center justify-between px-2">
+                                <div className="space-y-1">
+                                    <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                        <Search className="w-8 h-8 text-blue-500" />
+                                        Cerca
+                                    </h2>
+                                    <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-11">Brano o Posizione</p>
+                                </div>
                                 <button
                                     onClick={() => setIsSearchModalOpen(false)}
-                                    className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full"
+                                    className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all active:scale-90"
                                 >
-                                    <X className="w-6 h-6" />
+                                    <X className="w-7 h-7 text-white/40" />
                                 </button>
                             </div>
 
-                            {/* Search Input */}
-                            <div className="relative">
+                            {/* Search Input - ELEGANT GLASS */}
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/20 to-transparent rounded-3xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     readOnly
-                                    placeholder="Digita titolo o posizione..."
-                                    className="w-full h-20 bg-black/40 border-2 border-blue-500/30 rounded-2xl px-8 text-3xl font-bold text-white placeholder:text-white/10 focus:outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="Scrivi qui..."
+                                    className="relative w-full h-24 bg-black/40 border border-white/10 rounded-[1.5rem] px-10 text-4xl font-black text-white placeholder:text-white/5 outline-none focus:border-blue-500/50 transition-all tracking-tight"
                                 />
                                 {searchQuery && (
                                     <button
                                         onClick={() => setSearchQuery('')}
-                                        className="absolute right-6 top-1/2 -translate-y-1/2 text-white/30 hover:text-white"
+                                        className="absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full text-white/20 hover:text-red-400 transition-all"
                                     >
-                                        <Delete className="w-8 h-8" />
+                                        <Delete className="w-6 h-6" />
                                     </button>
                                 )}
                             </div>
 
-                            {/* Virtual Keyboard */}
-                            <div className="flex flex-col gap-3">
+                            {/* Virtual Keyboard - SHADOW KEYBOARD DESIGN */}
+                            <div className="flex flex-col gap-4">
                                 {(() => {
                                     const rows = keyboardLayout === 'alpha'
                                         ? [
@@ -944,43 +949,43 @@ export const Players: React.FC = () => {
                                     return (
                                         <>
                                             {rows.map((row, ridx) => (
-                                                <div key={ridx} className="flex justify-center gap-2">
+                                                <div key={ridx} className="flex justify-center gap-3">
                                                     {row.map(key => (
                                                         <button
                                                             key={key}
                                                             onClick={() => setSearchQuery(prev => prev + key)}
-                                                            className="flex-1 h-14 bg-[#2a2a2d] hover:bg-[#353538] border-b-4 border-black/40 rounded-xl text-xl font-bold transition-all active:translate-y-1 active:border-b-0"
+                                                            className="flex-1 h-16 bg-white/5 hover:bg-white/10 border-t border-white/10 rounded-2xl text-2xl font-bold transition-all active:scale-95 shadow-2xl relative overflow-hidden group"
                                                         >
-                                                            {key}
+                                                            <div className="absolute inset-x-0 bottom-0 h-1.5 bg-black/20" />
+                                                            <span className="relative z-10 text-white group-active:translate-y-0.5 transition-transform">{key}</span>
                                                         </button>
                                                     ))}
                                                 </div>
                                             ))}
-                                            <div className="flex justify-center gap-2 mt-2">
+                                            <div className="flex justify-center gap-3 mt-2">
                                                 <button
                                                     onClick={() => setKeyboardLayout(keyboardLayout === 'alpha' ? 'symbols' : 'alpha')}
-                                                    className="w-24 h-16 bg-[#3a3a3d] border-b-4 border-black/40 rounded-xl text-lg font-bold transition-all active:translate-y-1 active:border-b-0 text-blue-400"
+                                                    className="w-28 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 rounded-2xl text-lg font-black tracking-widest transition-all active:scale-95 shadow-2xl text-blue-400"
                                                 >
                                                     {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
                                                 </button>
                                                 <button
                                                     onClick={() => setSearchQuery(prev => prev + ' ')}
-                                                    className="flex-[3] h-16 bg-[#2a2a2d] border-b-4 border-black/40 rounded-xl text-lg font-bold transition-all active:translate-y-1 active:border-b-0"
+                                                    className="flex-[4] h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 rounded-2xl text-sm font-black tracking-[0.5em] transition-all active:scale-95 shadow-2xl text-white/30 uppercase"
                                                 >
                                                     SPAZIO
                                                 </button>
                                                 <button
                                                     onClick={() => setSearchQuery(prev => prev.slice(0, -1))}
-                                                    className="w-24 h-16 bg-red-900/40 border-b-4 border-black/40 rounded-xl flex items-center justify-center transition-all active:translate-y-1 active:border-b-0 text-red-400"
+                                                    className="w-28 h-20 bg-red-900/10 hover:bg-red-900/20 border-t border-red-500/10 rounded-2xl flex items-center justify-center transition-all active:scale-95 shadow-2xl text-red-500/60"
                                                 >
-                                                    <Delete className="w-6 h-6" />
+                                                    <Delete className="w-7 h-7" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleSearch(searchQuery)}
-                                                    className="flex-1 h-16 bg-blue-600 border-b-4 border-blue-900/60 rounded-xl flex items-center justify-center gap-2 text-xl font-black transition-all active:translate-y-1 active:border-b-0"
+                                                    className="flex-[1.5] h-20 bg-blue-600 hover:bg-blue-500 border-t border-blue-400/50 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:scale-95 shadow-[0_10px_30px_rgba(37,99,235,0.4)] text-white"
                                                 >
-                                                    <CornerDownLeft className="w-6 h-6" />
-                                                    VAI
+                                                    VAI <CornerDownLeft className="w-6 h-6" />
                                                 </button>
                                             </div>
                                         </>
