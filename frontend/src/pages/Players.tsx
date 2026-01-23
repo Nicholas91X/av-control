@@ -485,7 +485,7 @@ export const Players: React.FC = () => {
                                         {/* 1) Brano precedente */}
                                         <button
                                             onClick={() => previousMutation.mutate()}
-                                            className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/20 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
+                                            className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
                                         >
                                             <SkipBack className="w-10 h-10 text-blue-400/80 fill-blue-400/5 group-hover:text-blue-400 transition-colors" />
                                         </button>
@@ -498,7 +498,7 @@ export const Players: React.FC = () => {
                                                 lastKnownPlayheadRef.current = { time: newTime, timestamp: Date.now() };
                                                 seekMutation.mutate(newTime);
                                             }}
-                                            className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/20 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
+                                            className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
                                         >
                                             <FastRewind className="w-10 h-10 text-blue-400/80 fill-blue-400/5 group-hover:text-blue-400 transition-colors" />
                                         </button>
@@ -507,14 +507,14 @@ export const Players: React.FC = () => {
                                         {isPlaying ? (
                                             <button
                                                 onClick={() => pauseMutation.mutate()}
-                                                className="flex-1 h-20 flex items-center justify-center bg-blue-600 hover:bg-blue-500 border border-blue-400/50 border-b-4 border-blue-400/60 rounded-[2.5rem] shadow-[0_10px_30px_rgba(37,99,235,0.3)] transition-all active:translate-y-1 active:border-b-0 group"
+                                                className="flex-1 h-20 flex items-center justify-center bg-blue-600 hover:bg-blue-500 border border-blue-400/50 border-b-4 border-blue-500/50 rounded-[2.5rem] shadow-[0_10px_30px_rgba(37,99,235,0.3)] transition-all active:translate-y-1 active:border-b-0 group"
                                             >
                                                 <Pause className="w-10 h-10 text-white fill-white" />
                                             </button>
                                         ) : (
                                             <button
                                                 onClick={() => playMutation.mutate()}
-                                                className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/20 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
+                                                className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
                                             >
                                                 <Play className="w-10 h-10 text-blue-400/80 fill-blue-400/5 ml-1 group-hover:text-blue-400 transition-colors" />
                                             </button>
@@ -523,7 +523,7 @@ export const Players: React.FC = () => {
                                         {/* 4) Stop */}
                                         <button
                                             onClick={() => stopMutation.mutate()}
-                                            className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/20 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
+                                            className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
                                         >
                                             <Square className="w-10 h-10 text-blue-400/80 fill-blue-400/5 group-hover:text-blue-400 transition-colors" />
                                         </button>
@@ -536,7 +536,7 @@ export const Players: React.FC = () => {
                                                 lastKnownPlayheadRef.current = { time: newTime, timestamp: Date.now() };
                                                 seekMutation.mutate(newTime);
                                             }}
-                                            className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/20 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
+                                            className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
                                         >
                                             <FastForward className="w-10 h-10 text-blue-400/80 fill-blue-400/5 group-hover:text-blue-400 transition-colors" />
                                         </button>
@@ -544,7 +544,7 @@ export const Players: React.FC = () => {
                                         {/* 6) Brano successivo */}
                                         <button
                                             onClick={() => nextMutation.mutate()}
-                                            className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/20 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
+                                            className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
                                         >
                                             <SkipForward className="w-10 h-10 text-blue-400/80 fill-blue-400/5 group-hover:text-blue-400 transition-colors" />
                                         </button>
@@ -638,7 +638,7 @@ export const Players: React.FC = () => {
                                             {/* Plus Button */}
                                             <button
                                                 onClick={() => handleStepVolume(ctrl, 'up')}
-                                                className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-[#252528] border border-white/10 border-b-4 border-white/20 rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
+                                                className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
                                             >
                                                 <Plus className="w-6 h-6 text-blue-400" />
                                             </button>
@@ -693,7 +693,7 @@ export const Players: React.FC = () => {
                                             {/* Minus Button */}
                                             <button
                                                 onClick={() => handleStepVolume(ctrl, 'down')}
-                                                className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-[#252528] border border-white/10 border-b-4 border-white/20 rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
+                                                className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
                                             >
                                                 <Minus className="w-6 h-6 text-blue-400" />
                                             </button>
@@ -709,8 +709,8 @@ export const Players: React.FC = () => {
                                                     }));
                                                 }}
                                                 className={`w-14 h-12 rounded-2xl flex items-center justify-center transition-all border shrink-0 border-b-4 active:translate-y-1 active:border-b-0 ${isMuted
-                                                    ? 'bg-red-600 border-red-400 border-b-red-900 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
-                                                    : 'bg-[#1a1a1c] border-white/10 border-b-white/20 text-blue-400 hover:border-blue-500 shadow-lg'
+                                                    ? 'bg-red-600 border-red-400 border-b-red-800 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
+                                                    : 'bg-[#1a1a1c] border-white/10 border-b-white/10 text-blue-400 hover:border-blue-500 shadow-lg'
                                                     }`}
                                             >
                                                 <VolumeX className={`w-7 h-7 ${isMuted ? 'animate-pulse' : ''}`} />
@@ -731,7 +731,7 @@ export const Players: React.FC = () => {
                                         }));
                                     });
                                 }}
-                                className="mx-auto w-12 h-12 bg-[#1a1a1c] border border-white/10 border-b-4 border-white/20 rounded-full flex items-center justify-center text-red-500/60 hover:text-red-500 hover:bg-white/10 transition-all active:translate-y-1 active:border-b-0 group shadow-lg"
+                                className="mx-auto w-12 h-12 bg-[#1a1a1c] border border-white/10 border-b-4 border-white/10 rounded-full flex items-center justify-center text-red-500/60 hover:text-red-500 hover:bg-white/10 transition-all active:translate-y-1 active:border-b-0 group shadow-lg"
                             >
                                 <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
                             </button>
