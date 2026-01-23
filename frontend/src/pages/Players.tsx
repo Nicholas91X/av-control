@@ -74,6 +74,11 @@ export const Players: React.FC = () => {
     const [isSearchActive, setIsSearchActive] = useState(false);
     const [keyboardLayout, setKeyboardLayout] = useState<'alpha' | 'symbols'>('alpha');
 
+    // Fade State
+    const [fadeValue, setFadeValue] = useState(4);
+    const [isFadeDropdownOpen, setIsFadeDropdownOpen] = useState(false);
+    const fadeRef = useRef<HTMLDivElement>(null);
+
     // Fetch controls to find Volume 1 and Volume 2
     const { data: controlsData } = useQuery<{ controls: any[] }>({
         queryKey: ['controls'],
@@ -359,6 +364,17 @@ export const Players: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         }
     }, [lastMessage, queryClient, isMutating]);
+
+    // Handle click outside for dropdowns
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (fadeRef.current && !fadeRef.current.contains(event.target as Node)) {
+                setIsFadeDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Helpers
     const formatTime = (seconds?: number) => {
@@ -843,13 +859,43 @@ export const Players: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 rounded-lg px-6 h-12 flex items-center gap-4 text-xs font-black uppercase tracking-widest text-white/40">
+                    <div
+                        ref={fadeRef}
+                        className="relative bg-white/5 border border-white/10 rounded-lg px-6 h-12 flex items-center gap-4 text-xs font-black uppercase tracking-widest text-white/40 cursor-pointer hover:bg-white/10 transition-all select-none"
+                        onClick={() => setIsFadeDropdownOpen(!isFadeDropdownOpen)}
+                    >
                         <span>One Touch Play</span>
                         <div className="h-6 w-px bg-white/10" />
-                        <div className="flex items-center gap-2">
-                            <span>Fade 4</span>
-                            <ChevronDown className="w-4 h-4" />
+                        <div className="flex items-center gap-2 text-white/60">
+                            <span>Fade</span>
+                            <span className="w-4 text-center text-blue-400 font-black">{fadeValue}</span>
+                            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isFadeDropdownOpen ? 'rotate-180' : ''}`} />
                         </div>
+
+                        {/* Fade Dropdown Menu */}
+                        {isFadeDropdownOpen && (
+                            <div className="absolute bottom-full left-0 mb-2 w-full bg-[#0a0a0c]/90 border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-2 duration-200 z-[110]">
+                                <div className="flex flex-col">
+                                    {[0, 1, 2, 3, 4, 5].map((val) => (
+                                        <button
+                                            key={val}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setFadeValue(val);
+                                                setIsFadeDropdownOpen(false);
+                                            }}
+                                            className={`w-full h-12 flex items-center justify-between px-6 transition-all border-b border-white/5 last:border-0 ${fadeValue === val
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'hover:bg-white/5 text-white/40 hover:text-white'
+                                                }`}
+                                        >
+                                            <span className="font-black text-sm">{val}</span>
+                                            {fadeValue === val && <Check className="w-4 h-4" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="ml-auto flex gap-4 pr-4 flex-1 justify-end">
