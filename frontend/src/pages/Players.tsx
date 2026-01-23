@@ -18,7 +18,10 @@ import {
     ArrowRight,
     Plus,
     Minus,
-    RefreshCw
+    RefreshCw,
+    Delete,
+    CornerDownLeft,
+    X
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useIsTablet } from '../hooks/useIsTablet';
@@ -62,6 +65,14 @@ export const Players: React.FC = () => {
     const lastSeekTimeRef = useRef<number>(0);
     const lastTransportActionTimeRef = useRef<number>(0);
     const lastKnownPlayheadRef = useRef<{ time: number; timestamp: number }>({ time: 0, timestamp: 0 });
+
+    // Search State
+    const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<number[]>([]);
+    const [currentSearchIndex, setCurrentSearchIndex] = useState(-1);
+    const [isSearchActive, setIsSearchActive] = useState(false);
+    const [keyboardLayout, setKeyboardLayout] = useState<'alpha' | 'symbols'>('alpha');
 
     // Fetch controls to find Volume 1 and Volume 2
     const { data: controlsData } = useQuery<{ controls: any[] }>({
@@ -364,6 +375,62 @@ export const Players: React.FC = () => {
         return { text: 'FERMO', color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' };
     };
 
+    const scrollToSong = (index: number) => {
+        if (songListRef.current) {
+            const container = songListRef.current;
+            // songListRef.current points to the div with overflow-y-auto
+            // Inside it, we have the outer container, then the list of buttons
+            const innerContainer = container.querySelector('.song-list-container');
+            if (innerContainer) {
+                const songElement = innerContainer.children[index] as HTMLElement;
+                if (songElement) {
+                    songElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+    };
+
+    const handleSearch = (query: string) => {
+        if (!query.trim()) return;
+
+        const results: number[] = [];
+        const lowerQuery = query.toLowerCase();
+
+        songs.forEach((song, idx) => {
+            const position = (idx + 1).toString();
+            if (song.name.toLowerCase().includes(lowerQuery) || position.includes(lowerQuery)) {
+                results.push(idx);
+            }
+        });
+
+        setSearchResults(results);
+        if (results.length > 0) {
+            setCurrentSearchIndex(0);
+            setIsSearchActive(true);
+            setIsSearchModalOpen(false);
+            // Select the first result on the server
+            selectSongMutation.mutate(songs[results[0]].id);
+            // We use a small timeout to ensure states are updated
+            setTimeout(() => scrollToSong(results[0]), 100);
+        }
+    };
+
+    const findNext = () => {
+        if (searchResults.length === 0) return;
+        const nextIndex = (currentSearchIndex + 1) % searchResults.length;
+        setCurrentSearchIndex(nextIndex);
+        // Sync with server
+        selectSongMutation.mutate(songs[searchResults[nextIndex]].id);
+        scrollToSong(searchResults[nextIndex]);
+    };
+
+    const clearSearch = () => {
+        setIsSearchActive(false);
+        setSearchResults([]);
+        setCurrentSearchIndex(-1);
+        setSearchQuery('');
+    };
+
 
     // ============================================
     // RENDER TABLET VIEW
@@ -416,20 +483,43 @@ export const Players: React.FC = () => {
                                     <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                                 </div>
                             ) : (
-                                <div className="divide-y divide-white/5">
+                                <div className="divide-y divide-white/5 song-list-container">
                                     {songs.map((song, index) => {
                                         const isPlaying = playerStatus?.song_title === song.name;
+                                        const isSearchResult = searchResults.includes(index);
+                                        const isCurrentSelection = isSearchActive && searchResults[currentSearchIndex] === index;
+
                                         return (
                                             <button
                                                 key={song.id}
-                                                onClick={() => selectSongMutation.mutate(song.id)}
-                                                className={`w-full flex items-center p-5 text-left transition-all ${isPlaying
-                                                    ? 'bg-blue-600/20 text-blue-400'
-                                                    : 'hover:bg-white/5 text-white/70'
+                                                onClick={() => {
+                                                    selectSongMutation.mutate(song.id);
+                                                    // If search is active and this song is in results, update current match index
+                                                    if (isSearchActive) {
+                                                        const resIdx = searchResults.indexOf(index);
+                                                        if (resIdx !== -1) {
+                                                            setCurrentSearchIndex(resIdx);
+                                                        }
+                                                    }
+                                                }}
+                                                className={`w-full flex items-center p-5 text-left transition-all border-l-4 ${isCurrentSelection
+                                                    ? 'bg-blue-600/40 border-blue-400 shadow-[inset_0_0_20px_rgba(59,130,246,0.3)] z-10'
+                                                    : isSearchResult
+                                                        ? 'bg-blue-600/10 border-blue-400/30'
+                                                        : isPlaying
+                                                            ? 'bg-blue-600/20 text-blue-400 border-transparent'
+                                                            : 'hover:bg-white/5 text-white/70 border-transparent'
                                                     }`}
                                             >
-                                                <span className="w-12 font-mono text-xl opacity-40">{(index + 1).toString().padStart(1, ' ')}</span>
-                                                <span className="text-2xl font-bold tracking-tight uppercase truncate">{song.name}</span>
+                                                <span className={`w-12 font-mono text-xl ${isSearchResult ? 'opacity-100 text-blue-400' : 'opacity-40'}`}>
+                                                    {(index + 1).toString().padStart(1, ' ')}
+                                                </span>
+                                                <span className={`text-2xl font-bold tracking-tight uppercase truncate ${isSearchResult ? 'text-white' : ''}`}>
+                                                    {song.name}
+                                                </span>
+                                                {isCurrentSelection && (
+                                                    <div className="ml-auto w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(96,165,250,1)]" />
+                                                )}
                                             </button>
                                         );
                                     })}
@@ -766,11 +856,140 @@ export const Players: React.FC = () => {
                         <button className="flex items-center gap-2 px-8 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/40 hover:text-white whitespace-nowrap transition-all hover:bg-white/10">
                             <Search className="w-4 h-4" /> Filter
                         </button>
-                        <button className="flex items-center gap-2 px-8 h-12 bg-white/5 border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-white/40 hover:text-white whitespace-nowrap transition-all hover:bg-white/10">
-                            <Search className="w-4 h-4" /> Find
-                        </button>
+
+                        {!isSearchActive ? (
+                            <button
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setIsSearchModalOpen(true);
+                                }}
+                                className="flex items-center gap-2 px-8 h-12 bg-blue-600/10 border border-blue-500/30 rounded-lg text-sm font-black uppercase tracking-widest text-blue-400 hover:text-white hover:bg-blue-600/20 whitespace-nowrap transition-all"
+                            >
+                                <Search className="w-4 h-4" /> Cerca
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={findNext}
+                                    className="flex items-center gap-2 px-8 h-12 bg-blue-600 border border-blue-400/50 rounded-lg text-sm font-black uppercase tracking-widest text-white whitespace-nowrap shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all active:scale-95 group"
+                                >
+                                    <SkipForward className="w-4 h-4 group-active:translate-x-1 transition-transform" />
+                                    Succ
+                                </button>
+                                <button
+                                    onClick={clearSearch}
+                                    className="flex items-center gap-2 px-8 h-12 bg-[#1a1a1c] border border-white/10 rounded-lg text-sm font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 whitespace-nowrap transition-all active:scale-95"
+                                >
+                                    <X className="w-4 h-4" /> Fine
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
+
+                {/* Search Modal */}
+                {isSearchModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+                        <div className="w-full max-w-4xl bg-[#1e1e20] border border-white/10 rounded-[3rem] p-8 shadow-2xl flex flex-col gap-8 animate-in fade-in zoom-in duration-300">
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-3xl font-black uppercase tracking-tighter text-blue-400 flex items-center gap-3">
+                                    <Search className="w-8 h-8" />
+                                    Cerca Brano
+                                </h2>
+                                <button
+                                    onClick={() => setIsSearchModalOpen(false)}
+                                    className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            {/* Search Input */}
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    readOnly
+                                    placeholder="Digita titolo o posizione..."
+                                    className="w-full h-20 bg-black/40 border-2 border-blue-500/30 rounded-2xl px-8 text-3xl font-bold text-white placeholder:text-white/10 focus:outline-none focus:border-blue-500 transition-colors"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-6 top-1/2 -translate-y-1/2 text-white/30 hover:text-white"
+                                    >
+                                        <Delete className="w-8 h-8" />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Virtual Keyboard */}
+                            <div className="flex flex-col gap-3">
+                                {(() => {
+                                    const rows = keyboardLayout === 'alpha'
+                                        ? [
+                                            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                                            ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+                                            ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+                                            ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '.', ',', '-']
+                                        ]
+                                        : [
+                                            ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
+                                            ['_', '+', '=', '{', '}', '[', ']', ':', ';', '|'],
+                                            ['<', '>', '?', '/', '\\', '`', '~', '\'', '"', '°'],
+                                            ['¿', '¡', '«', '»', '—', '·', '…', '§', '¶', '©']
+                                        ];
+
+                                    return (
+                                        <>
+                                            {rows.map((row, ridx) => (
+                                                <div key={ridx} className="flex justify-center gap-2">
+                                                    {row.map(key => (
+                                                        <button
+                                                            key={key}
+                                                            onClick={() => setSearchQuery(prev => prev + key)}
+                                                            className="flex-1 h-14 bg-[#2a2a2d] hover:bg-[#353538] border-b-4 border-black/40 rounded-xl text-xl font-bold transition-all active:translate-y-1 active:border-b-0"
+                                                        >
+                                                            {key}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                            <div className="flex justify-center gap-2 mt-2">
+                                                <button
+                                                    onClick={() => setKeyboardLayout(keyboardLayout === 'alpha' ? 'symbols' : 'alpha')}
+                                                    className="w-24 h-16 bg-[#3a3a3d] border-b-4 border-black/40 rounded-xl text-lg font-bold transition-all active:translate-y-1 active:border-b-0 text-blue-400"
+                                                >
+                                                    {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
+                                                </button>
+                                                <button
+                                                    onClick={() => setSearchQuery(prev => prev + ' ')}
+                                                    className="flex-[3] h-16 bg-[#2a2a2d] border-b-4 border-black/40 rounded-xl text-lg font-bold transition-all active:translate-y-1 active:border-b-0"
+                                                >
+                                                    SPAZIO
+                                                </button>
+                                                <button
+                                                    onClick={() => setSearchQuery(prev => prev.slice(0, -1))}
+                                                    className="w-24 h-16 bg-red-900/40 border-b-4 border-black/40 rounded-xl flex items-center justify-center transition-all active:translate-y-1 active:border-b-0 text-red-400"
+                                                >
+                                                    <Delete className="w-6 h-6" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleSearch(searchQuery)}
+                                                    className="flex-1 h-16 bg-blue-600 border-b-4 border-blue-900/60 rounded-xl flex items-center justify-center gap-2 text-xl font-black transition-all active:translate-y-1 active:border-b-0"
+                                                >
+                                                    <CornerDownLeft className="w-6 h-6" />
+                                                    VAI
+                                                </button>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
