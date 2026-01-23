@@ -17,8 +17,7 @@ import {
     SkipForward as FastForward,
     ArrowRight,
     Plus,
-    Minus,
-    GripVertical
+    Minus
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useIsTablet } from '../hooks/useIsTablet';
@@ -124,6 +123,11 @@ export const Players: React.FC = () => {
 
     const handleSliderRelease = (control: any, val: number) => {
         setControlMutation.mutate({ id: control.id, value: val });
+        // Update local state immediately so it doesn't snap back before the next fetch
+        setControlValues(prev => ({
+            ...prev,
+            [control.id]: { ...prev[control.id], volume: val }
+        }));
         setPendingVolumes(prev => {
             const next = { ...prev };
             delete next[control.id];
@@ -402,23 +406,23 @@ export const Players: React.FC = () => {
                     </div>
 
                     {/* Column 3: Volume & Nav (Right) - ANALOG MIXER STYLE */}
-                    <div className="w-[15%] flex flex-col gap-4 pb-2">
+                    <div className="w-[17%] flex flex-col gap-4 pb-2">
                         <div className="flex-1 flex flex-col items-center justify-between bg-gradient-to-b from-white/10 to-transparent border border-white/20 rounded-[3rem] py-8 overflow-hidden relative backdrop-blur-xl shadow-2xl">
                             {/* Step Up Buttons */}
-                            <div className="flex gap-4 px-8 w-full justify-center z-10">
+                            <div className="flex gap-4 px-12 w-full justify-center z-10">
                                 {volumeControls.map(ctrl => (
                                     <button
                                         key={`up-${ctrl.id}`}
                                         onClick={() => handleStepVolume(ctrl, 'up')}
-                                        className="flex-1 h-12 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border border-white/10 rounded-xl transition-all active:scale-90 shadow-lg"
+                                        className="flex-1 h-10 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border border-white/10 rounded-xl transition-all active:scale-90 shadow-lg"
                                     >
-                                        <Plus className="w-5 h-5 text-blue-400" />
+                                        <Plus className="w-4 h-4 text-blue-400" />
                                     </button>
                                 ))}
                             </div>
 
                             {/* Sliders Container (The Mixer Tracks) */}
-                            <div className="flex-1 flex flex-row gap-16 items-stretch py-12 px-10 w-full justify-center relative">
+                            <div className="flex-1 flex flex-row gap-20 items-stretch py-12 px-14 w-full justify-center relative">
                                 {volumeControls.map(ctrl => {
                                     const val = ctrl.id in pendingVolumes ? pendingVolumes[ctrl.id] : (controlValues[ctrl.id]?.volume ?? 0);
                                     const min = ctrl.min ?? -96;
@@ -427,20 +431,20 @@ export const Players: React.FC = () => {
                                     const percent = ((val - min) / range) * 100;
 
                                     return (
-                                        <div key={`slider-${ctrl.id}`} className="relative h-full w-16 flex flex-col items-center group">
-                                            {/* Track Slot - Deeper & Modern */}
-                                            <div className="absolute inset-y-0 w-3 bg-black/80 rounded-full border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,1)] overflow-hidden">
+                                        <div key={`slider-${ctrl.id}`} className="relative h-full w-12 flex flex-col items-center group">
+                                            {/* Track Slot - Reduced Width */}
+                                            <div className="absolute inset-y-0 w-2.5 bg-black/80 rounded-full border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,1)] overflow-hidden">
                                                 <div
-                                                    className="absolute bottom-0 w-full bg-gradient-to-t from-blue-600 to-blue-400 opacity-30 blur-[1px]"
+                                                    className="absolute bottom-0 w-full bg-gradient-to-t from-blue-600 to-blue-400 opacity-20 blur-[1px]"
                                                     style={{ height: `${percent}%` }}
                                                 />
                                             </div>
 
-                                            {/* Scale Markings - Moved Further Left & Better Spaced */}
-                                            <div className="absolute inset-y-0 -left-10 flex flex-col justify-between py-1 text-[8px] font-mono text-blue-400/20 pointer-events-none uppercase tracking-tighter">
+                                            {/* Scale Markings - Moved Further Left */}
+                                            <div className="absolute inset-y-0 -left-12 flex flex-col justify-between py-1 text-[7px] font-mono text-blue-400/20 pointer-events-none uppercase tracking-tighter">
                                                 <span className="text-blue-400/40">+12</span>
                                                 <span>+6</span>
-                                                <span className="text-white/30 font-bold">0</span>
+                                                <span className="text-white/40 font-bold">0</span>
                                                 <span>-6</span>
                                                 <span>-12</span>
                                                 <span>-24</span>
@@ -449,29 +453,27 @@ export const Players: React.FC = () => {
                                                 <span className="text-blue-400/40">-96</span>
                                             </div>
 
-                                            {/* Fader Cap (The Professional Handle) */}
+                                            {/* Fader Cap - Compact & Professional (w-12 h-18) */}
                                             <div
-                                                className="absolute w-16 h-28 z-20 pointer-events-none"
-                                                style={{ bottom: `calc(${percent}% - 56px)` }}
+                                                className="absolute w-12 h-18 z-20 pointer-events-none"
+                                                style={{ bottom: `calc(${percent}% - 36px)` }}
                                             >
-                                                <div className="w-full h-full bg-gradient-to-b from-[#2a2a2c] via-[#1a1a1c] to-[#0a0a0c] border-[1px] border-white/20 shadow-[0_20px_40px_rgba(0,0,0,1),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-lg flex flex-col items-center justify-center">
-                                                    {/* Central indicator line */}
-                                                    <div className="w-full h-[3px] bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,1)] mb-2" />
+                                                <div className="w-full h-full bg-gradient-to-b from-[#444] via-[#1a1a1c] to-[#000] border border-white/20 shadow-[0_10px_20px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded flex flex-col items-center justify-center">
+                                                    <div className="w-full h-1 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,1)] mb-1" />
 
-                                                    {/* Texture dots */}
-                                                    <div className="flex flex-col gap-1 opacity-20 mb-2">
-                                                        <div className="flex gap-1"><div className="w-1 h-1 bg-white rounded-full" /><div className="w-1 h-1 bg-white rounded-full" /></div>
-                                                        <div className="flex gap-1"><div className="w-1 h-1 bg-white rounded-full" /><div className="w-1 h-1 bg-white rounded-full" /></div>
-                                                        <div className="flex gap-1"><div className="w-1 h-1 bg-white rounded-full" /><div className="w-1 h-1 bg-white rounded-full" /></div>
+                                                    <div className="flex flex-col gap-0.5 opacity-20 mb-1">
+                                                        <div className="w-4 h-px bg-white" />
+                                                        <div className="w-4 h-px bg-white" />
+                                                        <div className="w-4 h-px bg-white" />
                                                     </div>
 
-                                                    <div className="font-mono text-[10px] font-black text-blue-400 drop-shadow-[0_0_5px_rgba(59,130,246,0.5)]">
-                                                        {val.toFixed(1)}
+                                                    <div className="font-mono text-[9px] font-bold text-blue-400">
+                                                        {Math.round(val)}
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Interaction Layer - Proper Vertical Range */}
+                                            {/* Interaction Layer */}
                                             <input
                                                 type="range"
                                                 min={min}
@@ -481,11 +483,11 @@ export const Players: React.FC = () => {
                                                 onChange={(e) => handleSliderChange(ctrl, e)}
                                                 onMouseUp={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
                                                 onTouchEnd={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
-                                                className="absolute inset-x-0 -inset-y-0 opacity-0 cursor-pointer h-full w-[200%] -left-[50%] z-30"
+                                                className="absolute inset-x-0 -inset-y-0 opacity-0 cursor-pointer h-full w-[150%] -left-[25%] z-30"
                                                 style={{
                                                     appearance: 'slider-vertical',
                                                     WebkitAppearance: 'slider-vertical',
-                                                    width: '64px',
+                                                    width: '48px',
                                                 }}
                                             />
                                         </div>
@@ -494,21 +496,21 @@ export const Players: React.FC = () => {
                             </div>
 
                             {/* Step Down Buttons */}
-                            <div className="flex gap-4 px-8 w-full justify-center z-10">
+                            <div className="flex gap-4 px-12 w-full justify-center z-10">
                                 {volumeControls.map(ctrl => (
                                     <button
                                         key={`down-${ctrl.id}`}
                                         onClick={() => handleStepVolume(ctrl, 'down')}
-                                        className="flex-1 h-12 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border border-white/10 rounded-xl transition-all active:scale-90 shadow-lg"
+                                        className="flex-1 h-10 flex items-center justify-center bg-[#1a1a1c] hover:bg-blue-600/20 border border-white/10 rounded-xl transition-all active:scale-90 shadow-lg"
                                     >
-                                        <Minus className="w-5 h-5 text-blue-400" />
+                                        <Minus className="w-4 h-4 text-blue-400" />
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Mute Buttons Row (Refined) */}
-                        <div className="grid grid-cols-2 gap-4 px-2">
+                        {/* Mute Buttons Row */}
+                        <div className="grid grid-cols-2 gap-4 px-3">
                             {volumeControls.map(ctrl => {
                                 const isMuted = controlValues[ctrl.id]?.mute;
                                 return (
@@ -522,12 +524,12 @@ export const Players: React.FC = () => {
                                                 [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
                                             }));
                                         }}
-                                        className={`h-16 rounded-[2rem] flex items-center justify-center transition-all border-2 ${isMuted
-                                            ? 'bg-red-600 border-red-400 text-white shadow-[0_0_30px_rgba(220,38,38,0.4)]'
+                                        className={`h-12 rounded-2xl flex items-center justify-center transition-all border-2 ${isMuted
+                                            ? 'bg-red-600 border-red-400 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
                                             : 'bg-[#1a1a1c] border-white/10 text-blue-400 hover:border-blue-500 shadow-xl'
                                             }`}
                                     >
-                                        <VolumeX className={`w-8 h-8 ${isMuted ? 'animate-pulse' : ''}`} />
+                                        <VolumeX className={`w-6 h-6 ${isMuted ? 'animate-pulse' : ''}`} />
                                     </button>
                                 );
                             })}
