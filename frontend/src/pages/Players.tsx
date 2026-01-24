@@ -463,32 +463,52 @@ export const Players: React.FC = () => {
                 <div className="flex-1 flex overflow-hidden p-6 gap-6">
 
                     {/* Column 1: Sources (Left) */}
-                    <div className="w-[20%] flex flex-col gap-4 justify-end pb-2">
-                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-2">
-                            <h2 className="text-blue-400 font-bold tracking-widest uppercase text-xs">Sources</h2>
-                        </div>
-                        <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar-hidden">
-                            {sources.map((source) => {
-                                const isSelected = selectedSource === source.id;
-                                return (
-                                    <button
-                                        key={source.id}
-                                        onClick={() => {
-                                            setSelectedSource(source.id);
-                                            selectSourceMutation.mutate(source.id);
-                                        }}
-                                        className={`w-full text-left p-6 rounded-xl font-bold text-xl transition-all duration-300 ${isSelected
-                                            ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]'
-                                            : 'bg-white/5 text-blue-200/40 hover:bg-white/10'
-                                            }`}
-                                    >
-                                        {source.name}
-                                    </button>
-                                );
-                            })}
-                            <div className="mt-4 p-4 text-[10px] text-white/20 font-mono tracking-tighter">
-                                Internal: 2919MB / 10685MB
+                    <div className="w-[20%] flex flex-col gap-6 pt-20">
+                        <div className="flex-1 flex flex-col gap-4 min-h-0">
+                            {/* Sources Header */}
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 shrink-0">
+                                <h2 className="text-blue-400 font-bold tracking-widest uppercase text-xs">SORGENTI</h2>
                             </div>
+
+                            {/* Physical Sources List */}
+                            <div className="flex flex-col gap-3 shrink-0">
+                                {sources.map((source) => {
+                                    const isSelected = selectedSource === source.id;
+                                    return (
+                                        <button
+                                            key={source.id}
+                                            onClick={() => {
+                                                setSelectedSource(source.id);
+                                                selectSourceMutation.mutate(source.id);
+                                            }}
+                                            className={`w-full text-left p-4 rounded-xl font-bold text-lg transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${isSelected
+                                                ? 'bg-blue-600 border-blue-400/50 border-b-blue-500/50 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]'
+                                                : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-white/40 hover:text-white'
+                                                }`}
+                                        >
+                                            {source.name}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Separator */}
+                            <div className="h-px bg-white/10 my-2 shrink-0" />
+
+                            {/* Groups Section */}
+                            <div className="flex-1 flex flex-col gap-2 min-h-[200px]">
+                                <div className="px-2">
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30">Gruppi</h3>
+                                </div>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar-hidden bg-white/[0.02] border border-white/5 rounded-2xl p-2 flex flex-col gap-2 relative">
+                                    {/* Placeholder for future groups */}
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+                                        <ListMusic className="w-12 h-12 text-white" />
+                                    </div>
+                                </div>
+                            </div>
+
+
                         </div>
                     </div>
 
@@ -732,7 +752,7 @@ export const Players: React.FC = () => {
                     </div>
 
                     {/* Column 3: Volume & Nav (Right) - ANALOG MIXER STYLE */}
-                    <div className="w-[18%] flex flex-col gap-4 pb-2">
+                    <div className="w-[18%] flex flex-col gap-4">
                         {/* Main Fader Box */}
                         <div className="flex-1 flex flex-col gap-6 bg-gradient-to-b from-white/10 to-transparent border border-white/20 rounded-[3rem] p-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
                             <div className="flex-1 flex flex-row justify-center gap-8">
@@ -975,112 +995,114 @@ export const Players: React.FC = () => {
                 </div>
 
                 {/* Search Modal - PREMIUM DESIGN */}
-                {isSearchModalOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-                        <div className="w-full max-w-4xl bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-10 backdrop-blur-xl animate-in zoom-in duration-500">
+                {
+                    isSearchModalOpen && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+                            <div className="w-full max-w-4xl bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-10 backdrop-blur-xl animate-in zoom-in duration-500">
 
-                            {/* Modal Header */}
-                            <div className="flex items-center justify-between px-2">
-                                <div className="space-y-1">
-                                    <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
-                                        <Search className="w-8 h-8 text-blue-500" />
-                                        Cerca
-                                    </h2>
-                                    <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-11">Brano o Posizione</p>
-                                </div>
-                                <button
-                                    onClick={() => setIsSearchModalOpen(false)}
-                                    className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
-                                >
-                                    <X className="w-7 h-7 text-white/40" />
-                                </button>
-                            </div>
-
-                            {/* Search Input - ELEGANT GLASS */}
-                            <div className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/20 to-transparent rounded-3xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    readOnly
-                                    placeholder="Scrivi qui..."
-                                    className="relative w-full h-24 bg-black/40 border border-white/10 rounded-[1.5rem] px-10 text-4xl font-black text-white placeholder:text-white/5 outline-none focus:border-blue-500/50 transition-all tracking-tight"
-                                />
-                                {searchQuery && (
+                                {/* Modal Header */}
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="space-y-1">
+                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                            <Search className="w-8 h-8 text-blue-500" />
+                                            Cerca
+                                        </h2>
+                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-11">Brano o Posizione</p>
+                                    </div>
                                     <button
-                                        onClick={() => setSearchQuery('')}
-                                        className="absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full text-white/20 hover:text-red-400 transition-all"
+                                        onClick={() => setIsSearchModalOpen(false)}
+                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
                                     >
-                                        <Delete className="w-6 h-6" />
+                                        <X className="w-7 h-7 text-white/40" />
                                     </button>
-                                )}
-                            </div>
+                                </div>
 
-                            {/* Virtual Keyboard - SHADOW KEYBOARD DESIGN */}
-                            <div className="flex flex-col gap-4">
-                                {(() => {
-                                    const rows = keyboardLayout === 'alpha'
-                                        ? [
-                                            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-                                            ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-                                            ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-                                            ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '.', ',', '-']
-                                        ]
-                                        : [
-                                            ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
-                                            ['_', '+', '=', '{', '}', '[', ']', ':', ';', '|'],
-                                            ['<', '>', '?', '/', '\\', '`', '~', '\'', '"', '°'],
-                                            ['¿', '¡', '«', '»', '—', '·', '…', '§', '¶', '©']
-                                        ];
+                                {/* Search Input - ELEGANT GLASS */}
+                                <div className="relative group">
+                                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/20 to-transparent rounded-3xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        readOnly
+                                        placeholder="Scrivi qui..."
+                                        className="relative w-full h-24 bg-black/40 border border-white/10 rounded-[1.5rem] px-10 text-4xl font-black text-white placeholder:text-white/5 outline-none focus:border-blue-500/50 transition-all tracking-tight"
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full text-white/20 hover:text-red-400 transition-all"
+                                        >
+                                            <Delete className="w-6 h-6" />
+                                        </button>
+                                    )}
+                                </div>
 
-                                    return (
-                                        <>
-                                            {rows.map((row, ridx) => (
-                                                <div key={ridx} className="flex justify-center gap-3">
-                                                    {row.map(key => (
-                                                        <button
-                                                            key={key}
-                                                            onClick={() => setSearchQuery(prev => prev + key)}
-                                                            className="flex-1 h-16 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-2xl font-bold transition-all active:translate-y-1 active:border-b-0 shadow-2xl relative overflow-hidden group"
-                                                        >
-                                                            <span className="relative z-10 text-white">{key}</span>
-                                                        </button>
-                                                    ))}
+                                {/* Virtual Keyboard - SHADOW KEYBOARD DESIGN */}
+                                <div className="flex flex-col gap-4">
+                                    {(() => {
+                                        const rows = keyboardLayout === 'alpha'
+                                            ? [
+                                                ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                                                ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+                                                ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+                                                ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '.', ',', '-']
+                                            ]
+                                            : [
+                                                ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
+                                                ['_', '+', '=', '{', '}', '[', ']', ':', ';', '|'],
+                                                ['<', '>', '?', '/', '\\', '`', '~', '\'', '"', '°'],
+                                                ['¿', '¡', '«', '»', '—', '·', '…', '§', '¶', '©']
+                                            ];
+
+                                        return (
+                                            <>
+                                                {rows.map((row, ridx) => (
+                                                    <div key={ridx} className="flex justify-center gap-3">
+                                                        {row.map(key => (
+                                                            <button
+                                                                key={key}
+                                                                onClick={() => setSearchQuery(prev => prev + key)}
+                                                                className="flex-1 h-16 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-2xl font-bold transition-all active:translate-y-1 active:border-b-0 shadow-2xl relative overflow-hidden group"
+                                                            >
+                                                                <span className="relative z-10 text-white">{key}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                ))}
+                                                <div className="flex justify-center gap-3 mt-2">
+                                                    <button
+                                                        onClick={() => setKeyboardLayout(keyboardLayout === 'alpha' ? 'symbols' : 'alpha')}
+                                                        className="w-28 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
+                                                    >
+                                                        {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setSearchQuery(prev => prev + ' ')}
+                                                        className="flex-[4] h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-sm font-black tracking-[0.5em] transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-white/30 uppercase"
+                                                    >
+                                                        SPAZIO
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setSearchQuery(prev => prev.slice(0, -1))}
+                                                        className="w-28 h-20 bg-red-900/10 hover:bg-red-900/20 border-t border-red-500/10 border-b-4 border-red-900/60 rounded-2xl flex items-center justify-center transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-red-500/60"
+                                                    >
+                                                        <Delete className="w-7 h-7" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleSearch(searchQuery)}
+                                                        className="flex-[1.5] h-20 bg-blue-600 hover:bg-blue-500 border-t border-blue-400/50 border-b-4 border-blue-900/60 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-[0_10px_30px_rgba(37,99,235,0.4)] text-white"
+                                                    >
+                                                        VAI <CornerDownLeft className="w-6 h-6" />
+                                                    </button>
                                                 </div>
-                                            ))}
-                                            <div className="flex justify-center gap-3 mt-2">
-                                                <button
-                                                    onClick={() => setKeyboardLayout(keyboardLayout === 'alpha' ? 'symbols' : 'alpha')}
-                                                    className="w-28 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
-                                                >
-                                                    {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
-                                                </button>
-                                                <button
-                                                    onClick={() => setSearchQuery(prev => prev + ' ')}
-                                                    className="flex-[4] h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-sm font-black tracking-[0.5em] transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-white/30 uppercase"
-                                                >
-                                                    SPAZIO
-                                                </button>
-                                                <button
-                                                    onClick={() => setSearchQuery(prev => prev.slice(0, -1))}
-                                                    className="w-28 h-20 bg-red-900/10 hover:bg-red-900/20 border-t border-red-500/10 border-b-4 border-red-900/60 rounded-2xl flex items-center justify-center transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-red-500/60"
-                                                >
-                                                    <Delete className="w-7 h-7" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleSearch(searchQuery)}
-                                                    className="flex-[1.5] h-20 bg-blue-600 hover:bg-blue-500 border-t border-blue-400/50 border-b-4 border-blue-900/60 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-[0_10px_30px_rgba(37,99,235,0.4)] text-white"
-                                                >
-                                                    VAI <CornerDownLeft className="w-6 h-6" />
-                                                </button>
-                                            </div>
-                                        </>
-                                    );
-                                })()}
+                                            </>
+                                        );
+                                    })()}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
                 {/* OTP Dashboard Overlay - ANIMATED TRANSITION */}
                 <AnimatePresence>
@@ -1292,7 +1314,7 @@ export const Players: React.FC = () => {
                     )}
                 </AnimatePresence>
                 {/* END of OTP Dashboard Overlay */}
-            </div>
+            </div >
         );
     }
 
