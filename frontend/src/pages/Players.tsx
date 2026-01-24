@@ -25,7 +25,14 @@ import {
     Delete,
     CornerDownLeft,
     Undo2,
-    X
+    X,
+    FolderPlus,
+    FolderInput,
+    Pencil,
+    Trash2,
+    Clock,
+    FileEdit,
+    Settings
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useIsTablet } from '../hooks/useIsTablet';
@@ -83,6 +90,7 @@ export const Players: React.FC = () => {
     const [isFadeDropdownOpen, setIsFadeDropdownOpen] = useState(false);
     const fadeRef = useRef<HTMLDivElement>(null);
     const [isOTPDashboardOpen, setIsOTPDashboardOpen] = useState(false);
+    const [isManagementModalOpen, setIsManagementModalOpen] = useState(false);
 
     // Fetch controls to find Volume 1 and Volume 2
     const { data: controlsData } = useQuery<{ controls: any[] }>({
@@ -875,8 +883,11 @@ export const Players: React.FC = () => {
 
                     {/* SECTION 1: MEDIA MANAGEMENT */}
                     <div className="flex-1 flex items-center">
-                        <button className="px-6 h-12 bg-white/5 border border-white/10 border-b-4 border-black/40 rounded-xl text-sm font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 transition-all active:translate-y-1 active:border-b-0">
-                            Songs Management
+                        <button
+                            onClick={() => setIsManagementModalOpen(true)}
+                            className="px-6 h-12 bg-white/5 border border-white/10 border-b-4 border-black/40 rounded-xl text-sm font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 transition-all active:translate-y-1 active:border-b-0"
+                        >
+                            GESTIONE BRANI
                         </button>
                     </div>
 
@@ -1103,6 +1114,64 @@ export const Players: React.FC = () => {
                         </div>
                     )
                 }
+
+                {/* Management Modal */}
+                <AnimatePresence>
+                    {isManagementModalOpen && (
+                        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="w-full max-w-5xl bg-[#0a0a0c] border border-white/10 rounded-[3rem] p-12 shadow-2xl flex flex-col gap-10 overflow-hidden relative"
+                            >
+                                {/* Decorative Background */}
+                                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
+
+                                {/* Header */}
+                                <div className="flex items-center justify-between relative z-10">
+                                    <div className="space-y-1">
+                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-4">
+                                            <Settings className="w-10 h-10 text-blue-500" />
+                                            GESTIONE BRANI
+                                        </h2>
+                                        <p className="text-sm font-bold text-white/30 uppercase tracking-[0.3em] ml-14">Strumenti di Amministrazione</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsManagementModalOpen(false)}
+                                        className="w-16 h-16 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-black/40 rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-xl"
+                                    >
+                                        <X className="w-8 h-8 text-white/40" />
+                                    </button>
+                                </div>
+
+                                {/* Actions Grid */}
+                                <div className="grid grid-cols-3 gap-6 relative z-10">
+                                    {[
+                                        { label: 'Nuovo Gruppo', icon: FolderPlus, color: 'text-blue-400', bg: 'bg-blue-600/10', border: 'border-blue-500/20' },
+                                        { label: 'Aggiungi a un Gruppo', icon: FolderInput, color: 'text-green-400', bg: 'bg-green-600/10', border: 'border-green-500/20' },
+                                        { label: 'Rinomina Brano', icon: Pencil, color: 'text-amber-400', bg: 'bg-amber-600/10', border: 'border-amber-500/20' },
+                                        { label: 'Elimina Brano/i', icon: Trash2, color: 'text-red-400', bg: 'bg-red-600/10', border: 'border-red-500/20' },
+                                        { label: 'Cambia Tempo', icon: Clock, color: 'text-purple-400', bg: 'bg-purple-600/10', border: 'border-purple-500/20' },
+                                        { label: 'Cambia dati brano', icon: FileEdit, color: 'text-cyan-400', bg: 'bg-cyan-600/10', border: 'border-cyan-500/20' },
+                                    ].map((action, idx) => (
+                                        <button
+                                            key={idx}
+                                            className={`h-40 flex flex-col items-center justify-center gap-4 rounded-3xl border border-b-8 transition-all active:translate-y-2 active:border-b-0 group ${action.bg} ${action.border} hover:brightness-110`}
+                                        >
+                                            <div className={`p-4 rounded-full bg-black/20 ${action.color}`}>
+                                                <action.icon className="w-10 h-10" />
+                                            </div>
+                                            <span className={`text-lg font-black uppercase tracking-widest ${action.color} opacity-80 group-hover:opacity-100`}>
+                                                {action.label}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
 
                 {/* OTP Dashboard Overlay - ANIMATED TRANSITION */}
                 <AnimatePresence>
