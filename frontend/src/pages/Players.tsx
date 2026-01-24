@@ -1105,9 +1105,9 @@ export const Players: React.FC = () => {
 
                                 <button
                                     onClick={() => setIsOTPDashboardOpen(false)}
-                                    className="w-16 h-16 flex items-center justify-center bg-white/5 border border-white/10 border-b-4 border-black/60 rounded-2xl active:translate-y-1 active:border-b-0 transition-all shadow-2xl group"
+                                    className="w-16 h-16 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-2xl active:translate-y-1 active:border-b-0 transition-all shadow-2xl group"
                                 >
-                                    <Undo2 className="w-8 h-8 text-white/40 group-hover:text-blue-400 transition-colors" />
+                                    <Undo2 className="w-8 h-8 text-blue-400/80 group-hover:text-blue-400 transition-colors" />
                                 </button>
                             </div>
 
@@ -1128,24 +1128,24 @@ export const Players: React.FC = () => {
                                                 {playerStatus?.state === 'playing' ? (
                                                     <button
                                                         onClick={() => pauseMutation.mutate()}
-                                                        className="w-40 h-40 rounded-full bg-blue-600 flex items-center justify-center shadow-[0_0_80px_rgba(37,99,235,0.5)] border-t border-blue-400/50 border-b-8 border-blue-900 active:translate-y-2 active:border-b-0 transition-all ring-8 ring-blue-500/10"
+                                                        className="w-40 h-40 rounded-full bg-blue-600 flex items-center justify-center shadow-[0_10px_30px_rgba(37,99,235,0.3)] border border-blue-400/50 border-b-8 border-blue-500/50 active:translate-y-2 active:border-b-0 transition-all hover:brightness-110"
                                                     >
-                                                        <Pause className="w-20 h-20 text-white fill-current" />
+                                                        <Pause className="w-20 h-20 text-white fill-white" />
                                                     </button>
                                                 ) : (
                                                     <button
                                                         onClick={() => playMutation.mutate()}
-                                                        className="w-40 h-40 rounded-full bg-blue-600 flex items-center justify-center shadow-[0_0_80px_rgba(37,99,235,0.5)] border-t border-blue-400/50 border-b-8 border-blue-900 active:translate-y-2 active:border-b-0 transition-all ring-8 ring-blue-500/10"
+                                                        className="w-40 h-40 rounded-full bg-[#1e1e20] flex items-center justify-center shadow-xl border border-white/10 border-b-8 border-white/10 active:translate-y-2 active:border-b-0 transition-all hover:bg-[#252528] group"
                                                     >
-                                                        <Play className="w-20 h-20 text-white fill-current ml-3" />
+                                                        <Play className="w-20 h-20 text-blue-400/80 fill-blue-400/5 ml-3 group-hover:text-blue-400 transition-colors" />
                                                     </button>
                                                 )}
 
                                                 <button
                                                     onClick={() => stopMutation.mutate()}
-                                                    className="w-32 h-32 rounded-[2.5rem] bg-red-600/10 border border-red-500/20 border-b-8 border-red-900 active:translate-y-2 active:border-b-0 flex items-center justify-center text-red-500 hover:bg-red-600 hover:text-white transition-all group shadow-xl"
+                                                    className="w-32 h-32 rounded-[2.5rem] bg-[#1e1e20] border border-white/10 border-b-8 border-white/10 active:translate-y-2 active:border-b-0 flex items-center justify-center shadow-xl hover:bg-[#252528] transition-all group"
                                                 >
-                                                    <Square className="w-12 h-12 fill-current group-hover:scale-110 transition-transform" />
+                                                    <Square className="w-12 h-12 text-red-500 fill-red-500/10 group-hover:text-red-400 group-hover:scale-110 transition-transform" />
                                                 </button>
                                             </div>
 
@@ -1172,7 +1172,7 @@ export const Players: React.FC = () => {
                                                 {/* Plus Button */}
                                                 <button
                                                     onClick={() => handleStepVolume(ctrl, 'up')}
-                                                    className="w-12 h-12 flex items-center justify-center bg-[#1a1a1c] hover:bg-[#252528] border border-white/10 border-b-4 border-black rounded-xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0 text-blue-400"
+                                                    className="w-12 h-12 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0 text-blue-400"
                                                 >
                                                     <Plus className="w-5 h-5" />
                                                 </button>
@@ -1227,7 +1227,7 @@ export const Players: React.FC = () => {
                                                 {/* Minus Button */}
                                                 <button
                                                     onClick={() => handleStepVolume(ctrl, 'down')}
-                                                    className="w-12 h-12 flex items-center justify-center bg-[#1a1a1c] hover:bg-[#252528] border border-white/10 border-b-4 border-black rounded-xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0 text-blue-400"
+                                                    className="w-12 h-12 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0 text-blue-400"
                                                 >
                                                     <Minus className="w-5 h-5" />
                                                 </button>
@@ -1244,7 +1244,7 @@ export const Players: React.FC = () => {
                                                     }}
                                                     className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all border shrink-0 border-b-4 active:translate-y-1 active:border-b-0 ${isMuted
                                                         ? 'bg-red-600 border-red-400 border-b-red-800 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
-                                                        : 'bg-[#1a1a1c] border-white/10 border-b-black text-blue-400 hover:border-blue-500 shadow-lg'
+                                                        : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-blue-400 hover:border-blue-500 shadow-lg'
                                                         }`}
                                                 >
                                                     <VolumeX className="w-6 h-6" />
@@ -1266,8 +1266,8 @@ export const Players: React.FC = () => {
                                             repeatMutation.mutate(isSong ? 'off' : 'one');
                                         }}
                                         className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all border-b-4 active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
-                                            ? 'bg-blue-600 border-blue-900 text-white shadow-xl shadow-blue-500/20'
-                                            : 'bg-white/5 border-black text-white/40'
+                                            ? 'bg-blue-600 border-blue-400/50 border-b-blue-500/50 text-white shadow-xl shadow-blue-500/20'
+                                            : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-white/40'
                                             }`}
                                     >
                                         <Repeat1 className="w-7 h-7" />
