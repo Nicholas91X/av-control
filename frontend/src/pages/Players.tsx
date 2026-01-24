@@ -73,6 +73,7 @@ export const Players: React.FC = () => {
     // STATE & QUERIES
     // ============================================
     const [selectedSource, setSelectedSource] = useState<number | null>(null);
+    const [selectedSourceType, setSelectedSourceType] = useState<'source' | 'group'>('source');
     const [isMutating, setIsMutating] = useState(false);
     const [pendingVolumes, setPendingVolumes] = useState<Record<number, number>>({});
     const [controlValues, setControlValues] = useState<Record<number, any>>({});
@@ -100,6 +101,8 @@ export const Players: React.FC = () => {
     // Group Management State
     const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
     const [newGroupName, setNewGroupName] = useState('');
+
+    const [mockPlayerStatus, setMockPlayerStatus] = useState<PlayerStatus | null>(null);
 
     // Fetch controls to find Volume 1 and Volume 2
     const { data: controlsData } = useQuery<{ controls: any[] }>({
@@ -200,10 +203,17 @@ export const Players: React.FC = () => {
         }
     }, [sources]);
 
-    // Fetch songs for selected source
+    // Fetch songs for selected source (or group)
     const { data: songsData, isLoading: isLoadingSongs } = useQuery<{ songs: Song[] }>({
-        queryKey: ['player', 'songs', selectedSource],
+        queryKey: ['player', 'songs', selectedSource, selectedSourceType],
         queryFn: async () => {
+            // Mock fetching songs for a group vs source
+            if (selectedSourceType === 'group') {
+                // Return mock songs for groups, or real endpoint if exists
+                // await api.get(`/device/player/groups/${selectedSource}/songs`);
+                // Mock:
+                return { songs: Array.from({ length: 5 }).map((_, i) => ({ id: 1000 + i, name: `Group Song ${i + 1}` })) };
+            }
             const response = await api.get('/device/player/songs');
             return response.data;
         },
@@ -216,10 +226,11 @@ export const Players: React.FC = () => {
     const { data: playerStatus } = useQuery<PlayerStatus>({
         queryKey: ['player', 'status'],
         queryFn: async () => {
+            if (mockPlayerStatus) return mockPlayerStatus;
             const response = await api.get('/device/player/status');
             return response.data;
         },
-        refetchInterval: isMutating ? false : 1000,
+        refetchInterval: isMutating || mockPlayerStatus ? false : 1000,
     });
 
     // ============================================
@@ -227,6 +238,7 @@ export const Players: React.FC = () => {
     // ============================================
     const selectSourceMutation = useMutation({
         mutationFn: async (sourceId: number) => {
+            setMockPlayerStatus(null); // Clear mock status on source change
             queryClient.setQueryData(['player', 'songs', sourceId], []);
             await api.post('/device/player/source', { id: sourceId });
         },
@@ -240,8 +252,23 @@ export const Players: React.FC = () => {
     });
 
     const selectSongMutation = useMutation({
-        mutationFn: async (songId: number) => {
-            await api.post('/device/player/song', { id: songId });
+        mutationFn: async (song: Song) => {
+            // Handle Mock Songs
+            if (song.id >= 1000) {
+                const newStatus: PlayerStatus = {
+                    state: 'playing',
+                    song_title: song.name,
+                    current_source: 'Group',
+                    current_time: 0,
+                    total_time: 180,
+                    repeat_mode: 'none'
+                };
+                setMockPlayerStatus(newStatus);
+                queryClient.setQueryData(['player', 'status'], newStatus);
+                return;
+            }
+            // Real Songs
+            await api.post('/device/player/song', { id: song.id });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
@@ -249,80 +276,80 @@ export const Players: React.FC = () => {
     });
 
     const playMutation = useMutation({
-        mutationFn: async () => api.post('/device/player/play'),
-        onMutate: async () => {
-            const now = Date.now();
-            lastTransportActionTimeRef.current = now;
-            // Capture current position before play starts to avoid reset
-            const currentStatus = queryClient.getQueryData<PlayerStatus>(['player', 'status']);
-            if (currentStatus) {
-                lastKnownPlayheadRef.current = { time: currentStatus.current_time || 0, timestamp: now };
+        mutationFn: async () => {
+            if (mockPlayerStatus) {
+                setMockPlayerStatus({ ...mockPlayerStatus, state: 'playing' });
+                return;
             }
-
-            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
-            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
-                if (!old) return old;
-                return { ...old, state: 'playing' };
-            });
+            await api.post('/device/player/play');
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const pauseMutation = useMutation({
-        mutationFn: async () => api.post('/device/player/pause'),
-        onMutate: async () => {
-            const now = Date.now();
-            lastTransportActionTimeRef.current = now;
-
-            const currentStatus = queryClient.getQueryData<PlayerStatus>(['player', 'status']);
-            if (currentStatus) {
-                lastKnownPlayheadRef.current = { time: currentStatus.current_time || 0, timestamp: now };
+        mutationFn: async () => {
+            if (mockPlayerStatus) {
+                setMockPlayerStatus({ ...mockPlayerStatus, state: 'paused' });
+                return;
             }
-
-            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
-            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
-                if (!old) return old;
-                return { ...old, state: 'paused' };
-            });
+            await api.post('/device/player/pause');
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const stopMutation = useMutation({
-        mutationFn: async () => api.post('/device/player/stop'),
-        onMutate: async () => {
-            lastTransportActionTimeRef.current = Date.now();
-            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
-            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
-                if (!old) return old;
-                return { ...old, state: 'stopped', current_time: 0 };
-            });
+        mutationFn: async () => {
+            if (mockPlayerStatus) {
+                setMockPlayerStatus({ ...mockPlayerStatus, state: 'stopped', current_time: 0 });
+                return;
+            }
+            await api.post('/device/player/stop');
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const nextMutation = useMutation({
-        mutationFn: async () => api.post('/device/player/next'),
-        onMutate: async () => {
-            lastTransportActionTimeRef.current = Date.now();
-            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
-            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
-                if (!old) return old;
-                return { ...old, current_time: 0 };
-            });
+        mutationFn: async () => {
+            if (mockPlayerStatus) {
+                const currentIndex = songs.findIndex(s => s.name === mockPlayerStatus.song_title);
+                if (currentIndex !== -1) {
+                    const nextIndex = (currentIndex + 1) % songs.length;
+                    const nextSong = songs[nextIndex];
+                    const newStatus: PlayerStatus = {
+                        ...mockPlayerStatus,
+                        song_title: nextSong.name,
+                        current_time: 0,
+                        state: 'playing'
+                    };
+                    setMockPlayerStatus(newStatus);
+                    queryClient.setQueryData(['player', 'status'], newStatus);
+                }
+                return;
+            }
+            await api.post('/device/player/next');
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
     const previousMutation = useMutation({
-        mutationFn: async () => api.post('/device/player/previous'),
-        onMutate: async () => {
-            lastTransportActionTimeRef.current = Date.now();
-            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
-            queryClient.setQueryData<PlayerStatus>(['player', 'status'], (old) => {
-                if (!old) return old;
-                return { ...old, current_time: 0 };
-            });
+        mutationFn: async () => {
+            if (mockPlayerStatus) {
+                const currentIndex = songs.findIndex(s => s.name === mockPlayerStatus.song_title);
+                if (currentIndex !== -1) {
+                    const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
+                    const prevSong = songs[prevIndex];
+                    const newStatus: PlayerStatus = {
+                        ...mockPlayerStatus,
+                        song_title: prevSong.name,
+                        current_time: 0,
+                        state: 'playing'
+                    };
+                    setMockPlayerStatus(newStatus);
+                    queryClient.setQueryData(['player', 'status'], newStatus);
+                }
+                return;
+            }
+            await api.post('/device/player/previous');
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
@@ -432,6 +459,29 @@ export const Players: React.FC = () => {
         }
     });
 
+    // Mock Player Timer Logic
+    useEffect(() => {
+        let interval: any;
+        if (mockPlayerStatus?.state === 'playing') {
+            interval = setInterval(() => {
+                setMockPlayerStatus(prev => {
+                    if (!prev || prev.state !== 'playing') return prev;
+                    const nextTime = (prev.current_time || 0) + 1;
+                    if (nextTime >= (prev.total_time || 0)) {
+                        return { ...prev, current_time: prev.total_time, state: 'stopped' };
+                    }
+                    const updated = { ...prev, current_time: nextTime };
+                    // Sync with query client for other components
+                    queryClient.setQueryData(['player', 'status'], updated);
+                    return updated;
+                });
+            }, 1000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [mockPlayerStatus?.state, queryClient]);
+
     // WebSocket updates
     useEffect(() => {
         if (isMutating) return;
@@ -500,7 +550,7 @@ export const Players: React.FC = () => {
             setIsSearchActive(true);
             setIsSearchModalOpen(false);
             // Select the first result on the server
-            selectSongMutation.mutate(songs[results[0]].id);
+            selectSongMutation.mutate(songs[results[0]]);
             // We use a small timeout to ensure states are updated
             setTimeout(() => scrollToSong(results[0]), 100);
         }
@@ -511,7 +561,7 @@ export const Players: React.FC = () => {
         const nextIndex = (currentSearchIndex + 1) % searchResults.length;
         setCurrentSearchIndex(nextIndex);
         // Sync with server
-        selectSongMutation.mutate(songs[searchResults[nextIndex]].id);
+        selectSongMutation.mutate(songs[searchResults[nextIndex]]);
         scrollToSong(searchResults[nextIndex]);
     };
 
@@ -548,11 +598,12 @@ export const Players: React.FC = () => {
                                         <button
                                             key={source.id}
                                             onClick={() => {
+                                                setSelectedSourceType('source');
                                                 setSelectedSource(source.id);
                                                 selectSourceMutation.mutate(source.id);
                                             }}
-                                            className={`w-full text-left p-4 rounded-xl font-bold text-lg transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${isSelected
-                                                ? 'bg-blue-600 border-white/10 border-b-black/50 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)] bg-clip-padding'
+                                            className={`w-full text-left p-4 rounded-xl font-bold text-lg transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${isSelected && selectedSourceType === 'source'
+                                                ? 'bg-blue-600 bg-clip-padding border-white/10 border-b-black/50 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]'
                                                 : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-white/40 hover:text-white'
                                                 }`}
                                         >
@@ -576,14 +627,26 @@ export const Players: React.FC = () => {
                                             <ListMusic className="w-12 h-12 text-white" />
                                         </div>
                                     ) : (
-                                        groups.map(group => (
-                                            <button
-                                                key={group.id}
-                                                className="w-full text-left p-4 rounded-xl font-bold text-lg bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-4 border-b-white/10 text-white/60 hover:text-white transition-all active:translate-y-1 active:border-b-0"
-                                            >
-                                                {group.name}
-                                            </button>
-                                        ))
+                                        groups.map(group => {
+                                            const isSelected = selectedSource === group.id && selectedSourceType === 'group';
+                                            return (
+                                                <button
+                                                    key={group.id}
+                                                    onClick={() => {
+                                                        setSelectedSourceType('group');
+                                                        setSelectedSource(group.id);
+                                                        // Optional: selectGroupMutation.mutate(group.id) if backend supports it
+                                                        // For now, we just update UI state to show songs
+                                                    }}
+                                                    className={`w-full text-left p-4 rounded-xl font-bold text-lg transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${isSelected
+                                                        ? 'bg-blue-600 bg-clip-padding border-white/10 border-b-black/50 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]'
+                                                        : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-white/60 hover:text-white'
+                                                        }`}
+                                                >
+                                                    {group.name}
+                                                </button>
+                                            );
+                                        })
                                     )}
                                 </div>
                             </div>
@@ -614,7 +677,7 @@ export const Players: React.FC = () => {
                                             <button
                                                 key={song.id}
                                                 onClick={() => {
-                                                    selectSongMutation.mutate(song.id);
+                                                    selectSongMutation.mutate(song);
                                                     // If search is active and this song is in results, update current match index
                                                     if (isSearchActive) {
                                                         const resIdx = searchResults.indexOf(index);
@@ -1738,7 +1801,7 @@ export const Players: React.FC = () => {
                                 return (
                                     <button
                                         key={song.id}
-                                        onClick={() => selectSongMutation.mutate(song.id)}
+                                        onClick={() => selectSongMutation.mutate(song)}
                                         className={`w-full group px-6 py-5 text-left transition-all flex items-center justify-between rounded-2xl ${isCurrent
                                             ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20'
                                             : 'hover:bg-blue-50 dark:hover:bg-blue-900/10 text-gray-700 dark:text-gray-300'
