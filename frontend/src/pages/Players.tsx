@@ -482,7 +482,7 @@ export const Players: React.FC = () => {
                                                 selectSourceMutation.mutate(source.id);
                                             }}
                                             className={`w-full text-left p-4 rounded-xl font-bold text-lg transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${isSelected
-                                                ? 'bg-blue-600 border-blue-400/50 border-b-blue-500/50 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]'
+                                                ? 'bg-blue-600 border-white/10 border-b-black/50 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)] bg-clip-padding'
                                                 : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-white/40 hover:text-white'
                                                 }`}
                                         >
@@ -638,7 +638,7 @@ export const Players: React.FC = () => {
                                         {isPlaying ? (
                                             <button
                                                 onClick={() => pauseMutation.mutate()}
-                                                className="flex-1 h-20 flex items-center justify-center bg-blue-600 hover:bg-blue-500 border border-blue-400/50 border-b-4 border-blue-500/50 rounded-[2.5rem] shadow-[0_10px_30px_rgba(37,99,235,0.3)] transition-all active:translate-y-1 active:border-b-0 group"
+                                                className="flex-1 h-20 flex items-center justify-center bg-blue-600 bg-clip-padding hover:bg-blue-500 border border-white/10 border-b-4 border-b-black/50 rounded-[2.5rem] shadow-[0_10px_30px_rgba(37,99,235,0.3)] transition-all active:translate-y-1 active:border-b-0 group"
                                             >
                                                 <Pause className="w-10 h-10 text-white fill-white" />
                                             </button>
@@ -891,7 +891,7 @@ export const Players: React.FC = () => {
                                     repeatMutation.mutate(isGroup ? 'off' : 'all');
                                 }}
                                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border border-b-4 shadow-lg active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'group'
-                                    ? 'bg-blue-600 border-blue-400 border-b-blue-900/60 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
+                                    ? 'bg-blue-600 bg-clip-padding border-white/10 border-b-black/50 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
                                     : 'bg-white/5 border-white/10 border-b-black/40 text-white/40 hover:text-white hover:bg-white/10'
                                     }`}
                             >
@@ -903,7 +903,7 @@ export const Players: React.FC = () => {
                                     repeatMutation.mutate(isSong ? 'off' : 'one');
                                 }}
                                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border border-b-4 shadow-lg active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
-                                    ? 'bg-blue-600 border-blue-400 border-b-blue-900/60 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
+                                    ? 'bg-blue-600 bg-clip-padding border-white/10 border-b-black/50 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
                                     : 'bg-white/5 border-white/10 border-b-black/40 text-white/40 hover:text-white hover:bg-white/10'
                                     }`}
                             >
@@ -978,7 +978,7 @@ export const Players: React.FC = () => {
                             <>
                                 <button
                                     onClick={findNext}
-                                    className="flex items-center gap-2 px-4 h-12 bg-blue-600 border border-blue-400/50 border-b-4 border-blue-900/60 rounded-xl text-sm font-black uppercase tracking-widest text-white whitespace-nowrap shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all active:translate-y-1 active:border-b-0 group"
+                                    className="flex items-center gap-2 px-4 h-12 bg-blue-600 bg-clip-padding border border-white/10 border-b-4 border-b-black/50 rounded-xl text-sm font-black uppercase tracking-widest text-white whitespace-nowrap shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all active:translate-y-1 active:border-b-0 group"
                                 >
                                     <SkipForward className="w-4 h-4 group-active:translate-x-1 transition-transform" />
                                     Succ
@@ -1090,7 +1090,7 @@ export const Players: React.FC = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleSearch(searchQuery)}
-                                                        className="flex-[1.5] h-20 bg-blue-600 hover:bg-blue-500 border-t border-blue-400/50 border-b-4 border-blue-900/60 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-[0_10px_30px_rgba(37,99,235,0.4)] text-white"
+                                                        className="flex-[1.5] h-20 bg-blue-600 bg-clip-padding hover:bg-blue-500 border-t border-white/10 border-b-4 border-b-black/50 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-[0_10px_30px_rgba(37,99,235,0.4)] text-white"
                                                     >
                                                         VAI <CornerDownLeft className="w-6 h-6" />
                                                     </button>
@@ -1150,7 +1150,7 @@ export const Players: React.FC = () => {
                                                 {playerStatus?.state === 'playing' ? (
                                                     <button
                                                         onClick={() => pauseMutation.mutate()}
-                                                        className="w-40 h-40 rounded-full bg-blue-600 flex items-center justify-center shadow-[0_10px_30px_rgba(37,99,235,0.3)] border border-blue-400/50 border-b-8 border-blue-500/50 active:translate-y-2 active:border-b-0 transition-all hover:brightness-110"
+                                                        className="w-40 h-40 rounded-full bg-blue-600 bg-clip-padding flex items-center justify-center shadow-[0_10px_30px_rgba(37,99,235,0.3)] border border-white/10 border-b-8 border-b-black/50 active:translate-y-2 active:border-b-0 transition-all hover:brightness-110"
                                                     >
                                                         <Pause className="w-20 h-20 text-white fill-white" />
                                                     </button>
@@ -1288,7 +1288,7 @@ export const Players: React.FC = () => {
                                             repeatMutation.mutate(isSong ? 'off' : 'one');
                                         }}
                                         className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all border-b-4 active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
-                                            ? 'bg-blue-600 border-blue-400/50 border-b-blue-500/50 text-white shadow-xl shadow-blue-500/20'
+                                            ? 'bg-blue-600 bg-clip-padding border-white/10 border-b-black/50 text-white shadow-xl shadow-blue-500/20'
                                             : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-white/40'
                                             }`}
                                     >
