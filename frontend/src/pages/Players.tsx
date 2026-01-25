@@ -113,6 +113,16 @@ export const Players: React.FC = () => {
     // Global persistence for group songs (mock state for now)
     const [groupSongs, setGroupSongs] = useState<Record<number, Song[]>>({});
 
+    // Rename Brano Flow State
+    const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+    const [renameStep, setRenameStep] = useState<1 | 2 | 3 | 4>(1); // 1: Source Selection, 2: Song, 3: Edit, 4: Confirm
+    const [renameSourceType, setRenameSourceType] = useState<'source' | 'group' | null>(null);
+    const [selectedSourceForRename, setSelectedSourceForRename] = useState<number | null>(null);
+    const [selectedSongForRename, setSelectedSongForRename] = useState<Song | null>(null);
+    const [renamingName, setRenamingName] = useState('');
+    const [renamedSongs, setRenamedSongs] = useState<Record<string, { newName: string, originalName: string }>>({}); // Key: "source/group:id:songId"
+    const [playingSourceContext, setPlayingSourceContext] = useState<{ type: 'source' | 'group', id: number } | null>(null);
+
     const [mockPlayerStatus, setMockPlayerStatus] = useState<PlayerStatus | null>(null);
 
     // Fetch controls to find Volume 1 and Volume 2
@@ -236,13 +246,36 @@ export const Players: React.FC = () => {
         ? (groupSongs[selectedSource] || [])
         : songsDataSongs;
 
+    const processedSongs = songs.map(s => {
+        const key = `${selectedSourceType}:${selectedSource}:${s.id}`;
+        return {
+            ...s,
+            name: renamedSongs[key]?.newName || s.name
+        };
+    });
+
     // Fetch player status (Polling)
     const { data: playerStatus } = useQuery<PlayerStatus>({
         queryKey: ['player', 'status'],
         queryFn: async () => {
             if (mockPlayerStatus) return mockPlayerStatus;
             const response = await api.get('/device/player/status');
-            return response.data;
+            const data = response.data;
+
+            if (data.song_title && playingSourceContext) {
+                const contextPrefix = `${playingSourceContext.type}:${playingSourceContext.id}:`;
+
+                // Nota: Invece di basarci sull'ID (che non abbiamo dallo status), 
+                // facciamo una ricerca per valore nella mappa delle rinominate per quel contesto.
+                const matchPreciso = Object.entries(renamedSongs).find(([k, entry]) =>
+                    k.startsWith(contextPrefix) && entry.originalName === data.song_title
+                );
+
+                if (matchPreciso) {
+                    return { ...data, song_title: matchPreciso[1].newName };
+                }
+            }
+            return data;
         },
         refetchInterval: isMutating || mockPlayerStatus ? false : 1000,
     });
@@ -253,6 +286,7 @@ export const Players: React.FC = () => {
     const selectSourceMutation = useMutation({
         mutationFn: async (sourceId: number) => {
             setMockPlayerStatus(null); // Clear mock status on source change
+            setPlayingSourceContext({ type: 'source', id: sourceId });
             queryClient.setQueryData(['player', 'songs', sourceId], []);
             await api.post('/device/player/source', { id: sourceId });
         },
@@ -267,6 +301,9 @@ export const Players: React.FC = () => {
 
     const selectSongMutation = useMutation({
         mutationFn: async (song: Song) => {
+            // Aggiorniamo il contesto di riproduzione
+            setPlayingSourceContext({ type: selectedSourceType as any, id: selectedSource! });
+
             // Handle Mock Songs
             if (song.id >= 1000) {
                 const newStatus: PlayerStatus = {
@@ -682,7 +719,7 @@ export const Players: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="divide-y divide-white/5 song-list-container">
-                                    {songs.map((song, index) => {
+                                    {processedSongs.map((song, index) => {
                                         const isPlaying = playerStatus?.song_title === song.name;
                                         const isSearchResult = searchResults.includes(index);
                                         const isCurrentSelection = isSearchActive && searchResults[currentSearchIndex] === index;
@@ -1326,7 +1363,21 @@ export const Players: React.FC = () => {
                                                 setIsManagementModalOpen(false);
                                             }
                                         },
-                                        { label: 'Rinomina Brano', icon: Pencil, color: 'text-amber-400', bg: 'bg-amber-600/10', border: 'border-amber-500/20' },
+                                        {
+                                            label: 'Rinomina Brano',
+                                            icon: Pencil,
+                                            color: 'text-amber-400',
+                                            bg: 'bg-amber-600/10',
+                                            border: 'border-amber-500/20',
+                                            action: () => {
+                                                setRenameStep(1);
+                                                setRenameSourceType(null);
+                                                setSelectedSourceForRename(null);
+                                                setSelectedSongForRename(null);
+                                                setIsRenameModalOpen(true);
+                                                setIsManagementModalOpen(false);
+                                            }
+                                        },
                                         { label: 'Elimina Brano/i', icon: Trash2, color: 'text-red-400', bg: 'bg-red-600/10', border: 'border-red-500/20' },
                                         { label: 'Cambia Tempo', icon: Clock, color: 'text-purple-400', bg: 'bg-purple-600/10', border: 'border-purple-500/20' },
                                         { label: 'Cambia dati brano', icon: FileEdit, color: 'text-cyan-400', bg: 'bg-cyan-600/10', border: 'border-cyan-500/20' },
@@ -1505,6 +1556,14 @@ export const Players: React.FC = () => {
 
                                     {addToGroupStep === 2 && (
                                         <div className="flex flex-col gap-2">
+                                            <div className="flex items-center justify-between px-2 mb-2">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                                                    Brani di: <span className="text-blue-400">{sources.find(s => s.id === selectedSourceForAdd)?.name || 'Sorgente'}</span>
+                                                </p>
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                                                    {selectedSongsForAdd.length} Selezionati
+                                                </span>
+                                            </div>
                                             {songsDataSongs.map((song: Song) => {
                                                 const isSelected = selectedSongsForAdd.some(s => s.id === song.id);
                                                 return (
@@ -1606,6 +1665,237 @@ export const Players: React.FC = () => {
                                             Conferma e Aggiungi
                                         </button>
                                     )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Rename Song Modal - MULTI STEP */}
+                <AnimatePresence>
+                    {isRenameModalOpen && (
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300">
+                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                {/* Header */}
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                            <Pencil className="w-10 h-10 text-amber-500" />
+                                            Rinomina Brano
+                                        </h2>
+                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
+                                            {renameStep === 1 ? 'Step 1: Sorgente / Gruppo' :
+                                                renameStep === 2 ? 'Step 2: Seleziona il Brano' :
+                                                    renameStep === 3 ? 'Step 3: Inserisci Nuovo Nome' :
+                                                        'Step 4: Conferma Modifica'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsRenameModalOpen(false)}
+                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
+                                    >
+                                        <X className="w-7 h-7 text-white/40" />
+                                    </button>
+                                </div>
+
+                                {/* Content Area */}
+                                <div className="flex-1 min-h-[400px] overflow-y-auto custom-scrollbar-hidden bg-white/5 border border-white/10 rounded-[2rem] p-6">
+
+                                    {/* STEP 1: SOURCE SELECTION */}
+                                    {renameStep === 1 && (
+                                        <div className="space-y-8">
+                                            {/* Physical Sources */}
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Sorgenti Fisiche</h3>
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    {sources.map(s => (
+                                                        <button
+                                                            key={s.id}
+                                                            onClick={() => {
+                                                                setRenameSourceType('source');
+                                                                setSelectedSourceForRename(s.id);
+                                                                setRenameStep(2);
+                                                            }}
+                                                            className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
+                                                        >
+                                                            <Music className="w-6 h-6 text-blue-400/60" />
+                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Custom Groups */}
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Gruppi Personalizzati</h3>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {groups.length === 0 ? (
+                                                        <p className="col-span-2 text-center text-white/10 italic py-8">Nessun gruppo disponibile</p>
+                                                    ) : (
+                                                        groups.map(g => (
+                                                            <button
+                                                                key={g.id}
+                                                                onClick={() => {
+                                                                    setRenameSourceType('group');
+                                                                    setSelectedSourceForRename(g.id);
+                                                                    setRenameStep(2);
+                                                                }}
+                                                                className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
+                                                            >
+                                                                <Folder className="w-6 h-6 text-green-400/60" />
+                                                                <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{g.name}</span>
+                                                            </button>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* STEP 2: SONG SELECTION */}
+                                    {renameStep === 2 && (
+                                        <div className="flex flex-col gap-2">
+                                            {(() => {
+                                                const sourceSongs = renameSourceType === 'group'
+                                                    ? (groupSongs[selectedSourceForRename!] || [])
+                                                    : songsDataSongs;
+
+                                                if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano in questa sorgente</div>;
+
+                                                return sourceSongs.map((song: Song) => (
+                                                    <button
+                                                        key={song.id}
+                                                        onClick={() => {
+                                                            const key = `${renameSourceType}:${selectedSourceForRename}:${song.id}`;
+                                                            const currentName = renamedSongs[key]?.newName || song.name;
+                                                            setSelectedSongForRename(song);
+                                                            setRenamingName(currentName);
+                                                            setRenameStep(3);
+                                                        }}
+                                                        className="w-full p-4 h-20 rounded-xl bg-[#1a1a1c] border border-white/5 border-b-4 border-black/40 hover:bg-[#252528] text-white/40 hover:text-white transition-all flex items-center justify-between active:translate-y-1 active:border-b-0"
+                                                    >
+                                                        <span className="text-xl font-bold">{renamedSongs[`${renameSourceType}:${selectedSourceForRename}:${song.id}`]?.newName || song.name}</span>
+                                                        <ArrowRight className="w-6 h-6 text-amber-500/50" />
+                                                    </button>
+                                                ));
+                                            })()}
+                                        </div>
+                                    )}
+
+                                    {/* STEP 3: RENAME INTERFACE */}
+                                    {renameStep === 3 && (
+                                        <div className="flex flex-col gap-6">
+                                            <div className="relative">
+                                                <div className="absolute -inset-1 bg-amber-500/10 blur rounded-2xl" />
+                                                <input
+                                                    type="text"
+                                                    value={renamingName}
+                                                    readOnly
+                                                    className="relative w-full h-24 bg-black/40 border border-white/10 rounded-[1.5rem] px-10 text-4xl font-black text-white outline-none"
+                                                />
+                                            </div>
+
+                                            {/* Virtual Keyboard */}
+                                            <div className="flex flex-col gap-3">
+                                                {(() => {
+                                                    const rows = [
+                                                        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                                                        ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+                                                        ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+                                                        ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '.', '-', ' '],
+                                                    ];
+                                                    return (
+                                                        <>
+                                                            {rows.map((row, idx) => (
+                                                                <div key={idx} className="flex gap-2 justify-center">
+                                                                    {row.map(k => (
+                                                                        <button
+                                                                            key={k}
+                                                                            onClick={() => setRenamingName(p => p + k)}
+                                                                            className="flex-1 h-14 bg-white/5 hover:bg-white/10 border-white/5 border-b-4 border-black/40 rounded-xl text-xl font-bold flex items-center justify-center transition-all active:translate-y-1 active:border-b-0"
+                                                                        >
+                                                                            {k === ' ' ? '␣' : k}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    );
+                                                })()}
+                                                <div className="flex gap-3 justify-center mt-2">
+                                                    <button
+                                                        onClick={() => setRenamingName(p => p.slice(0, -1))}
+                                                        className="flex-1 h-16 bg-red-900/20 border-red-500/20 border-b-4 border-red-900/60 rounded-xl flex items-center justify-center text-red-500"
+                                                    >
+                                                        <Delete className="w-8 h-8" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setRenameStep(4)}
+                                                        disabled={!renamingName.trim()}
+                                                        className="flex-[2] h-16 bg-amber-600 border-white/10 border-b-4 border-black/50 rounded-xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 disabled:opacity-50"
+                                                    >
+                                                        Prosegui
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* STEP 4: CONFIRMATION */}
+                                    {renameStep === 4 && (
+                                        <div className="flex flex-col items-center justify-center gap-10 py-10">
+                                            <div className="text-center space-y-4">
+                                                <p className="text-xs font-black uppercase tracking-[0.4em] text-white/20">Conferma rinomina</p>
+                                                <div className="flex items-center gap-8">
+                                                    <div className="p-8 bg-white/5 border border-white/10 rounded-3xl">
+                                                        <p className="text-xs text-white/30 font-bold uppercase mb-2">Originale</p>
+                                                        <p className="text-2xl font-black text-white/60 line-through">
+                                                            {selectedSongForRename?.name}
+                                                        </p>
+                                                    </div>
+                                                    <ArrowRight className="w-10 h-10 text-amber-500 animate-pulse" />
+                                                    <div className="p-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.1)]">
+                                                        <p className="text-xs text-amber-500 font-bold uppercase mb-2">Nuovo</p>
+                                                        <p className="text-4xl font-black text-amber-500">
+                                                            {renamingName}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    if (selectedSongForRename) {
+                                                        const key = `${renameSourceType}:${selectedSourceForRename}:${selectedSongForRename.id}`;
+                                                        setRenamedSongs(prev => ({
+                                                            ...prev,
+                                                            [key]: {
+                                                                newName: renamingName,
+                                                                originalName: selectedSongForRename.name
+                                                            }
+                                                        }));
+                                                        queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+                                                        setIsRenameModalOpen(false);
+                                                    }
+                                                }}
+                                                className="h-24 px-20 bg-amber-600 border border-t-white/20 border-b-8 border-black/50 rounded-[2rem] text-3xl font-black text-white uppercase tracking-tighter hover:brightness-110 active:translate-y-2 active:border-b-0 shadow-2xl transition-all"
+                                            >
+                                                CONFERMA E SALVA
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Bottom Controls */}
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        onClick={() => {
+                                            if (renameStep === 1) setIsRenameModalOpen(false);
+                                            else setRenameStep(p => (p - 1) as any);
+                                        }}
+                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 border-b-4 border-black/40 rounded-2xl font-black text-white/40 uppercase tracking-widest hover:text-white"
+                                    >
+                                        Indietro
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1831,8 +2121,8 @@ export const Players: React.FC = () => {
     // ============================================
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
-    const paginatedSongs = songs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-    const totalPages = Math.ceil(songs.length / pageSize);
+    const paginatedSongs = processedSongs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const totalPages = Math.ceil(processedSongs.length / pageSize);
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-8">
@@ -1990,28 +2280,36 @@ export const Players: React.FC = () => {
                     ) : (
                         <div className="grid gap-2">
                             {paginatedSongs.map((song: Song, index) => {
+                                const globalIndex = (currentPage - 1) * pageSize + index;
                                 const isCurrent = playerStatus?.song_title === song.name;
+                                const isSearchResult = searchResults.includes(globalIndex);
+                                const isCurrentSelection = isSearchActive && searchResults[currentSearchIndex] === globalIndex;
+
                                 return (
                                     <button
                                         key={song.id}
                                         onClick={() => selectSongMutation.mutate(song)}
-                                        className={`w-full group px-6 py-5 text-left transition-all flex items-center justify-between rounded-2xl ${isCurrent
-                                            ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20'
-                                            : 'hover:bg-blue-50 dark:hover:bg-blue-900/10 text-gray-700 dark:text-gray-300'
+                                        className={`w-full group px-6 py-5 text-left transition-all flex items-center justify-between rounded-2xl ${isCurrentSelection
+                                            ? 'bg-blue-600/40 border-blue-400 shadow-[inset_0_0_20px_rgba(59,130,246,0.3)]'
+                                            : isSearchResult
+                                                ? 'bg-blue-600/10 border-blue-400/30'
+                                                : isCurrent
+                                                    ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20'
+                                                    : 'hover:bg-blue-50 dark:hover:bg-blue-900/10 text-gray-700 dark:text-gray-300'
                                             }`}
                                     >
                                         <div className="flex items-center space-x-6 flex-1 min-w-0">
-                                            <span className={`font-mono text-sm font-bold w-6 transition-colors ${isCurrent ? 'text-blue-200' : 'text-gray-400'}`}>
-                                                {((currentPage - 1) * pageSize + index + 1).toString().padStart(2, '0')}
+                                            <span className={`font-mono text-sm font-bold w-6 transition-colors ${isCurrent || isCurrentSelection ? 'text-blue-200' : 'text-gray-400'}`}>
+                                                {(globalIndex + 1).toString().padStart(2, '0')}
                                             </span>
                                             <div className="flex-1 min-w-0 pr-8">
                                                 <span className="truncate text-lg font-bold block tracking-tight uppercase">{song.name}</span>
-                                                <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isCurrent ? 'text-blue-100/60' : 'text-gray-400/80 group-hover:text-blue-400'}`}>
+                                                <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isCurrent || isCurrentSelection ? 'text-blue-100/60' : 'text-gray-400/80 group-hover:text-blue-400'}`}>
                                                     Audio Track • PCM 44.1kHz
                                                 </span>
                                             </div>
                                         </div>
-                                        {isCurrent && (
+                                        {(isCurrent || isCurrentSelection) && (
                                             <div className="flex items-center space-x-2 animate-in slide-in-from-right-4 duration-500">
                                                 <div className="flex items-end gap-1 h-4 px-2">
                                                     <div className="w-1 bg-white animate-pulse" style={{ height: '60%' }} />
