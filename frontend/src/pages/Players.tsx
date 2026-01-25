@@ -33,7 +33,8 @@ import {
     Trash2,
     Clock,
     FileEdit,
-    Settings
+    Settings,
+    AlertTriangle
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useIsTablet } from '../hooks/useIsTablet';
@@ -110,6 +111,11 @@ export const Players: React.FC = () => {
     const [selectedSourceForAdd, setSelectedSourceForAdd] = useState<number | null>(null);
     const [selectedSongsForAdd, setSelectedSongsForAdd] = useState<Song[]>([]);
     const [selectedTargetGroupForAdd, setSelectedTargetGroupForAdd] = useState<number | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteStep, setDeleteStep] = useState<1 | 2 | 3>(1);
+    const [deleteSourceType, setDeleteSourceType] = useState<'source' | 'group' | null>(null);
+    const [selectedSourceForDelete, setSelectedSourceForDelete] = useState<number | null>(null);
+    const [selectedSongsForDelete, setSelectedSongsForDelete] = useState<Song[]>([]);
 
     // Global persistence for group songs (mock state for now)
     const [groupSongs, setGroupSongs] = useState<Record<number, Song[]>>({});
@@ -505,10 +511,30 @@ export const Players: React.FC = () => {
             // We'll try invalidating but if it clears it, that confirms backend is empty.
             // For safety to "make it work" visually now:
             // queryClient.invalidateQueries({ queryKey: ['player', 'groups'] });
-            setIsNewGroupModalOpen(false);
-            setIsManagementModalOpen(false);
             setNewGroupName('');
         }
+    });
+
+    const deleteSongsMutation = useMutation({
+        mutationFn: async ({ sourceType, sourceId, songs }: { sourceType: 'source' | 'group', sourceId: number, songs: Song[] }) => {
+            if (sourceType === 'source') {
+                return api.delete('/device/player/songs', { data: { ids: songs.map(s => s.id) } });
+            } else {
+                setGroupSongs(prev => {
+                    const existing = prev[sourceId] || [];
+                    const updated = existing.filter(s => !songs.some(ds => ds.id === s.id));
+                    return { ...prev, [sourceId]: updated };
+                });
+                return { data: { success: true } };
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['player', 'songs'] });
+            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+            setIsDeleteModalOpen(false);
+            setDeleteStep(1);
+            setSelectedSongsForDelete([]);
+        },
     });
 
     // Mock Player Timer Logic
@@ -1387,7 +1413,21 @@ export const Players: React.FC = () => {
                                                 setIsManagementModalOpen(false);
                                             }
                                         },
-                                        { label: 'Elimina Brano/i', icon: Trash2, color: 'text-red-400', bg: 'bg-red-600/10', border: 'border-red-500/20' },
+                                        {
+                                            label: 'Elimina Brano/i',
+                                            icon: Trash2,
+                                            color: 'text-red-400',
+                                            bg: 'bg-red-600/10',
+                                            border: 'border-red-500/20',
+                                            action: () => {
+                                                setDeleteStep(1);
+                                                setDeleteSourceType(null);
+                                                setSelectedSourceForDelete(null);
+                                                setSelectedSongsForDelete([]);
+                                                setIsDeleteModalOpen(true);
+                                                setIsManagementModalOpen(false);
+                                            }
+                                        },
                                         { label: 'Cambia Tempo', icon: Clock, color: 'text-purple-400', bg: 'bg-purple-600/10', border: 'border-purple-500/20' },
                                         { label: 'Cambia dati brano', icon: FileEdit, color: 'text-cyan-400', bg: 'bg-cyan-600/10', border: 'border-cyan-500/20' },
                                     ].map((action, idx) => (
@@ -1943,6 +1983,180 @@ export const Players: React.FC = () => {
                                     >
                                         Indietro
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Delete Songs Modal - MULTI STEP */}
+                <AnimatePresence>
+                    {isDeleteModalOpen && (
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
+                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                {/* Header */}
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                            <Trash2 className="w-10 h-10 text-red-500" />
+                                            Elimina Brano/i
+                                        </h2>
+                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
+                                            {deleteStep === 1 ? 'Step 1: Sorgente / Gruppo' :
+                                                deleteStep === 2 ? `Step 2: Seleziona Brani (${selectedSongsForDelete.length})` :
+                                                    'Step 3: Conferma Eliminazione Definitiva'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsDeleteModalOpen(false)}
+                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
+                                    >
+                                        <X className="w-7 h-7 text-white/40" />
+                                    </button>
+                                </div>
+
+                                {/* Content Area */}
+                                <div className="flex-1 min-h-[400px] overflow-y-auto custom-scrollbar-hidden bg-white/5 border border-white/10 rounded-[2rem] p-6">
+                                    {/* STEP 1: SOURCE SELECTION */}
+                                    {deleteStep === 1 && (
+                                        <div className="space-y-8">
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Sorgenti Fisiche</h3>
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    {sources.map(s => (
+                                                        <button
+                                                            key={s.id}
+                                                            onClick={() => {
+                                                                setDeleteSourceType('source');
+                                                                setSelectedSourceForDelete(s.id);
+                                                                setDeleteStep(2);
+                                                            }}
+                                                            className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
+                                                        >
+                                                            <Music className="w-6 h-6 text-blue-400/60" />
+                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Gruppi Personalizzati</h3>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {groups.length === 0 ? (
+                                                        <p className="col-span-2 text-center text-white/10 italic py-8">Nessun gruppo disponibile</p>
+                                                    ) : (
+                                                        groups.map(g => (
+                                                            <button
+                                                                key={g.id}
+                                                                onClick={() => {
+                                                                    setDeleteSourceType('group');
+                                                                    setSelectedSourceForDelete(g.id);
+                                                                    setDeleteStep(2);
+                                                                }}
+                                                                className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
+                                                            >
+                                                                <Folder className="w-6 h-6 text-green-400/60" />
+                                                                <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{g.name}</span>
+                                                            </button>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* STEP 2: SONG SELECTION */}
+                                    {deleteStep === 2 && (
+                                        <div className="flex flex-col gap-2">
+                                            {(() => {
+                                                const sourceSongs = deleteSourceType === 'group'
+                                                    ? (groupSongs[selectedSourceForDelete!] || [])
+                                                    : (selectedSourceForDelete === selectedSource ? processedSongs : songsDataSongs);
+
+                                                if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano in questa sorgente</div>;
+
+                                                return sourceSongs.map((song: Song) => {
+                                                    const isSelected = selectedSongsForDelete.some(s => s.id === song.id);
+                                                    return (
+                                                        <button
+                                                            key={song.id}
+                                                            onClick={() => {
+                                                                if (isSelected) {
+                                                                    setSelectedSongsForDelete(prev => prev.filter(s => s.id !== song.id));
+                                                                } else {
+                                                                    setSelectedSongsForDelete(prev => [...prev, song]);
+                                                                }
+                                                            }}
+                                                            className={`w-full p-4 h-20 rounded-xl border border-b-4 transition-all flex items-center justify-between ${isSelected
+                                                                ? 'bg-red-600 border-white/10 border-b-black/50 text-white'
+                                                                : 'bg-[#1a1a1c] border-white/5 border-b-black/40 text-white/40 hover:text-white'
+                                                                }`}
+                                                        >
+                                                            <span className="text-xl font-bold">{song.name}</span>
+                                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'border-white/10'
+                                                                }`}>
+                                                                {isSelected && <Check className="w-4 h-4 text-red-600" />}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                });
+                                            })()}
+                                        </div>
+                                    )}
+
+                                    {/* STEP 3: CONFIRMATION */}
+                                    {deleteStep === 3 && (
+                                        <div className="flex flex-col items-center justify-center gap-10 py-10">
+                                            <div className="text-center space-y-4">
+                                                <div className="w-24 h-24 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                                    <AlertTriangle className="w-12 h-12 text-red-500 animate-pulse" />
+                                                </div>
+                                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Sei assolutamente sicuro?</h3>
+                                                <p className="text-white/40 max-w-md mx-auto">
+                                                    Stai per eliminare definitivamente <span className="text-white font-bold">{selectedSongsForDelete.length}</span> brani.
+                                                    Questa azione non può essere annullata.
+                                                </p>
+                                                <div className="max-h-48 overflow-y-auto bg-black/40 rounded-2xl p-4 border border-white/5 mt-6">
+                                                    {selectedSongsForDelete.map(s => (
+                                                        <div key={s.id} className="text-sm text-white/60 py-1 border-b border-white/5 last:border-0">{s.name}</div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => deleteSongsMutation.mutate({
+                                                    sourceType: deleteSourceType!,
+                                                    sourceId: selectedSourceForDelete!,
+                                                    songs: selectedSongsForDelete
+                                                })}
+                                                disabled={deleteSongsMutation.isPending}
+                                                className="h-24 px-20 bg-red-600 border border-t-white/20 border-b-8 border-black/50 rounded-[2rem] text-3xl font-black text-white uppercase tracking-tighter hover:brightness-110 active:translate-y-2 active:border-b-0 shadow-2xl transition-all disabled:opacity-50"
+                                            >
+                                                {deleteSongsMutation.isPending ? 'ELIMINAZIONE...' : 'ELIMINA DEFINITIVAMENTE'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Modal Footer */}
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        onClick={() => {
+                                            if (deleteStep === 1) setIsDeleteModalOpen(false);
+                                            else setDeleteStep(p => (p - 1) as any);
+                                        }}
+                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 border-b-4 border-black/40 rounded-2xl font-black text-white/40 uppercase tracking-widest hover:text-white"
+                                    >
+                                        Indietro
+                                    </button>
+                                    {deleteStep === 2 && (
+                                        <button
+                                            disabled={selectedSongsForDelete.length === 0}
+                                            onClick={() => setDeleteStep(3)}
+                                            className="h-16 px-10 bg-red-600 border border-t-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 disabled:opacity-50"
+                                        >
+                                            Procedi ({selectedSongsForDelete.length})
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
