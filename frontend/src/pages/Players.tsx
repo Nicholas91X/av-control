@@ -91,6 +91,7 @@ export const Players: React.FC = () => {
     const [currentSearchIndex, setCurrentSearchIndex] = useState(-1);
     const [isSearchActive, setIsSearchActive] = useState(false);
     const [keyboardLayout, setKeyboardLayout] = useState<'alpha' | 'symbols'>('alpha');
+    const [isUppercase, setIsUppercase] = useState(false);
 
     // Fade State
     const [fadeValue, setFadeValue] = useState(4);
@@ -1246,9 +1247,9 @@ export const Players: React.FC = () => {
                                         const rows = keyboardLayout === 'alpha'
                                             ? [
                                                 ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-                                                ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-                                                ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-                                                ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '.', ',', '-']
+                                                ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                ['z', 'x', 'c', 'v', 'b', 'n', 'm', '.', ',', '-'].map(k => isUppercase ? k.toUpperCase() : k)
                                             ]
                                             : [
                                                 ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
@@ -1278,6 +1279,14 @@ export const Players: React.FC = () => {
                                                         className="w-28 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
                                                     >
                                                         {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setIsUppercase(!isUppercase)}
+                                                        className={`w-28 h-20 border-t border-b-4 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl ${isUppercase
+                                                            ? 'bg-blue-600 text-white border-white/20 border-b-black/50'
+                                                            : 'bg-white/5 text-white/40 border-white/10 border-b-black/40 hover:text-white'}`}
+                                                    >
+                                                        {isUppercase ? 'SHIFT' : 'shift'}
                                                     </button>
                                                     <button
                                                         onClick={() => setSearchQuery(prev => prev + ' ')}
@@ -1440,9 +1449,9 @@ export const Players: React.FC = () => {
                                         const rows = keyboardLayout === 'alpha'
                                             ? [
                                                 ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-                                                ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-                                                ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-                                                ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '.', '-', '_'],
+                                                ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                ['z', 'x', 'c', 'v', 'b', 'n', 'm', '.', '-', '_'].map(k => isUppercase ? k.toUpperCase() : k),
                                             ]
                                             : [
                                                 ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
@@ -1474,6 +1483,14 @@ export const Players: React.FC = () => {
                                                         className="w-24 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
                                                     >
                                                         {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setIsUppercase(!isUppercase)}
+                                                        className={`w-24 h-20 border-t border-b-4 rounded-2xl text-[10px] font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl ${isUppercase
+                                                            ? 'bg-blue-600 text-white border-white/20 border-b-black/50'
+                                                            : 'bg-white/5 text-white/40 border-white/10 border-b-black/40 hover:text-white'}`}
+                                                    >
+                                                        {isUppercase ? 'SHIFT' : 'shift'}
                                                     </button>
                                                     <button
                                                         onClick={() => setNewGroupName(prev => prev + ' ')}
@@ -1785,25 +1802,41 @@ export const Players: React.FC = () => {
                                     {/* STEP 3: RENAME INTERFACE */}
                                     {renameStep === 3 && (
                                         <div className="flex flex-col gap-6">
-                                            <div className="relative">
-                                                <div className="absolute -inset-1 bg-amber-500/10 blur rounded-2xl" />
-                                                <input
-                                                    type="text"
-                                                    value={renamingName}
-                                                    readOnly
-                                                    className="relative w-full h-24 bg-black/40 border border-white/10 rounded-[1.5rem] px-10 text-4xl font-black text-white outline-none"
-                                                />
+                                            {/* Top Control Bar for Rename Keyboard */}
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-1 relative">
+                                                    <div className="absolute -inset-1 bg-amber-500/10 blur rounded-2xl" />
+                                                    <input
+                                                        type="text"
+                                                        value={renamingName}
+                                                        readOnly
+                                                        className="relative w-full h-24 bg-black/40 border border-white/10 rounded-[1.5rem] px-10 text-4xl font-black text-white outline-none"
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={() => setRenamingName(p => p.slice(0, -1))}
+                                                    className="w-24 h-24 bg-red-900/10 hover:bg-red-900/20 border-t border-red-500/10 border-b-4 border-red-900/60 rounded-[1.5rem] flex items-center justify-center transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-red-500/60"
+                                                >
+                                                    <Delete className="w-8 h-8" />
+                                                </button>
                                             </div>
 
                                             {/* Virtual Keyboard */}
                                             <div className="flex flex-col gap-3">
                                                 {(() => {
-                                                    const rows = [
-                                                        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-                                                        ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-                                                        ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-                                                        ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '.', '-', ' '],
-                                                    ];
+                                                    const rows = keyboardLayout === 'alpha'
+                                                        ? [
+                                                            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                                                            ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                            ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                            ['z', 'x', 'c', 'v', 'b', 'n', 'm', '.', ',', '-'].map(k => isUppercase ? k.toUpperCase() : k)
+                                                        ]
+                                                        : [
+                                                            ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
+                                                            ['_', '+', '=', '{', '}', '[', ']', ':', ';', '|'],
+                                                            ['<', '>', '?', '/', '\\', '`', '~', '\'', '"', '°'],
+                                                            ['¿', '¡', '«', '»', '—', '·', '…', '§', '¶', '©']
+                                                        ];
                                                     return (
                                                         <>
                                                             {rows.map((row, idx) => (
@@ -1824,17 +1857,31 @@ export const Players: React.FC = () => {
                                                 })()}
                                                 <div className="flex gap-3 justify-center mt-2">
                                                     <button
-                                                        onClick={() => setRenamingName(p => p.slice(0, -1))}
-                                                        className="flex-1 h-16 bg-red-900/20 border-red-500/20 border-b-4 border-red-900/60 rounded-xl flex items-center justify-center text-red-500"
+                                                        onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')}
+                                                        className="w-28 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
                                                     >
-                                                        <Delete className="w-8 h-8" />
+                                                        {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setIsUppercase(!isUppercase)}
+                                                        className={`w-28 h-20 border-t border-b-4 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl ${isUppercase
+                                                            ? 'bg-amber-600 text-white border-white/20 border-b-black/50'
+                                                            : 'bg-white/5 text-white/40 border-white/10 border-b-black/40 hover:text-white'}`}
+                                                    >
+                                                        {isUppercase ? 'SHIFT' : 'shift'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setRenamingName(p => p + ' ')}
+                                                        className="flex-[3] h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-sm font-black tracking-[0.5em] transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-white/30 uppercase"
+                                                    >
+                                                        SPAZIO
                                                     </button>
                                                     <button
                                                         onClick={() => setRenameStep(4)}
                                                         disabled={!renamingName.trim()}
-                                                        className="flex-[2] h-16 bg-amber-600 border-white/10 border-b-4 border-black/50 rounded-xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 disabled:opacity-50"
+                                                        className="flex-[1.5] h-20 bg-amber-600 border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 disabled:opacity-50"
                                                     >
-                                                        Prosegui
+                                                        VAI
                                                     </button>
                                                 </div>
                                             </div>
