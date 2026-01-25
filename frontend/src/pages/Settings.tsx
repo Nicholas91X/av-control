@@ -8,10 +8,6 @@ const BG_PRESETS = [
     { label: 'Deep Charcoal', value: '#0a0a0c' },
     { label: 'Dark Navy', value: '#0a0c14' },
     { label: 'Studio Grey', value: '#121214' },
-    { label: 'Desert Sand', value: '#f5f5f4' },
-    { label: 'Sky Grey', value: '#e2e8f0' },
-    { label: 'Paper White', value: '#f3f4f6' },
-    { label: 'Soft White', value: '#f8fafc' },
 ];
 
 const HIGHLIGHT_PRESETS = [

@@ -1027,8 +1027,12 @@ export const Players: React.FC = () => {
 
                                             {/* Active Progress Track */}
                                             <div
-                                                className={`absolute left-0 h-1.5 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.6)] ${!isSeeking ? 'transition-all duration-500' : ''}`}
-                                                style={{ width: `${progressPercent}%` }}
+                                                className={`absolute left-0 h-1.5 rounded-full ${!isSeeking ? 'transition-all duration-500' : ''}`}
+                                                style={{
+                                                    width: `${progressPercent}%`,
+                                                    backgroundColor: highlightColor,
+                                                    boxShadow: `0 0 15px ${highlightColor}99`
+                                                }}
                                             />
 
                                             {/* Interactive Slider - LARGE TOUCH AREA */}
@@ -1071,10 +1075,12 @@ export const Players: React.FC = () => {
 
                                             {/* Elegant Handle */}
                                             <div
-                                                className={`absolute w-6 h-6 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.6)] pointer-events-none z-10 border-2 border-blue-500 ${!isSeeking ? 'transition-all duration-500' : 'transition-transform'}`}
+                                                className={`absolute w-6 h-6 bg-white rounded-full pointer-events-none z-10 border-2 ${!isSeeking ? 'transition-all duration-500' : 'transition-transform'}`}
                                                 style={{
                                                     left: `calc(${progressPercent}% - 12px)`,
-                                                    transform: isSeeking ? 'scale(1.2)' : 'scale(1)'
+                                                    transform: isSeeking ? 'scale(1.2)' : 'scale(1)',
+                                                    borderColor: highlightColor,
+                                                    boxShadow: `0 0 20px ${highlightColor}99`
                                                 }}
                                             />
                                         </div>
@@ -1739,15 +1745,17 @@ export const Players: React.FC = () => {
                                                     <div className="flex justify-center gap-3 mt-2">
                                                         <button
                                                             onClick={() => setKeyboardLayout(keyboardLayout === 'alpha' ? 'symbols' : 'alpha')}
-                                                            className="w-24 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
+                                                            className="w-24 h-20 border-t border-b-4 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl"
+                                                            style={{ backgroundColor: `${highlightColor}1a`, borderColor: `${highlightColor}33`, color: highlightColor, borderBottomColor: `${highlightColor}66` }}
                                                         >
                                                             {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
                                                         </button>
                                                         <button
                                                             onClick={() => setIsUppercase(!isUppercase)}
                                                             className={`w-24 h-20 border-t border-b-4 rounded-2xl text-[10px] font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl ${isUppercase
-                                                                ? 'bg-blue-600 text-white border-white/20 border-b-black/50'
+                                                                ? 'text-white border-white/20 border-b-black/50'
                                                                 : 'bg-white/5 text-white/40 border-white/10 border-b-black/40 hover:text-white'}`}
+                                                            style={isUppercase ? { backgroundColor: highlightColor } : {}}
                                                         >
                                                             {isUppercase ? 'SHIFT' : 'shift'}
                                                         </button>
@@ -1856,14 +1864,15 @@ export const Players: React.FC = () => {
                                                                 }
                                                             }}
                                                             className={`w-full p-4 rounded-xl text-left border border-b-4 transition-all flex items-center justify-between ${isSelected
-                                                                ? 'bg-blue-600 border-white/10 border-b-black/50 text-white'
+                                                                ? 'border-white/10 border-b-black/50 text-white'
                                                                 : 'bg-[#1a1a1c] border-white/5 border-b-black/40 text-white/40 hover:text-white'
                                                                 }`}
+                                                            style={isSelected ? { backgroundColor: highlightColor } : {}}
                                                         >
                                                             <span className="font-bold text-lg">{song.name}</span>
                                                             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'border-white/10'
                                                                 }`}>
-                                                                {isSelected && <Check className="w-4 h-4 text-blue-600" />}
+                                                                {isSelected && <Check className="w-4 h-4" style={{ color: highlightColor }} />}
                                                             </div>
                                                         </button>
                                                     );
@@ -1912,7 +1921,8 @@ export const Players: React.FC = () => {
                                             <button
                                                 disabled={selectedSongsForAdd.length === 0}
                                                 onClick={() => setAddToGroupStep(3)}
-                                                className="h-16 px-10 bg-blue-600 border border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 transition-all disabled:opacity-50 disabled:grayscale"
+                                                className="h-16 px-10 border border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 transition-all disabled:opacity-50 disabled:grayscale"
+                                                style={{ backgroundColor: highlightColor }}
                                             >
                                                 Procedi ({selectedSongsForAdd.length})
                                             </button>
@@ -1939,7 +1949,8 @@ export const Players: React.FC = () => {
                                                     setIsAddToGroupModalOpen(false);
                                                     // Feedback visivo (opzionale: toast o alert)
                                                 }}
-                                                className="h-16 px-10 bg-green-600 border border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 transition-all disabled:opacity-50"
+                                                className="h-16 px-10 border border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 transition-all disabled:opacity-50"
+                                                style={{ backgroundColor: highlightColor }}
                                             >
                                                 Conferma e Aggiungi
                                             </button>
@@ -2122,15 +2133,17 @@ export const Players: React.FC = () => {
                                                     <div className="flex gap-3 justify-center mt-2">
                                                         <button
                                                             onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')}
-                                                            className="w-28 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
+                                                            className="w-28 h-20 border-t border-b-4  rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl"
+                                                            style={{ backgroundColor: `${highlightColor}1a`, borderColor: `${highlightColor}33`, color: highlightColor, borderBottomColor: `${highlightColor}66` }}
                                                         >
                                                             {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
                                                         </button>
                                                         <button
                                                             onClick={() => setIsUppercase(!isUppercase)}
                                                             className={`w-28 h-20 border-t border-b-4 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl ${isUppercase
-                                                                ? 'bg-amber-600 text-white border-white/20 border-b-black/50'
+                                                                ? 'text-white border-white/20 border-b-black/50'
                                                                 : 'bg-white/5 text-white/40 border-white/10 border-b-black/40 hover:text-white'}`}
+                                                            style={isUppercase ? { backgroundColor: highlightColor } : {}}
                                                         >
                                                             {isUppercase ? 'SHIFT' : 'shift'}
                                                         </button>
@@ -2143,7 +2156,8 @@ export const Players: React.FC = () => {
                                                         <button
                                                             onClick={() => setRenameStep(4)}
                                                             disabled={!renamingName.trim()}
-                                                            className="flex-[1.5] h-20 bg-amber-600 border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 disabled:opacity-50"
+                                                            className="flex-[1.5] h-20 border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 disabled:opacity-50"
+                                                            style={{ backgroundColor: highlightColor }}
                                                         >
                                                             VAI
                                                         </button>
@@ -2164,10 +2178,10 @@ export const Players: React.FC = () => {
                                                                 {selectedSongForRename?.name}
                                                             </p>
                                                         </div>
-                                                        <ArrowRight className="w-10 h-10 text-amber-500 animate-pulse" />
-                                                        <div className="p-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.1)]">
-                                                            <p className="text-xs text-amber-500 font-bold uppercase mb-2">Nuovo</p>
-                                                            <p className="text-4xl font-black text-amber-500">
+                                                        <ArrowRight className="w-10 h-10 animate-pulse" style={{ color: highlightColor }} />
+                                                        <div className="p-8 border rounded-3xl" style={{ backgroundColor: `${highlightColor}1a`, borderColor: `${highlightColor}33`, boxShadow: `0 0 50px ${highlightColor}1a` }}>
+                                                            <p className="text-xs font-bold uppercase mb-2" style={{ color: highlightColor }}>Nuovo</p>
+                                                            <p className="text-4xl font-black" style={{ color: highlightColor }}>
                                                                 {renamingName}
                                                             </p>
                                                         </div>
@@ -2188,7 +2202,8 @@ export const Players: React.FC = () => {
                                                             setIsRenameModalOpen(false);
                                                         }
                                                     }}
-                                                    className="h-24 px-20 bg-amber-600 border border-t-white/20 border-b-8 border-black/50 rounded-[2rem] text-3xl font-black text-white uppercase tracking-tighter hover:brightness-110 active:translate-y-2 active:border-b-0 shadow-2xl transition-all"
+                                                    className="h-24 px-20 border border-t-white/20 border-b-8 border-black/50 rounded-[2rem] text-3xl font-black text-white uppercase tracking-tighter hover:brightness-110 active:translate-y-2 active:border-b-0 shadow-2xl transition-all"
+                                                    style={{ backgroundColor: highlightColor }}
                                                 >
                                                     CONFERMA E SALVA
                                                 </button>
@@ -2947,10 +2962,11 @@ export const Players: React.FC = () => {
                                                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 ml-6">{field.label}</p>
                                                             <button
                                                                 onClick={() => setActiveMetadataField(field.id as any)}
-                                                                className={`w-full bg-white/5 border rounded-3xl px-8 h-16 text-xl font-black text-left flex items-center justify-between transition-all ${activeMetadataField === field.id ? 'border-cyan-500 bg-cyan-500/10 text-white' : 'border-white/10 text-white/40'}`}
+                                                                className={`w-full bg-white/5 border rounded-3xl px-8 h-16 text-xl font-black text-left flex items-center justify-between transition-all ${activeMetadataField === field.id ? 'text-white' : 'border-white/10 text-white/40'}`}
+                                                                style={activeMetadataField === field.id ? { borderColor: highlightColor, backgroundColor: `${highlightColor}1a` } : {}}
                                                             >
                                                                 <span className="truncate">{field.value || `Inserisci ${field.label.toLowerCase()}...`}</span>
-                                                                {activeMetadataField === field.id && <div className="w-2 h-8 bg-cyan-500 animate-pulse rounded-full" />}
+                                                                {activeMetadataField === field.id && <div className="w-2 h-8 animate-pulse rounded-full" style={{ backgroundColor: highlightColor }} />}
                                                             </button>
                                                         </div>
                                                     ))}
@@ -2978,11 +2994,11 @@ export const Players: React.FC = () => {
                                                             ));
                                                         })()}
                                                         <div className="flex gap-2 justify-center mt-2">
-                                                            <button onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')} className="w-20 h-14 bg-blue-600/10 border border-blue-500/20 rounded-xl text-xs font-black text-blue-400">?123</button>
-                                                            <button onClick={() => setIsUppercase(!isUppercase)} className={`w-20 h-14 border rounded-xl text-xs font-black ${isUppercase ? 'bg-amber-600 text-white' : 'bg-white/5 text-white/40'}`}>{isUppercase ? 'SHIFT' : 'shift'}</button>
+                                                            <button onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')} className="w-20 h-14 border rounded-xl text-xs font-black" style={{ backgroundColor: `${highlightColor}1a`, borderColor: `${highlightColor}33`, color: highlightColor }}>?123</button>
+                                                            <button onClick={() => setIsUppercase(!isUppercase)} className={`w-20 h-14 border rounded-xl text-xs font-black ${isUppercase ? 'text-white' : 'bg-white/5 text-white/40'}`} style={isUppercase ? { backgroundColor: highlightColor } : {}}>{isUppercase ? 'SHIFT' : 'shift'}</button>
                                                             <button onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p].slice(0, -1) }))} className="w-20 h-14 bg-red-600/10 border border-red-500/20 rounded-xl flex items-center justify-center"><Delete className="w-6 h-6 text-red-500" /></button>
                                                             <button onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p] + ' ' }))} className="flex-1 h-14 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-white/30">SPAZIO</button>
-                                                            <button onClick={() => setChangeMetadataStep(4)} className="w-24 h-14 bg-cyan-600 rounded-xl font-black text-white text-xs uppercase">FINE</button>
+                                                            <button onClick={() => setChangeMetadataStep(4)} className="w-24 h-14 rounded-xl font-black text-white text-xs uppercase" style={{ backgroundColor: highlightColor }}>FINE</button>
                                                         </div>
                                                     </div>
                                                 )}
@@ -3015,7 +3031,8 @@ export const Players: React.FC = () => {
                                                 <button
                                                     onClick={() => changeMetadataMutation.mutate({ id: selectedSongForRename!.id, metadata: metadataForm })}
                                                     disabled={changeMetadataMutation.isPending}
-                                                    className="h-24 px-20 bg-cyan-600 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                                    className="h-24 px-20 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                                    style={{ backgroundColor: highlightColor }}
                                                 >
                                                     {changeMetadataMutation.isPending ? 'SALVATAGGIO...' : 'CONFERMA E SALVA'}
                                                 </button>
@@ -3338,8 +3355,12 @@ export const Players: React.FC = () => {
                             <div className="space-y-3">
                                 <div className="h-2 bg-gray-100 dark:bg-gray-800/50 rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-blue-600 transition-all duration-700 ease-out shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-                                        style={{ width: `${((playerStatus?.current_time || 0) / (playerStatus?.total_time || 1)) * 100}%` }}
+                                        className="h-full transition-all duration-700 ease-out"
+                                        style={{
+                                            width: `${((playerStatus?.current_time || 0) / (playerStatus?.total_time || 1)) * 100}%`,
+                                            backgroundColor: highlightColor,
+                                            boxShadow: `0 0 15px ${highlightColor}66`
+                                        }}
                                     />
                                 </div>
                                 <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">

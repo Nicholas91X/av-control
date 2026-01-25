@@ -111,7 +111,7 @@ export const TabletDashboard: React.FC = () => {
                         {user?.role === 'admin' && (
                             <button
                                 onClick={() => navigate('/users')}
-                                className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-black hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
+                                className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-white/10 hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
                                 title="Gestione Utenti"
                             >
                                 <Users size={24} />
@@ -140,7 +140,7 @@ export const TabletDashboard: React.FC = () => {
                         {/* Info Button */}
                         <button
                             onClick={infoModal.open}
-                            className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-black hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
+                            className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-white/10 hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
                             title="Informazioni"
                         >
                             <Info size={24} />
