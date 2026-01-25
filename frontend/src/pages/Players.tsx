@@ -1327,7 +1327,7 @@ export const Players: React.FC = () => {
                 {
                     isSearchModalOpen && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-10 backdrop-blur-xl animate-in zoom-in duration-500">
+                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-10 backdrop-blur-xl animate-in zoom-in duration-500">
 
                                 {/* Modal Header */}
                                 <div className="flex items-center justify-between px-2">
@@ -1449,7 +1449,7 @@ export const Players: React.FC = () => {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="w-full max-w-5xl bg-[#0a0a0c] border border-white/10 rounded-[3rem] p-12 shadow-2xl flex flex-col gap-10 overflow-hidden relative"
+                                className="w-full max-w-5xl max-h-[90vh] bg-[#0a0a0c] border border-white/10 rounded-[3rem] p-12 shadow-2xl flex flex-col gap-10 overflow-hidden relative"
                             >
                                 {/* Decorative Background */}
                                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
@@ -1649,7 +1649,7 @@ export const Players: React.FC = () => {
                 <AnimatePresence>
                     {isNewGroupModalOpen && (
                         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8">
+                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
                                 {/* Header */}
                                 <div className="flex items-center justify-between">
                                     <div className="space-y-1">
@@ -2362,7 +2362,7 @@ export const Players: React.FC = () => {
                 <AnimatePresence>
                     {isDeleteGroupModalOpen && (
                         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-2xl bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                            <div className="w-full max-w-2xl max-h-[90vh] bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
                                         <Trash2 className="w-10 h-10 text-red-500" />
@@ -2431,7 +2431,7 @@ export const Players: React.FC = () => {
                 <AnimatePresence>
                     {isRenameGroupModalOpen && (
                         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
                                         <Pencil className="w-10 h-10 text-amber-500" />
@@ -2485,7 +2485,7 @@ export const Players: React.FC = () => {
                                                         type="text"
                                                         value={renamingGroupName}
                                                         readOnly
-                                                        className="w-full bg-white/5 border border-white/10 rounded-3xl px-10 h-24 text-4xl font-black text-white uppercase tracking-tighter placeholder:text-white/10 focus:outline-none focus:bg-white/10 transition-all border-b-8 border-b-black/40"
+                                                        className="w-full bg-white/5 border border-white/10 rounded-3xl px-10 h-24 text-4xl font-black text-white tracking-tighter placeholder:text-white/10 focus:outline-none focus:bg-white/10 transition-all border-b-8 border-b-black/40"
                                                         placeholder="NOME GRUPPO..."
                                                     />
                                                     <button
@@ -2573,7 +2573,7 @@ export const Players: React.FC = () => {
                                                     <ArrowRight className="w-8 h-8 text-amber-500" />
                                                     <div className="space-y-1">
                                                         <p className="text-[10px] text-amber-500 font-bold uppercase">Nuovo</p>
-                                                        <p className="text-4xl font-black text-amber-500 uppercase">{renamingGroupName}</p>
+                                                        <p className="text-4xl font-black text-amber-500">{renamingGroupName}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2608,7 +2608,7 @@ export const Players: React.FC = () => {
                 <AnimatePresence>
                     {isChangeTempoModalOpen && (
                         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
                                 <div className="flex items-center justify-between">
                                     <div className="space-y-1">
                                         <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
@@ -2793,7 +2793,7 @@ export const Players: React.FC = () => {
                 <AnimatePresence>
                     {isChangeMetadataModalOpen && (
                         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
                                 <div className="flex items-center justify-between">
                                     <div className="space-y-1">
                                         <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
@@ -2967,7 +2967,7 @@ export const Players: React.FC = () => {
                                                             </div>
                                                             <div>
                                                                 <p className="text-[10px] font-bold text-white/20 uppercase">{item.label}</p>
-                                                                <p className="text-xl font-black text-white uppercase truncate">{item.value || '---'}</p>
+                                                                <p className="text-xl font-black text-white truncate">{item.value || '---'}</p>
                                                             </div>
                                                         </div>
                                                     ))}
