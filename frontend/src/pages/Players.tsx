@@ -25,6 +25,7 @@ import {
     Delete,
     CornerDownLeft,
     Undo2,
+    Folder,
     X,
     FolderPlus,
     FolderInput,
@@ -101,6 +102,16 @@ export const Players: React.FC = () => {
     // Group Management State
     const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
     const [newGroupName, setNewGroupName] = useState('');
+
+    // Add To Group Flow State
+    const [isAddToGroupModalOpen, setIsAddToGroupModalOpen] = useState(false);
+    const [addToGroupStep, setAddToGroupStep] = useState<1 | 2 | 3>(1);
+    const [selectedSourceForAdd, setSelectedSourceForAdd] = useState<number | null>(null);
+    const [selectedSongsForAdd, setSelectedSongsForAdd] = useState<Song[]>([]);
+    const [selectedTargetGroupForAdd, setSelectedTargetGroupForAdd] = useState<number | null>(null);
+
+    // Global persistence for group songs (mock state for now)
+    const [groupSongs, setGroupSongs] = useState<Record<number, Song[]>>({});
 
     const [mockPlayerStatus, setMockPlayerStatus] = useState<PlayerStatus | null>(null);
 
@@ -220,7 +231,10 @@ export const Players: React.FC = () => {
         enabled: selectedSource !== null,
         staleTime: 0,
     });
-    const songs = songsData?.songs || [];
+    const songsDataSongs = songsData?.songs || [];
+    const songs = (selectedSourceType === 'group' && selectedSource)
+        ? (groupSongs[selectedSource] || [])
+        : songsDataSongs;
 
     // Fetch player status (Polling)
     const { data: playerStatus } = useQuery<PlayerStatus>({
@@ -1297,7 +1311,21 @@ export const Players: React.FC = () => {
                                             border: 'border-blue-500/20',
                                             action: () => setIsNewGroupModalOpen(true)
                                         },
-                                        { label: 'Aggiungi a un Gruppo', icon: FolderInput, color: 'text-green-400', bg: 'bg-green-600/10', border: 'border-green-500/20' },
+                                        {
+                                            label: 'Aggiungi a un Gruppo',
+                                            icon: FolderInput,
+                                            color: 'text-green-400',
+                                            bg: 'bg-green-600/10',
+                                            border: 'border-green-500/20',
+                                            action: () => {
+                                                setAddToGroupStep(1);
+                                                setSelectedSourceForAdd(null);
+                                                setSelectedSongsForAdd([]);
+                                                setSelectedTargetGroupForAdd(null);
+                                                setIsAddToGroupModalOpen(true);
+                                                setIsManagementModalOpen(false);
+                                            }
+                                        },
                                         { label: 'Rinomina Brano', icon: Pencil, color: 'text-amber-400', bg: 'bg-amber-600/10', border: 'border-amber-500/20' },
                                         { label: 'Elimina Brano/i', icon: Trash2, color: 'text-red-400', bg: 'bg-red-600/10', border: 'border-red-500/20' },
                                         { label: 'Cambia Tempo', icon: Clock, color: 'text-purple-400', bg: 'bg-purple-600/10', border: 'border-purple-500/20' },
@@ -1419,6 +1447,165 @@ export const Players: React.FC = () => {
                                             </>
                                         );
                                     })()}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Add To Group Modal - MULTI STEP */}
+                <AnimatePresence>
+                    {isAddToGroupModalOpen && (
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                {/* Header */}
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                            <FolderInput className="w-10 h-10 text-green-500" />
+                                            Aggiungi a Gruppo
+                                        </h2>
+                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
+                                            {addToGroupStep === 1 ? 'Step 1: Seleziona Sorgente' :
+                                                addToGroupStep === 2 ? `Step 2: Seleziona Brani (${selectedSongsForAdd.length})` :
+                                                    'Step 3: Seleziona Gruppo di Destinazione'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsAddToGroupModalOpen(false)}
+                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
+                                    >
+                                        <X className="w-7 h-7 text-white/40" />
+                                    </button>
+                                </div>
+
+                                {/* Content Area */}
+                                <div className="flex-1 min-h-[400px] overflow-y-auto custom-scrollbar-hidden bg-white/5 border border-white/10 rounded-[2rem] p-4">
+                                    {addToGroupStep === 1 && (
+                                        <div className="grid grid-cols-3 gap-6">
+                                            {sources.map(source => (
+                                                <button
+                                                    key={source.id}
+                                                    onClick={() => {
+                                                        setSelectedSourceForAdd(source.id);
+                                                        setAddToGroupStep(2);
+                                                    }}
+                                                    className="h-48 bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-8 border-black/40 rounded-[2rem] flex flex-col items-center justify-center gap-4 transition-all active:translate-y-2 active:border-b-0 group"
+                                                >
+                                                    <div className="p-4 rounded-full bg-blue-600/10 text-blue-400 group-hover:scale-110 transition-transform">
+                                                        <Music className="w-10 h-10" />
+                                                    </div>
+                                                    <span className="font-black uppercase tracking-widest text-white/60 group-hover:text-white">
+                                                        {source.name}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {addToGroupStep === 2 && (
+                                        <div className="flex flex-col gap-2">
+                                            {songsDataSongs.map((song: Song) => {
+                                                const isSelected = selectedSongsForAdd.some(s => s.id === song.id);
+                                                return (
+                                                    <button
+                                                        key={song.id}
+                                                        onClick={() => {
+                                                            if (isSelected) {
+                                                                setSelectedSongsForAdd(prev => prev.filter(s => s.id !== song.id));
+                                                            } else {
+                                                                setSelectedSongsForAdd(prev => [...prev, song]);
+                                                            }
+                                                        }}
+                                                        className={`w-full p-4 rounded-xl text-left border border-b-4 transition-all flex items-center justify-between ${isSelected
+                                                            ? 'bg-blue-600 border-white/10 border-b-black/50 text-white'
+                                                            : 'bg-[#1a1a1c] border-white/5 border-b-black/40 text-white/40 hover:text-white'
+                                                            }`}
+                                                    >
+                                                        <span className="font-bold text-lg">{song.name}</span>
+                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'border-white/10'
+                                                            }`}>
+                                                            {isSelected && <Check className="w-4 h-4 text-blue-600" />}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {addToGroupStep === 3 && (
+                                        <div className="flex flex-col gap-4">
+                                            {groups.length === 0 ? (
+                                                <div className="py-20 text-center text-white/20 italic">
+                                                    Nessun gruppo disponibile. Crea prima un gruppo in "Nuovo Gruppo".
+                                                </div>
+                                            ) : (
+                                                groups.map(group => (
+                                                    <button
+                                                        key={group.id}
+                                                        onClick={() => setSelectedTargetGroupForAdd(group.id)}
+                                                        className={`w-full p-6 h-20 rounded-2xl text-left border border-b-4 transition-all flex items-center gap-4 ${selectedTargetGroupForAdd === group.id
+                                                            ? 'bg-green-600 border-white/10 border-b-black/50 text-white'
+                                                            : 'bg-[#1a1a1c] border-white/5 border-b-black/40 text-white/40 hover:text-white'
+                                                            }`}
+                                                    >
+                                                        <Folder className="w-6 h-6" />
+                                                        <span className="font-black text-xl uppercase tracking-tighter">{group.name}</span>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Modal Footer */}
+                                <div className="flex items-center justify-between mt-2">
+                                    <button
+                                        onClick={() => {
+                                            if (addToGroupStep === 1) setIsAddToGroupModalOpen(false);
+                                            else setAddToGroupStep(prev => (prev - 1) as any);
+                                        }}
+                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 border-b-4 border-black/40 rounded-2xl font-black text-white/40 uppercase tracking-widest hover:text-white active:translate-y-1 active:border-b-0 transition-all"
+                                    >
+                                        Indietro
+                                    </button>
+
+                                    {addToGroupStep === 2 && (
+                                        <button
+                                            disabled={selectedSongsForAdd.length === 0}
+                                            onClick={() => setAddToGroupStep(3)}
+                                            className="h-16 px-10 bg-blue-600 border border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 transition-all disabled:opacity-50 disabled:grayscale"
+                                        >
+                                            Procedi ({selectedSongsForAdd.length})
+                                        </button>
+                                    )}
+
+                                    {addToGroupStep === 3 && (
+                                        <button
+                                            disabled={!selectedTargetGroupForAdd}
+                                            onClick={() => {
+                                                if (!selectedTargetGroupForAdd) return;
+
+                                                setGroupSongs(prev => {
+                                                    const existing = prev[selectedTargetGroupForAdd!] || [];
+                                                    // Evita duplicati basandosi sull'id del brano
+                                                    const newSongs = [...existing];
+                                                    selectedSongsForAdd.forEach(s => {
+                                                        if (!newSongs.some(ns => ns.id === s.id)) {
+                                                            newSongs.push(s);
+                                                        }
+                                                    });
+                                                    return { ...prev, [selectedTargetGroupForAdd!]: newSongs };
+                                                });
+
+                                                setIsAddToGroupModalOpen(false);
+                                                // Feedback visivo (opzionale: toast o alert)
+                                            }}
+                                            className="h-16 px-10 bg-green-600 border border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 transition-all disabled:opacity-50"
+                                        >
+                                            Conferma e Aggiungi
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
