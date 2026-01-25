@@ -38,6 +38,7 @@ import {
     User,
     Disc
 } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useIsTablet } from '../hooks/useIsTablet';
 
@@ -69,6 +70,7 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const Players: React.FC = () => {
     const isTablet = useIsTablet();
+    const { highlightColor, backgroundColor } = useSettings();
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
     const songListRef = useRef<HTMLDivElement>(null);
@@ -755,7 +757,10 @@ export const Players: React.FC = () => {
     // ============================================
     if (isTablet) {
         return (
-            <div className="h-screen bg-[#0a0a0c] flex flex-col overflow-hidden text-white font-sans">
+            <div
+                className="h-screen flex flex-col overflow-hidden text-gray-900 dark:text-white font-sans transition-colors duration-500"
+                style={{ backgroundColor: backgroundColor }}
+            >
                 {/* Main Content Grid */}
                 <div className="flex-1 flex overflow-hidden p-6 gap-6">
 
@@ -763,8 +768,8 @@ export const Players: React.FC = () => {
                     <div className="w-[20%] flex flex-col gap-6 pt-20">
                         <div className="flex-1 flex flex-col gap-4 min-h-0">
                             {/* Sources Header */}
-                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 shrink-0">
-                                <h2 className="text-blue-400 font-bold tracking-widest uppercase text-xs">SORGENTI</h2>
+                            <div className="border rounded-xl p-4 shrink-0" style={{ backgroundColor: `${highlightColor}11`, borderColor: `${highlightColor}33` }}>
+                                <h2 className="font-bold tracking-widest uppercase text-xs" style={{ color: highlightColor }}>SORGENTI</h2>
                             </div>
 
                             {/* Physical Sources List */}
@@ -780,9 +785,10 @@ export const Players: React.FC = () => {
                                                 selectSourceMutation.mutate(source.id);
                                             }}
                                             className={`w-full text-left p-4 rounded-xl font-bold text-lg transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${isSelected && selectedSourceType === 'source'
-                                                ? 'bg-blue-600 bg-clip-padding border-white/10 border-b-black/50 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]'
+                                                ? 'bg-clip-padding border-white/10 border-b-black/50 text-white'
                                                 : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-white/40 hover:text-white'
                                                 }`}
+                                            style={isSelected && selectedSourceType === 'source' ? { backgroundColor: highlightColor, boxShadow: `0 10px 20px ${highlightColor}44` } : {}}
                                         >
                                             {source.name}
                                         </button>
@@ -812,13 +818,12 @@ export const Players: React.FC = () => {
                                                     onClick={() => {
                                                         setSelectedSourceType('group');
                                                         setSelectedSource(group.id);
-                                                        // Optional: selectGroupMutation.mutate(group.id) if backend supports it
-                                                        // For now, we just update UI state to show songs
                                                     }}
                                                     className={`w-full text-left p-4 rounded-xl font-bold text-lg transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 ${isSelected
-                                                        ? 'bg-blue-600 bg-clip-padding border-white/10 border-b-black/50 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]'
+                                                        ? 'bg-clip-padding border-white/10 border-b-black/50 text-white'
                                                         : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-white/60 hover:text-white'
                                                         }`}
+                                                    style={isSelected ? { backgroundColor: highlightColor, boxShadow: `0 10px 20px ${highlightColor}44` } : {}}
                                                 >
                                                     {group.name}
                                                 </button>
@@ -864,13 +869,25 @@ export const Players: React.FC = () => {
                                                     }
                                                 }}
                                                 className={`w-full flex items-center p-5 text-left transition-all border-l-4 ${isCurrentSelection
-                                                    ? 'bg-blue-600/40 border-blue-400 shadow-[inset_0_0_20px_rgba(59,130,246,0.3)] z-10'
+                                                    ? 'z-10'
                                                     : isSearchResult
-                                                        ? 'bg-blue-600/10 border-blue-400/30'
+                                                        ? ''
                                                         : isPlaying
-                                                            ? 'bg-blue-600/20 text-blue-400 border-transparent'
+                                                            ? 'border-transparent'
                                                             : 'hover:bg-white/5 text-white/70 border-transparent'
                                                     }`}
+                                                style={{
+                                                    backgroundColor: isCurrentSelection
+                                                        ? `${highlightColor}66`
+                                                        : isSearchResult
+                                                            ? `${highlightColor}22`
+                                                            : isPlaying
+                                                                ? `${highlightColor}44`
+                                                                : undefined,
+                                                    borderColor: (isCurrentSelection || isSearchResult) ? highlightColor : undefined,
+                                                    color: isPlaying ? highlightColor : undefined,
+                                                    boxShadow: isCurrentSelection ? `inset 0 0 20px ${highlightColor}44` : undefined
+                                                }}
                                             >
                                                 <span className={`w-12 font-mono text-xl ${isSearchResult ? 'opacity-100 text-blue-400' : 'opacity-40'}`}>
                                                     {(index + 1).toString().padStart(1, ' ')}
@@ -958,7 +975,8 @@ export const Players: React.FC = () => {
                                         {isPlaying ? (
                                             <button
                                                 onClick={() => pauseMutation.mutate()}
-                                                className="flex-1 h-20 flex items-center justify-center bg-blue-600 bg-clip-padding hover:bg-blue-500 border border-white/10 border-b-4 border-b-black/50 rounded-[2.5rem] shadow-[0_10px_30px_rgba(37,99,235,0.3)] transition-all active:translate-y-1 active:border-b-0 group"
+                                                className="flex-1 h-20 flex items-center justify-center bg-clip-padding border border-white/10 border-b-4 border-b-black/50 rounded-[2.5rem] transition-all active:translate-y-1 active:border-b-0 group"
+                                                style={{ backgroundColor: highlightColor, boxShadow: `0 10px 30px ${highlightColor}44` }}
                                             >
                                                 <Pause className="w-10 h-10 text-white fill-white" />
                                             </button>
@@ -1094,7 +1112,7 @@ export const Players: React.FC = () => {
                                                 {/* Plus Button */}
                                                 <button
                                                     onClick={() => handleStepVolume(ctrl, 'up')}
-                                                    className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
+                                                    className="w-14 h-14 flex items-center justify-center bg-[#2a2a2e] hover:bg-[#323236] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
                                                 >
                                                     <Plus className="w-6 h-6 text-blue-400" />
                                                 </button>
@@ -1149,7 +1167,7 @@ export const Players: React.FC = () => {
                                                 {/* Minus Button */}
                                                 <button
                                                     onClick={() => handleStepVolume(ctrl, 'down')}
-                                                    className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
+                                                    className="w-14 h-14 flex items-center justify-center bg-[#2a2a2e] hover:bg-[#323236] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
                                                 >
                                                     <Minus className="w-6 h-6 text-blue-400" />
                                                 </button>
@@ -1164,9 +1182,9 @@ export const Players: React.FC = () => {
                                                             [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
                                                         }));
                                                     }}
-                                                    className={`w-14 h-12 rounded-2xl flex items-center justify-center transition-all border shrink-0 border-b-4 active:translate-y-1 active:border-b-0 ${isMuted
-                                                        ? 'bg-red-600 border-red-400 border-b-red-800 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
-                                                        : 'bg-[#1a1a1c] border-white/10 border-b-white/10 text-blue-400 hover:border-blue-500 shadow-lg'
+                                                    className={`w-14 h-12 rounded-2xl flex items-center justify-center transition-all border-t-2 border-white/20 border-b-[6px] border-b-black shrink-0 active:translate-y-1 active:border-b-0 ${isMuted
+                                                        ? 'bg-red-600 border-red-400 border-b-red-950 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
+                                                        : 'bg-[#2a2a2e] text-blue-400 hover:text-white shadow-lg'
                                                         }`}
                                                 >
                                                     <VolumeX className={`w-7 h-7 ${isMuted ? 'animate-pulse' : ''}`} />
@@ -1220,9 +1238,10 @@ export const Players: React.FC = () => {
                                     repeatMutation.mutate(isGroup ? 'off' : 'all');
                                 }}
                                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border border-b-4 shadow-lg active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'group'
-                                    ? 'bg-blue-600 bg-clip-padding border-white/10 border-b-black/50 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
+                                    ? 'bg-clip-padding border-white/10 border-b-black/50 text-white'
                                     : 'bg-white/5 border-white/10 border-b-black/40 text-white/40 hover:text-white hover:bg-white/10'
                                     }`}
+                                style={playerStatus?.repeat_mode === 'group' ? { backgroundColor: highlightColor, boxShadow: `0 0 15px ${highlightColor}80` } : {}}
                             >
                                 <ListMusic className="w-6 h-6" />
                             </button>
@@ -1232,9 +1251,10 @@ export const Players: React.FC = () => {
                                     repeatMutation.mutate(isSong ? 'off' : 'one');
                                 }}
                                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border border-b-4 shadow-lg active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
-                                    ? 'bg-blue-600 bg-clip-padding border-white/10 border-b-black/50 shadow-[0_0_15px_rgba(59,130,246,0.5)] text-white'
+                                    ? 'bg-clip-padding border-white/10 border-b-black/50 text-white'
                                     : 'bg-white/5 border-white/10 border-b-black/40 text-white/40 hover:text-white hover:bg-white/10'
                                     }`}
+                                style={playerStatus?.repeat_mode === 'song' ? { backgroundColor: highlightColor, boxShadow: `0 0 15px ${highlightColor}80` } : {}}
                             >
                                 <Repeat1 className="w-6 h-6" />
                             </button>
@@ -1254,7 +1274,7 @@ export const Players: React.FC = () => {
                         >
                             <div className="flex items-center gap-2 text-white/60">
                                 <span>Fade</span>
-                                <span className="w-4 text-center text-blue-400 font-black">{fadeValue}</span>
+                                <span className="w-4 text-center font-black" style={{ color: highlightColor }}>{fadeValue}</span>
                                 <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isFadeDropdownOpen ? 'rotate-180' : ''}`} />
                             </div>
 
@@ -1271,9 +1291,10 @@ export const Players: React.FC = () => {
                                                     setIsFadeDropdownOpen(false);
                                                 }}
                                                 className={`w-full h-12 flex items-center justify-between px-6 transition-all border-b border-white/5 last:border-0 ${fadeValue === val
-                                                    ? 'bg-blue-600 text-white'
+                                                    ? 'text-white'
                                                     : 'hover:bg-white/5 text-white/40 hover:text-white'
                                                     }`}
+                                                style={fadeValue === val ? { backgroundColor: highlightColor } : {}}
                                             >
                                                 <span className="font-black text-sm">{val}</span>
                                                 {fadeValue === val && <Check className="w-4 h-4" />}
@@ -1427,7 +1448,8 @@ export const Players: React.FC = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleSearch(searchQuery)}
-                                                        className="flex-[1.5] h-20 bg-blue-600 bg-clip-padding hover:bg-blue-500 border-t border-white/10 border-b-4 border-b-black/50 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-[0_10px_30px_rgba(37,99,235,0.4)] text-white"
+                                                        className="flex-[1.5] h-20 bg-clip-padding border-t border-white/10 border-b-4 border-b-black/50 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:translate-y-1 active:border-b-0 text-white"
+                                                        style={{ backgroundColor: highlightColor, boxShadow: `0 10px 30px ${highlightColor}66` }}
                                                     >
                                                         VAI <CornerDownLeft className="w-6 h-6" />
                                                     </button>
@@ -1642,1573 +1664,1595 @@ export const Players: React.FC = () => {
                                 </div>
                             </motion.div>
                         </div>
-                    )}
-                </AnimatePresence>
+                    )
+                    }
+                </AnimatePresence >
 
                 {/* New Group Modal */}
                 <AnimatePresence>
-                    {isNewGroupModalOpen && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
-                                {/* Header */}
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
-                                            <FolderPlus className="w-10 h-10 text-blue-500" />
-                                            Nuovo Gruppo
-                                        </h2>
-                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">Inserisci il nome del gruppo</p>
+                    {
+                        isNewGroupModalOpen && (
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+                                <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                                <FolderPlus className="w-10 h-10 text-blue-500" />
+                                                Nuovo Gruppo
+                                            </h2>
+                                            <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">Inserisci il nome del gruppo</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsNewGroupModalOpen(false)}
+                                            className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
+                                        >
+                                            <X className="w-7 h-7 text-white/40" />
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={() => setIsNewGroupModalOpen(false)}
-                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
-                                    >
-                                        <X className="w-7 h-7 text-white/40" />
-                                    </button>
-                                </div>
 
-                                {/* Input Display */}
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={newGroupName}
-                                        readOnly
-                                        placeholder="Nome del gruppo..."
-                                        className="w-full h-24 bg-black/40 border border-white/10 rounded-[1.5rem] px-10 text-4xl font-black text-white placeholder:text-white/5 outline-none focus:border-blue-500/50 transition-all tracking-tight"
-                                    />
-                                </div>
+                                    {/* Input Display */}
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={newGroupName}
+                                            readOnly
+                                            placeholder="Nome del gruppo..."
+                                            className="w-full h-24 bg-black/40 border border-white/10 rounded-[1.5rem] px-10 text-4xl font-black text-white placeholder:text-white/5 outline-none focus:border-blue-500/50 transition-all tracking-tight"
+                                        />
+                                    </div>
 
-                                {/* Keyboard */}
-                                <div className="flex flex-col gap-3">
-                                    {(() => {
-                                        const rows = keyboardLayout === 'alpha'
-                                            ? [
-                                                ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-                                                ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(k => isUppercase ? k.toUpperCase() : k),
-                                                ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(k => isUppercase ? k.toUpperCase() : k),
-                                                ['z', 'x', 'c', 'v', 'b', 'n', 'm', '.', '-', '_'].map(k => isUppercase ? k.toUpperCase() : k),
-                                            ]
-                                            : [
-                                                ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
-                                                ['plus', '=', '{', '}', '[', ']', ':', ';', '|', '\\'],
-                                                ['<', '>', '?', '/', '`', '~', '\'', '"', '°', '€'],
-                                            ];
+                                    {/* Keyboard */}
+                                    <div className="flex flex-col gap-3">
+                                        {(() => {
+                                            const rows = keyboardLayout === 'alpha'
+                                                ? [
+                                                    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                                                    ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                    ['z', 'x', 'c', 'v', 'b', 'n', 'm', '.', '-', '_'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                ]
+                                                : [
+                                                    ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
+                                                    ['plus', '=', '{', '}', '[', ']', ':', ';', '|', '\\'],
+                                                    ['<', '>', '?', '/', '`', '~', '\'', '"', '°', '€'],
+                                                ];
 
-                                        return (
-                                            <>
-                                                {rows.map((row, ridx) => (
-                                                    <div key={ridx} className="flex justify-center gap-2">
-                                                        {row.map(key => (
-                                                            <button
-                                                                key={key}
-                                                                onClick={() => {
-                                                                    if (key === 'plus') setNewGroupName(prev => prev + '+');
-                                                                    else setNewGroupName(prev => prev + key);
-                                                                }}
-                                                                className="flex-1 h-14 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-xl text-xl font-bold transition-all active:translate-y-1 active:border-b-0 shadow-lg"
-                                                            >
-                                                                <span className="text-white">{key === 'plus' ? '+' : key}</span>
-                                                            </button>
-                                                        ))}
+                                            return (
+                                                <>
+                                                    {rows.map((row, ridx) => (
+                                                        <div key={ridx} className="flex justify-center gap-2">
+                                                            {row.map(key => (
+                                                                <button
+                                                                    key={key}
+                                                                    onClick={() => {
+                                                                        if (key === 'plus') setNewGroupName(prev => prev + '+');
+                                                                        else setNewGroupName(prev => prev + key);
+                                                                    }}
+                                                                    className="flex-1 h-14 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-xl text-xl font-bold transition-all active:translate-y-1 active:border-b-0 shadow-lg"
+                                                                >
+                                                                    <span className="text-white">{key === 'plus' ? '+' : key}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    ))}
+                                                    <div className="flex justify-center gap-3 mt-2">
+                                                        <button
+                                                            onClick={() => setKeyboardLayout(keyboardLayout === 'alpha' ? 'symbols' : 'alpha')}
+                                                            className="w-24 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
+                                                        >
+                                                            {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setIsUppercase(!isUppercase)}
+                                                            className={`w-24 h-20 border-t border-b-4 rounded-2xl text-[10px] font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl ${isUppercase
+                                                                ? 'bg-blue-600 text-white border-white/20 border-b-black/50'
+                                                                : 'bg-white/5 text-white/40 border-white/10 border-b-black/40 hover:text-white'}`}
+                                                        >
+                                                            {isUppercase ? 'SHIFT' : 'shift'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setNewGroupName(prev => prev + ' ')}
+                                                            className="flex-[4] h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-sm font-black tracking-[0.5em] transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-white/30 uppercase"
+                                                        >
+                                                            SPAZIO
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setNewGroupName(prev => prev.slice(0, -1))}
+                                                            className="w-24 h-20 bg-red-900/10 hover:bg-red-900/20 border-t border-red-500/10 border-b-4 border-red-900/60 rounded-2xl flex items-center justify-center transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-red-500/60"
+                                                        >
+                                                            <Delete className="w-7 h-7" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => createGroupMutation.mutate(newGroupName)}
+                                                            disabled={!newGroupName.trim()}
+                                                            className="flex-[2] h-20 border-t border-white/10 border-b-4 border-b-black/50 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-lg text-white disabled:opacity-50 disabled:grayscale"
+                                                            style={{ backgroundColor: highlightColor }}
+                                                        >
+                                                            SALVA
+                                                        </button>
                                                     </div>
-                                                ))}
-                                                <div className="flex justify-center gap-3 mt-2">
-                                                    <button
-                                                        onClick={() => setKeyboardLayout(keyboardLayout === 'alpha' ? 'symbols' : 'alpha')}
-                                                        className="w-24 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
-                                                    >
-                                                        {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setIsUppercase(!isUppercase)}
-                                                        className={`w-24 h-20 border-t border-b-4 rounded-2xl text-[10px] font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl ${isUppercase
-                                                            ? 'bg-blue-600 text-white border-white/20 border-b-black/50'
-                                                            : 'bg-white/5 text-white/40 border-white/10 border-b-black/40 hover:text-white'}`}
-                                                    >
-                                                        {isUppercase ? 'SHIFT' : 'shift'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setNewGroupName(prev => prev + ' ')}
-                                                        className="flex-[4] h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-sm font-black tracking-[0.5em] transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-white/30 uppercase"
-                                                    >
-                                                        SPAZIO
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setNewGroupName(prev => prev.slice(0, -1))}
-                                                        className="w-24 h-20 bg-red-900/10 hover:bg-red-900/20 border-t border-red-500/10 border-b-4 border-red-900/60 rounded-2xl flex items-center justify-center transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-red-500/60"
-                                                    >
-                                                        <Delete className="w-7 h-7" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => createGroupMutation.mutate(newGroupName)}
-                                                        disabled={!newGroupName.trim()}
-                                                        className="flex-[2] h-20 bg-blue-600 bg-clip-padding hover:bg-blue-500 border-t border-white/10 border-b-4 border-b-black/50 rounded-2xl flex items-center justify-center gap-3 text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-[0_10px_30px_rgba(37,99,235,0.4)] text-white disabled:opacity-50 disabled:grayscale"
-                                                    >
-                                                        SALVA
-                                                    </button>
-                                                </div>
-                                            </>
-                                        );
-                                    })()}
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                        )
+                    }
+                </AnimatePresence >
 
                 {/* Add To Group Modal - MULTI STEP */}
                 <AnimatePresence>
-                    {isAddToGroupModalOpen && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
-                                {/* Header */}
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
-                                            <FolderInput className="w-10 h-10 text-green-500" />
-                                            Aggiungi a Gruppo
-                                        </h2>
-                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
-                                            {addToGroupStep === 1 ? 'Step 1: Seleziona Sorgente' :
-                                                addToGroupStep === 2 ? `Step 2: Seleziona Brani (${selectedSongsForAdd.length})` :
-                                                    'Step 3: Seleziona Gruppo di Destinazione'}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => setIsAddToGroupModalOpen(false)}
-                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
-                                    >
-                                        <X className="w-7 h-7 text-white/40" />
-                                    </button>
-                                </div>
-
-                                {/* Content Area */}
-                                <div className="flex-1 min-h-[400px] overflow-y-auto custom-scrollbar-hidden bg-white/5 border border-white/10 rounded-[2rem] p-4">
-                                    {addToGroupStep === 1 && (
-                                        <div className="grid grid-cols-3 gap-6">
-                                            {sources.map(source => (
-                                                <button
-                                                    key={source.id}
-                                                    onClick={() => {
-                                                        setSelectedSourceForAdd(source.id);
-                                                        setAddToGroupStep(2);
-                                                    }}
-                                                    className="h-48 bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-8 border-black/40 rounded-[2rem] flex flex-col items-center justify-center gap-4 transition-all active:translate-y-2 active:border-b-0 group"
-                                                >
-                                                    <div className="p-4 rounded-full bg-blue-600/10 text-blue-400 group-hover:scale-110 transition-transform">
-                                                        <Music className="w-10 h-10" />
-                                                    </div>
-                                                    <span className="font-black uppercase tracking-widest text-white/60 group-hover:text-white">
-                                                        {source.name}
-                                                    </span>
-                                                </button>
-                                            ))}
+                    {
+                        isAddToGroupModalOpen && (
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+                                <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                                <FolderInput className="w-10 h-10 text-green-500" />
+                                                Aggiungi a Gruppo
+                                            </h2>
+                                            <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
+                                                {addToGroupStep === 1 ? 'Step 1: Seleziona Sorgente' :
+                                                    addToGroupStep === 2 ? `Step 2: Seleziona Brani (${selectedSongsForAdd.length})` :
+                                                        'Step 3: Seleziona Gruppo di Destinazione'}
+                                            </p>
                                         </div>
-                                    )}
+                                        <button
+                                            onClick={() => setIsAddToGroupModalOpen(false)}
+                                            className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
+                                        >
+                                            <X className="w-7 h-7 text-white/40" />
+                                        </button>
+                                    </div>
 
-                                    {addToGroupStep === 2 && (
-                                        <div className="flex flex-col gap-2">
-                                            <div className="flex items-center justify-between px-2 mb-2">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                                                    Brani di: <span className="text-blue-400">{sources.find(s => s.id === selectedSourceForAdd)?.name || 'Sorgente'}</span>
-                                                </p>
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                                                    {selectedSongsForAdd.length} Selezionati
-                                                </span>
-                                            </div>
-                                            {songsDataSongs.map((song: Song) => {
-                                                const isSelected = selectedSongsForAdd.some(s => s.id === song.id);
-                                                return (
+                                    {/* Content Area */}
+                                    <div className="flex-1 min-h-[400px] overflow-y-auto custom-scrollbar-hidden bg-white/5 border border-white/10 rounded-[2rem] p-4">
+                                        {addToGroupStep === 1 && (
+                                            <div className="grid grid-cols-3 gap-6">
+                                                {sources.map(source => (
                                                     <button
-                                                        key={song.id}
+                                                        key={source.id}
                                                         onClick={() => {
-                                                            if (isSelected) {
-                                                                setSelectedSongsForAdd(prev => prev.filter(s => s.id !== song.id));
-                                                            } else {
-                                                                setSelectedSongsForAdd(prev => [...prev, song]);
-                                                            }
+                                                            setSelectedSourceForAdd(source.id);
+                                                            setAddToGroupStep(2);
                                                         }}
-                                                        className={`w-full p-4 rounded-xl text-left border border-b-4 transition-all flex items-center justify-between ${isSelected
-                                                            ? 'bg-blue-600 border-white/10 border-b-black/50 text-white'
-                                                            : 'bg-[#1a1a1c] border-white/5 border-b-black/40 text-white/40 hover:text-white'
-                                                            }`}
+                                                        className="h-48 bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-8 border-black/40 rounded-[2rem] flex flex-col items-center justify-center gap-4 transition-all active:translate-y-2 active:border-b-0 group"
                                                     >
-                                                        <span className="font-bold text-lg">{song.name}</span>
-                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'border-white/10'
-                                                            }`}>
-                                                            {isSelected && <Check className="w-4 h-4 text-blue-600" />}
+                                                        <div className="p-4 rounded-full bg-blue-600/10 text-blue-400 group-hover:scale-110 transition-transform">
+                                                            <Music className="w-10 h-10" />
                                                         </div>
+                                                        <span className="font-black uppercase tracking-widest text-white/60 group-hover:text-white">
+                                                            {source.name}
+                                                        </span>
                                                     </button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-
-                                    {addToGroupStep === 3 && (
-                                        <div className="flex flex-col gap-4">
-                                            {groups.length === 0 ? (
-                                                <div className="py-20 text-center text-white/20 italic">
-                                                    Nessun gruppo disponibile. Crea prima un gruppo in "Nuovo Gruppo".
-                                                </div>
-                                            ) : (
-                                                groups.map(group => (
-                                                    <button
-                                                        key={group.id}
-                                                        onClick={() => setSelectedTargetGroupForAdd(group.id)}
-                                                        className={`w-full p-6 h-20 rounded-2xl text-left border border-b-4 transition-all flex items-center gap-4 ${selectedTargetGroupForAdd === group.id
-                                                            ? 'bg-green-600 border-white/10 border-b-black/50 text-white'
-                                                            : 'bg-[#1a1a1c] border-white/5 border-b-black/40 text-white/40 hover:text-white'
-                                                            }`}
-                                                    >
-                                                        <Folder className="w-6 h-6" />
-                                                        <span className="font-black text-xl uppercase tracking-tighter">{group.name}</span>
-                                                    </button>
-                                                ))
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Modal Footer */}
-                                <div className="flex items-center justify-between mt-2">
-                                    <button
-                                        onClick={() => {
-                                            if (addToGroupStep === 1) setIsAddToGroupModalOpen(false);
-                                            else setAddToGroupStep(prev => (prev - 1) as any);
-                                        }}
-                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 border-b-4 border-black/40 rounded-2xl font-black text-white/40 uppercase tracking-widest hover:text-white active:translate-y-1 active:border-b-0 transition-all"
-                                    >
-                                        Indietro
-                                    </button>
-
-                                    {addToGroupStep === 2 && (
-                                        <button
-                                            disabled={selectedSongsForAdd.length === 0}
-                                            onClick={() => setAddToGroupStep(3)}
-                                            className="h-16 px-10 bg-blue-600 border border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 transition-all disabled:opacity-50 disabled:grayscale"
-                                        >
-                                            Procedi ({selectedSongsForAdd.length})
-                                        </button>
-                                    )}
-
-                                    {addToGroupStep === 3 && (
-                                        <button
-                                            disabled={!selectedTargetGroupForAdd}
-                                            onClick={() => {
-                                                if (!selectedTargetGroupForAdd) return;
-
-                                                setGroupSongs(prev => {
-                                                    const existing = prev[selectedTargetGroupForAdd!] || [];
-                                                    // Evita duplicati basandosi sull'id del brano
-                                                    const newSongs = [...existing];
-                                                    selectedSongsForAdd.forEach(s => {
-                                                        if (!newSongs.some(ns => ns.id === s.id)) {
-                                                            newSongs.push(s);
-                                                        }
-                                                    });
-                                                    return { ...prev, [selectedTargetGroupForAdd!]: newSongs };
-                                                });
-
-                                                setIsAddToGroupModalOpen(false);
-                                                // Feedback visivo (opzionale: toast o alert)
-                                            }}
-                                            className="h-16 px-10 bg-green-600 border border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 transition-all disabled:opacity-50"
-                                        >
-                                            Conferma e Aggiungi
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </AnimatePresence>
-
-                {/* Rename Song Modal - MULTI STEP */}
-                <AnimatePresence>
-                    {isRenameModalOpen && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
-                                {/* Header */}
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
-                                            <Pencil className="w-10 h-10 text-amber-500" />
-                                            Rinomina Brano
-                                        </h2>
-                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
-                                            {renameStep === 1 ? 'Step 1: Sorgente / Gruppo' :
-                                                renameStep === 2 ? 'Step 2: Seleziona il Brano' :
-                                                    renameStep === 3 ? 'Step 3: Inserisci Nuovo Nome' :
-                                                        'Step 4: Conferma Modifica'}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => setIsRenameModalOpen(false)}
-                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
-                                    >
-                                        <X className="w-7 h-7 text-white/40" />
-                                    </button>
-                                </div>
-
-                                {/* Content Area */}
-                                <div className="flex-1 min-h-[400px] overflow-y-auto custom-scrollbar-hidden bg-white/5 border border-white/10 rounded-[2rem] p-6">
-
-                                    {/* STEP 1: SOURCE SELECTION */}
-                                    {renameStep === 1 && (
-                                        <div className="space-y-8">
-                                            {/* Physical Sources */}
-                                            <div className="space-y-4">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Sorgenti Fisiche</h3>
-                                                <div className="grid grid-cols-3 gap-4">
-                                                    {sources.map(s => (
-                                                        <button
-                                                            key={s.id}
-                                                            onClick={() => {
-                                                                setRenameSourceType('source');
-                                                                setSelectedSourceForRename(s.id);
-                                                                setRenameStep(2);
-                                                            }}
-                                                            className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
-                                                        >
-                                                            <Music className="w-6 h-6 text-blue-400/60" />
-                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                                ))}
                                             </div>
+                                        )}
 
-                                            {/* Custom Groups */}
-                                            <div className="space-y-4">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Gruppi Personalizzati</h3>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    {groups.length === 0 ? (
-                                                        <p className="col-span-2 text-center text-white/10 italic py-8">Nessun gruppo disponibile</p>
-                                                    ) : (
-                                                        groups.map(g => (
-                                                            <button
-                                                                key={g.id}
-                                                                onClick={() => {
-                                                                    setRenameSourceType('group');
-                                                                    setSelectedSourceForRename(g.id);
-                                                                    setRenameStep(2);
-                                                                }}
-                                                                className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
-                                                            >
-                                                                <Folder className="w-6 h-6 text-green-400/60" />
-                                                                <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{g.name}</span>
-                                                            </button>
-                                                        ))
-                                                    )}
+                                        {addToGroupStep === 2 && (
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex items-center justify-between px-2 mb-2">
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                                                        Brani di: <span className="text-blue-400">{sources.find(s => s.id === selectedSourceForAdd)?.name || 'Sorgente'}</span>
+                                                    </p>
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                                                        {selectedSongsForAdd.length} Selezionati
+                                                    </span>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* STEP 2: SONG SELECTION */}
-                                    {renameStep === 2 && (
-                                        <div className="flex flex-col gap-2">
-                                            {(() => {
-                                                const sourceSongs = renameSourceType === 'group'
-                                                    ? (groupSongs[selectedSourceForRename!] || [])
-                                                    : songsDataSongs;
-
-                                                if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano in questa sorgente</div>;
-
-                                                return sourceSongs.map((song: Song) => (
-                                                    <button
-                                                        key={song.id}
-                                                        onClick={() => {
-                                                            const key = `${renameSourceType}:${selectedSourceForRename}:${song.id}`;
-                                                            const currentName = renamedSongs[key]?.newName || song.name;
-                                                            setSelectedSongForRename(song);
-                                                            setRenamingName(currentName);
-                                                            setRenameStep(3);
-                                                        }}
-                                                        className="w-full p-4 h-20 rounded-xl bg-[#1a1a1c] border border-white/5 border-b-4 border-black/40 hover:bg-[#252528] text-white/40 hover:text-white transition-all flex items-center justify-between active:translate-y-1 active:border-b-0"
-                                                    >
-                                                        <span className="text-xl font-bold">{renamedSongs[`${renameSourceType}:${selectedSourceForRename}:${song.id}`]?.newName || song.name}</span>
-                                                        <ArrowRight className="w-6 h-6 text-amber-500/50" />
-                                                    </button>
-                                                ));
-                                            })()}
-                                        </div>
-                                    )}
-
-                                    {/* STEP 3: RENAME INTERFACE */}
-                                    {renameStep === 3 && (
-                                        <div className="flex flex-col gap-6">
-                                            {/* Top Control Bar for Rename Keyboard */}
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex-1 relative">
-                                                    <div className="absolute -inset-1 bg-amber-500/10 blur rounded-2xl" />
-                                                    <input
-                                                        type="text"
-                                                        value={renamingName}
-                                                        readOnly
-                                                        className="relative w-full h-24 bg-black/40 border border-white/10 rounded-[1.5rem] px-10 text-4xl font-black text-white outline-none"
-                                                    />
-                                                </div>
-                                                <button
-                                                    onClick={() => setRenamingName(p => p.slice(0, -1))}
-                                                    className="w-24 h-24 bg-red-900/10 hover:bg-red-900/20 border-t border-red-500/10 border-b-4 border-red-900/60 rounded-[1.5rem] flex items-center justify-center transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-red-500/60"
-                                                >
-                                                    <Delete className="w-8 h-8" />
-                                                </button>
-                                            </div>
-
-                                            {/* Virtual Keyboard */}
-                                            <div className="flex flex-col gap-3">
-                                                {(() => {
-                                                    const rows = keyboardLayout === 'alpha'
-                                                        ? [
-                                                            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-                                                            ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(k => isUppercase ? k.toUpperCase() : k),
-                                                            ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(k => isUppercase ? k.toUpperCase() : k),
-                                                            ['z', 'x', 'c', 'v', 'b', 'n', 'm', '.', ',', '-'].map(k => isUppercase ? k.toUpperCase() : k)
-                                                        ]
-                                                        : [
-                                                            ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
-                                                            ['_', '+', '=', '{', '}', '[', ']', ':', ';', '|'],
-                                                            ['<', '>', '?', '/', '\\', '`', '~', '\'', '"', '°'],
-                                                            ['¿', '¡', '«', '»', '—', '·', '…', '§', '¶', '©']
-                                                        ];
-                                                    return (
-                                                        <>
-                                                            {rows.map((row, idx) => (
-                                                                <div key={idx} className="flex gap-2 justify-center">
-                                                                    {row.map(k => (
-                                                                        <button
-                                                                            key={k}
-                                                                            onClick={() => setRenamingName(p => p + k)}
-                                                                            className="flex-1 h-14 bg-white/5 hover:bg-white/10 border-white/5 border-b-4 border-black/40 rounded-xl text-xl font-bold flex items-center justify-center transition-all active:translate-y-1 active:border-b-0"
-                                                                        >
-                                                                            {k === ' ' ? '␣' : k}
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            ))}
-                                                        </>
-                                                    );
-                                                })()}
-                                                <div className="flex gap-3 justify-center mt-2">
-                                                    <button
-                                                        onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')}
-                                                        className="w-28 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
-                                                    >
-                                                        {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setIsUppercase(!isUppercase)}
-                                                        className={`w-28 h-20 border-t border-b-4 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl ${isUppercase
-                                                            ? 'bg-amber-600 text-white border-white/20 border-b-black/50'
-                                                            : 'bg-white/5 text-white/40 border-white/10 border-b-black/40 hover:text-white'}`}
-                                                    >
-                                                        {isUppercase ? 'SHIFT' : 'shift'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setRenamingName(p => p + ' ')}
-                                                        className="flex-[3] h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-sm font-black tracking-[0.5em] transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-white/30 uppercase"
-                                                    >
-                                                        SPAZIO
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setRenameStep(4)}
-                                                        disabled={!renamingName.trim()}
-                                                        className="flex-[1.5] h-20 bg-amber-600 border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 disabled:opacity-50"
-                                                    >
-                                                        VAI
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* STEP 4: CONFIRMATION */}
-                                    {renameStep === 4 && (
-                                        <div className="flex flex-col items-center justify-center gap-10 py-10">
-                                            <div className="text-center space-y-4">
-                                                <p className="text-xs font-black uppercase tracking-[0.4em] text-white/20">Conferma rinomina</p>
-                                                <div className="flex items-center gap-8">
-                                                    <div className="p-8 bg-white/5 border border-white/10 rounded-3xl">
-                                                        <p className="text-xs text-white/30 font-bold uppercase mb-2">Originale</p>
-                                                        <p className="text-2xl font-black text-white/60 line-through">
-                                                            {selectedSongForRename?.name}
-                                                        </p>
-                                                    </div>
-                                                    <ArrowRight className="w-10 h-10 text-amber-500 animate-pulse" />
-                                                    <div className="p-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.1)]">
-                                                        <p className="text-xs text-amber-500 font-bold uppercase mb-2">Nuovo</p>
-                                                        <p className="text-4xl font-black text-amber-500">
-                                                            {renamingName}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    if (selectedSongForRename) {
-                                                        const key = `${renameSourceType}:${selectedSourceForRename}:${selectedSongForRename.id}`;
-                                                        setRenamedSongs(prev => ({
-                                                            ...prev,
-                                                            [key]: {
-                                                                newName: renamingName,
-                                                                originalName: selectedSongForRename.name
-                                                            }
-                                                        }));
-                                                        queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
-                                                        setIsRenameModalOpen(false);
-                                                    }
-                                                }}
-                                                className="h-24 px-20 bg-amber-600 border border-t-white/20 border-b-8 border-black/50 rounded-[2rem] text-3xl font-black text-white uppercase tracking-tighter hover:brightness-110 active:translate-y-2 active:border-b-0 shadow-2xl transition-all"
-                                            >
-                                                CONFERMA E SALVA
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Bottom Controls */}
-                                <div className="flex items-center justify-between">
-                                    <button
-                                        onClick={() => {
-                                            if (renameStep === 1) setIsRenameModalOpen(false);
-                                            else setRenameStep(p => (p - 1) as any);
-                                        }}
-                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 border-b-4 border-black/40 rounded-2xl font-black text-white/40 uppercase tracking-widest hover:text-white"
-                                    >
-                                        Indietro
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </AnimatePresence>
-
-                {/* Delete Songs Modal - MULTI STEP */}
-                <AnimatePresence>
-                    {isDeleteModalOpen && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
-                                {/* Header */}
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
-                                            <Trash2 className="w-10 h-10 text-red-500" />
-                                            Elimina Brano/i
-                                        </h2>
-                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
-                                            {deleteStep === 1 ? 'Step 1: Sorgente / Gruppo' :
-                                                deleteStep === 2 ? `Step 2: Seleziona Brani (${selectedSongsForDelete.length})` :
-                                                    'Step 3: Conferma Eliminazione Definitiva'}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => setIsDeleteModalOpen(false)}
-                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
-                                    >
-                                        <X className="w-7 h-7 text-white/40" />
-                                    </button>
-                                </div>
-
-                                {/* Content Area */}
-                                <div className="flex-1 min-h-[400px] overflow-y-auto custom-scrollbar-hidden bg-white/5 border border-white/10 rounded-[2rem] p-6">
-                                    {/* STEP 1: SOURCE SELECTION */}
-                                    {deleteStep === 1 && (
-                                        <div className="space-y-8">
-                                            <div className="space-y-4">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Sorgenti Fisiche</h3>
-                                                <div className="grid grid-cols-3 gap-4">
-                                                    {sources.map(s => (
-                                                        <button
-                                                            key={s.id}
-                                                            onClick={() => {
-                                                                setDeleteSourceType('source');
-                                                                setSelectedSourceForDelete(s.id);
-                                                                setDeleteStep(2);
-                                                            }}
-                                                            className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
-                                                        >
-                                                            <Music className="w-6 h-6 text-blue-400/60" />
-                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Gruppi Personalizzati</h3>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    {groups.length === 0 ? (
-                                                        <p className="col-span-2 text-center text-white/10 italic py-8">Nessun gruppo disponibile</p>
-                                                    ) : (
-                                                        groups.map(g => (
-                                                            <button
-                                                                key={g.id}
-                                                                onClick={() => {
-                                                                    setDeleteSourceType('group');
-                                                                    setSelectedSourceForDelete(g.id);
-                                                                    setDeleteStep(2);
-                                                                }}
-                                                                className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
-                                                            >
-                                                                <Folder className="w-6 h-6 text-green-400/60" />
-                                                                <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{g.name}</span>
-                                                            </button>
-                                                        ))
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* STEP 2: SONG SELECTION */}
-                                    {deleteStep === 2 && (
-                                        <div className="flex flex-col gap-2">
-                                            {(() => {
-                                                const sourceSongs = deleteSourceType === 'group'
-                                                    ? (groupSongs[selectedSourceForDelete!] || [])
-                                                    : (selectedSourceForDelete === selectedSource ? processedSongs : songsDataSongs);
-
-                                                if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano in questa sorgente</div>;
-
-                                                return sourceSongs.map((song: Song) => {
-                                                    const isSelected = selectedSongsForDelete.some(s => s.id === song.id);
+                                                {songsDataSongs.map((song: Song) => {
+                                                    const isSelected = selectedSongsForAdd.some(s => s.id === song.id);
                                                     return (
                                                         <button
                                                             key={song.id}
                                                             onClick={() => {
                                                                 if (isSelected) {
-                                                                    setSelectedSongsForDelete(prev => prev.filter(s => s.id !== song.id));
+                                                                    setSelectedSongsForAdd(prev => prev.filter(s => s.id !== song.id));
                                                                 } else {
-                                                                    setSelectedSongsForDelete(prev => [...prev, song]);
+                                                                    setSelectedSongsForAdd(prev => [...prev, song]);
                                                                 }
                                                             }}
-                                                            className={`w-full p-4 h-20 rounded-xl border border-b-4 transition-all flex items-center justify-between ${isSelected
-                                                                ? 'bg-red-600 border-white/10 border-b-black/50 text-white'
+                                                            className={`w-full p-4 rounded-xl text-left border border-b-4 transition-all flex items-center justify-between ${isSelected
+                                                                ? 'bg-blue-600 border-white/10 border-b-black/50 text-white'
                                                                 : 'bg-[#1a1a1c] border-white/5 border-b-black/40 text-white/40 hover:text-white'
                                                                 }`}
                                                         >
-                                                            <span className="text-xl font-bold">{song.name}</span>
+                                                            <span className="font-bold text-lg">{song.name}</span>
                                                             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'border-white/10'
                                                                 }`}>
-                                                                {isSelected && <Check className="w-4 h-4 text-red-600" />}
+                                                                {isSelected && <Check className="w-4 h-4 text-blue-600" />}
                                                             </div>
                                                         </button>
                                                     );
-                                                });
-                                            })()}
-                                        </div>
-                                    )}
-
-                                    {/* STEP 3: CONFIRMATION */}
-                                    {deleteStep === 3 && (
-                                        <div className="flex flex-col items-center justify-center gap-10 py-10">
-                                            <div className="text-center space-y-4">
-                                                <div className="w-24 h-24 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                                                    <AlertTriangle className="w-12 h-12 text-red-500 animate-pulse" />
-                                                </div>
-                                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Sei assolutamente sicuro?</h3>
-                                                <p className="text-white/40 max-w-md mx-auto">
-                                                    Stai per eliminare definitivamente <span className="text-white font-bold">{selectedSongsForDelete.length}</span> brani.
-                                                    Questa azione non può essere annullata.
-                                                </p>
-                                                <div className="max-h-48 overflow-y-auto bg-black/40 rounded-2xl p-4 border border-white/5 mt-6">
-                                                    {selectedSongsForDelete.map(s => (
-                                                        <div key={s.id} className="text-sm text-white/60 py-1 border-b border-white/5 last:border-0">{s.name}</div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => deleteSongsMutation.mutate({
-                                                    sourceType: deleteSourceType!,
-                                                    sourceId: selectedSourceForDelete!,
-                                                    songs: selectedSongsForDelete
                                                 })}
-                                                disabled={deleteSongsMutation.isPending}
-                                                className="h-24 px-20 bg-red-600 border border-t-white/20 border-b-8 border-black/50 rounded-[2rem] text-3xl font-black text-white uppercase tracking-tighter hover:brightness-110 active:translate-y-2 active:border-b-0 shadow-2xl transition-all disabled:opacity-50"
-                                            >
-                                                {deleteSongsMutation.isPending ? 'ELIMINAZIONE...' : 'ELIMINA DEFINITIVAMENTE'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+                                            </div>
+                                        )}
 
-                                {/* Modal Footer */}
-                                <div className="flex items-center justify-between">
-                                    <button
-                                        onClick={() => {
-                                            if (deleteStep === 1) setIsDeleteModalOpen(false);
-                                            else setDeleteStep(p => (p - 1) as any);
-                                        }}
-                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 border-b-4 border-black/40 rounded-2xl font-black text-white/40 uppercase tracking-widest hover:text-white"
-                                    >
-                                        Indietro
-                                    </button>
-                                    {deleteStep === 2 && (
+                                        {addToGroupStep === 3 && (
+                                            <div className="flex flex-col gap-4">
+                                                {groups.length === 0 ? (
+                                                    <div className="py-20 text-center text-white/20 italic">
+                                                        Nessun gruppo disponibile. Crea prima un gruppo in "Nuovo Gruppo".
+                                                    </div>
+                                                ) : (
+                                                    groups.map(group => (
+                                                        <button
+                                                            key={group.id}
+                                                            onClick={() => setSelectedTargetGroupForAdd(group.id)}
+                                                            className={`w-full p-6 h-20 rounded-2xl text-left border border-b-4 transition-all flex items-center gap-4 ${selectedTargetGroupForAdd === group.id
+                                                                ? 'bg-green-600 border-white/10 border-b-black/50 text-white'
+                                                                : 'bg-[#1a1a1c] border-white/5 border-b-black/40 text-white/40 hover:text-white'
+                                                                }`}
+                                                        >
+                                                            <Folder className="w-6 h-6" />
+                                                            <span className="font-black text-xl uppercase tracking-tighter">{group.name}</span>
+                                                        </button>
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Modal Footer */}
+                                    <div className="flex items-center justify-between mt-2">
                                         <button
-                                            disabled={selectedSongsForDelete.length === 0}
-                                            onClick={() => setDeleteStep(3)}
-                                            className="h-16 px-10 bg-red-600 border border-t-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 disabled:opacity-50"
+                                            onClick={() => {
+                                                if (addToGroupStep === 1) setIsAddToGroupModalOpen(false);
+                                                else setAddToGroupStep(prev => (prev - 1) as any);
+                                            }}
+                                            className="h-16 px-10 bg-[#1a1a1c] border border-white/10 border-b-4 border-black/40 rounded-2xl font-black text-white/40 uppercase tracking-widest hover:text-white active:translate-y-1 active:border-b-0 transition-all"
                                         >
-                                            Procedi ({selectedSongsForDelete.length})
+                                            Indietro
                                         </button>
-                                    )}
+
+                                        {addToGroupStep === 2 && (
+                                            <button
+                                                disabled={selectedSongsForAdd.length === 0}
+                                                onClick={() => setAddToGroupStep(3)}
+                                                className="h-16 px-10 bg-blue-600 border border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 transition-all disabled:opacity-50 disabled:grayscale"
+                                            >
+                                                Procedi ({selectedSongsForAdd.length})
+                                            </button>
+                                        )}
+
+                                        {addToGroupStep === 3 && (
+                                            <button
+                                                disabled={!selectedTargetGroupForAdd}
+                                                onClick={() => {
+                                                    if (!selectedTargetGroupForAdd) return;
+
+                                                    setGroupSongs(prev => {
+                                                        const existing = prev[selectedTargetGroupForAdd!] || [];
+                                                        // Evita duplicati basandosi sull'id del brano
+                                                        const newSongs = [...existing];
+                                                        selectedSongsForAdd.forEach(s => {
+                                                            if (!newSongs.some(ns => ns.id === s.id)) {
+                                                                newSongs.push(s);
+                                                            }
+                                                        });
+                                                        return { ...prev, [selectedTargetGroupForAdd!]: newSongs };
+                                                    });
+
+                                                    setIsAddToGroupModalOpen(false);
+                                                    // Feedback visivo (opzionale: toast o alert)
+                                                }}
+                                                className="h-16 px-10 bg-green-600 border border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 transition-all disabled:opacity-50"
+                                            >
+                                                Conferma e Aggiungi
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                        )
+                    }
+                </AnimatePresence >
+
+                {/* Rename Song Modal - MULTI STEP */}
+                <AnimatePresence>
+                    {
+                        isRenameModalOpen && (
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300">
+                                <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                                <Pencil className="w-10 h-10 text-amber-500" />
+                                                Rinomina Brano
+                                            </h2>
+                                            <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
+                                                {renameStep === 1 ? 'Step 1: Sorgente / Gruppo' :
+                                                    renameStep === 2 ? 'Step 2: Seleziona il Brano' :
+                                                        renameStep === 3 ? 'Step 3: Inserisci Nuovo Nome' :
+                                                            'Step 4: Conferma Modifica'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsRenameModalOpen(false)}
+                                            className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
+                                        >
+                                            <X className="w-7 h-7 text-white/40" />
+                                        </button>
+                                    </div>
+
+                                    {/* Content Area */}
+                                    <div className="flex-1 min-h-[400px] overflow-y-auto custom-scrollbar-hidden bg-white/5 border border-white/10 rounded-[2rem] p-6">
+
+                                        {/* STEP 1: SOURCE SELECTION */}
+                                        {renameStep === 1 && (
+                                            <div className="space-y-8">
+                                                {/* Physical Sources */}
+                                                <div className="space-y-4">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Sorgenti Fisiche</h3>
+                                                    <div className="grid grid-cols-3 gap-4">
+                                                        {sources.map(s => (
+                                                            <button
+                                                                key={s.id}
+                                                                onClick={() => {
+                                                                    setRenameSourceType('source');
+                                                                    setSelectedSourceForRename(s.id);
+                                                                    setRenameStep(2);
+                                                                }}
+                                                                className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
+                                                            >
+                                                                <Music className="w-6 h-6 text-blue-400/60" />
+                                                                <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Custom Groups */}
+                                                <div className="space-y-4">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Gruppi Personalizzati</h3>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {groups.length === 0 ? (
+                                                            <p className="col-span-2 text-center text-white/10 italic py-8">Nessun gruppo disponibile</p>
+                                                        ) : (
+                                                            groups.map(g => (
+                                                                <button
+                                                                    key={g.id}
+                                                                    onClick={() => {
+                                                                        setRenameSourceType('group');
+                                                                        setSelectedSourceForRename(g.id);
+                                                                        setRenameStep(2);
+                                                                    }}
+                                                                    className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
+                                                                >
+                                                                    <Folder className="w-6 h-6 text-green-400/60" />
+                                                                    <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{g.name}</span>
+                                                                </button>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* STEP 2: SONG SELECTION */}
+                                        {renameStep === 2 && (
+                                            <div className="flex flex-col gap-2">
+                                                {(() => {
+                                                    const sourceSongs = renameSourceType === 'group'
+                                                        ? (groupSongs[selectedSourceForRename!] || [])
+                                                        : songsDataSongs;
+
+                                                    if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano in questa sorgente</div>;
+
+                                                    return sourceSongs.map((song: Song) => (
+                                                        <button
+                                                            key={song.id}
+                                                            onClick={() => {
+                                                                const key = `${renameSourceType}:${selectedSourceForRename}:${song.id}`;
+                                                                const currentName = renamedSongs[key]?.newName || song.name;
+                                                                setSelectedSongForRename(song);
+                                                                setRenamingName(currentName);
+                                                                setRenameStep(3);
+                                                            }}
+                                                            className="w-full p-4 h-20 rounded-xl bg-[#1a1a1c] border border-white/5 border-b-4 border-black/40 hover:bg-[#252528] text-white/40 hover:text-white transition-all flex items-center justify-between active:translate-y-1 active:border-b-0"
+                                                        >
+                                                            <span className="text-xl font-bold">{renamedSongs[`${renameSourceType}:${selectedSourceForRename}:${song.id}`]?.newName || song.name}</span>
+                                                            <ArrowRight className="w-6 h-6 text-amber-500/50" />
+                                                        </button>
+                                                    ));
+                                                })()}
+                                            </div>
+                                        )}
+
+                                        {/* STEP 3: RENAME INTERFACE */}
+                                        {renameStep === 3 && (
+                                            <div className="flex flex-col gap-6">
+                                                {/* Top Control Bar for Rename Keyboard */}
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex-1 relative">
+                                                        <div className="absolute -inset-1 bg-amber-500/10 blur rounded-2xl" />
+                                                        <input
+                                                            type="text"
+                                                            value={renamingName}
+                                                            readOnly
+                                                            className="relative w-full h-24 bg-black/40 border border-white/10 rounded-[1.5rem] px-10 text-4xl font-black text-white outline-none"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setRenamingName(p => p.slice(0, -1))}
+                                                        className="w-24 h-24 bg-red-900/10 hover:bg-red-900/20 border-t border-red-500/10 border-b-4 border-red-900/60 rounded-[1.5rem] flex items-center justify-center transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-red-500/60"
+                                                    >
+                                                        <Delete className="w-8 h-8" />
+                                                    </button>
+                                                </div>
+
+                                                {/* Virtual Keyboard */}
+                                                <div className="flex flex-col gap-3">
+                                                    {(() => {
+                                                        const rows = keyboardLayout === 'alpha'
+                                                            ? [
+                                                                ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                                                                ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                                ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(k => isUppercase ? k.toUpperCase() : k),
+                                                                ['z', 'x', 'c', 'v', 'b', 'n', 'm', '.', ',', '-'].map(k => isUppercase ? k.toUpperCase() : k)
+                                                            ]
+                                                            : [
+                                                                ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
+                                                                ['_', '+', '=', '{', '}', '[', ']', ':', ';', '|'],
+                                                                ['<', '>', '?', '/', '\\', '`', '~', '\'', '"', '°'],
+                                                                ['¿', '¡', '«', '»', '—', '·', '…', '§', '¶', '©']
+                                                            ];
+                                                        return (
+                                                            <>
+                                                                {rows.map((row, idx) => (
+                                                                    <div key={idx} className="flex gap-2 justify-center">
+                                                                        {row.map(k => (
+                                                                            <button
+                                                                                key={k}
+                                                                                onClick={() => setRenamingName(p => p + k)}
+                                                                                className="flex-1 h-14 bg-white/5 hover:bg-white/10 border-white/5 border-b-4 border-black/40 rounded-xl text-xl font-bold flex items-center justify-center transition-all active:translate-y-1 active:border-b-0"
+                                                                            >
+                                                                                {k === ' ' ? '␣' : k}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                    <div className="flex gap-3 justify-center mt-2">
+                                                        <button
+                                                            onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')}
+                                                            className="w-28 h-20 bg-blue-600/10 hover:bg-blue-600/20 border-t border-blue-500/20 border-b-4 border-blue-900/60 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-blue-400"
+                                                        >
+                                                            {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setIsUppercase(!isUppercase)}
+                                                            className={`w-28 h-20 border-t border-b-4 rounded-2xl text-lg font-black tracking-widest transition-all active:translate-y-1 active:border-b-0 shadow-2xl ${isUppercase
+                                                                ? 'bg-amber-600 text-white border-white/20 border-b-black/50'
+                                                                : 'bg-white/5 text-white/40 border-white/10 border-b-black/40 hover:text-white'}`}
+                                                        >
+                                                            {isUppercase ? 'SHIFT' : 'shift'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setRenamingName(p => p + ' ')}
+                                                            className="flex-[3] h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-sm font-black tracking-[0.5em] transition-all active:translate-y-1 active:border-b-0 shadow-2xl text-white/30 uppercase"
+                                                        >
+                                                            SPAZIO
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setRenameStep(4)}
+                                                            disabled={!renamingName.trim()}
+                                                            className="flex-[1.5] h-20 bg-amber-600 border-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 disabled:opacity-50"
+                                                        >
+                                                            VAI
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* STEP 4: CONFIRMATION */}
+                                        {renameStep === 4 && (
+                                            <div className="flex flex-col items-center justify-center gap-10 py-10">
+                                                <div className="text-center space-y-4">
+                                                    <p className="text-xs font-black uppercase tracking-[0.4em] text-white/20">Conferma rinomina</p>
+                                                    <div className="flex items-center gap-8">
+                                                        <div className="p-8 bg-white/5 border border-white/10 rounded-3xl">
+                                                            <p className="text-xs text-white/30 font-bold uppercase mb-2">Originale</p>
+                                                            <p className="text-2xl font-black text-white/60 line-through">
+                                                                {selectedSongForRename?.name}
+                                                            </p>
+                                                        </div>
+                                                        <ArrowRight className="w-10 h-10 text-amber-500 animate-pulse" />
+                                                        <div className="p-8 bg-amber-500/10 border border-amber-500/20 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.1)]">
+                                                            <p className="text-xs text-amber-500 font-bold uppercase mb-2">Nuovo</p>
+                                                            <p className="text-4xl font-black text-amber-500">
+                                                                {renamingName}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        if (selectedSongForRename) {
+                                                            const key = `${renameSourceType}:${selectedSourceForRename}:${selectedSongForRename.id}`;
+                                                            setRenamedSongs(prev => ({
+                                                                ...prev,
+                                                                [key]: {
+                                                                    newName: renamingName,
+                                                                    originalName: selectedSongForRename.name
+                                                                }
+                                                            }));
+                                                            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+                                                            setIsRenameModalOpen(false);
+                                                        }
+                                                    }}
+                                                    className="h-24 px-20 bg-amber-600 border border-t-white/20 border-b-8 border-black/50 rounded-[2rem] text-3xl font-black text-white uppercase tracking-tighter hover:brightness-110 active:translate-y-2 active:border-b-0 shadow-2xl transition-all"
+                                                >
+                                                    CONFERMA E SALVA
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Bottom Controls */}
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            onClick={() => {
+                                                if (renameStep === 1) setIsRenameModalOpen(false);
+                                                else setRenameStep(p => (p - 1) as any);
+                                            }}
+                                            className="h-16 px-10 bg-[#1a1a1c] border border-white/10 border-b-4 border-black/40 rounded-2xl font-black text-white/40 uppercase tracking-widest hover:text-white"
+                                        >
+                                            Indietro
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }
+                </AnimatePresence >
+
+                {/* Delete Songs Modal - MULTI STEP */}
+                <AnimatePresence>
+                    {
+                        isDeleteModalOpen && (
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
+                                <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                                <Trash2 className="w-10 h-10 text-red-500" />
+                                                Elimina Brano/i
+                                            </h2>
+                                            <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
+                                                {deleteStep === 1 ? 'Step 1: Sorgente / Gruppo' :
+                                                    deleteStep === 2 ? `Step 2: Seleziona Brani (${selectedSongsForDelete.length})` :
+                                                        'Step 3: Conferma Eliminazione Definitiva'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsDeleteModalOpen(false)}
+                                            className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-full transition-all active:translate-y-1 active:border-b-0"
+                                        >
+                                            <X className="w-7 h-7 text-white/40" />
+                                        </button>
+                                    </div>
+
+                                    {/* Content Area */}
+                                    <div className="flex-1 min-h-[400px] overflow-y-auto custom-scrollbar-hidden bg-white/5 border border-white/10 rounded-[2rem] p-6">
+                                        {/* STEP 1: SOURCE SELECTION */}
+                                        {deleteStep === 1 && (
+                                            <div className="space-y-8">
+                                                <div className="space-y-4">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Sorgenti Fisiche</h3>
+                                                    <div className="grid grid-cols-3 gap-4">
+                                                        {sources.map(s => (
+                                                            <button
+                                                                key={s.id}
+                                                                onClick={() => {
+                                                                    setDeleteSourceType('source');
+                                                                    setSelectedSourceForDelete(s.id);
+                                                                    setDeleteStep(2);
+                                                                }}
+                                                                className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
+                                                            >
+                                                                <Music className="w-6 h-6 text-blue-400/60" />
+                                                                <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-2 text-center">Gruppi Personalizzati</h3>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {groups.length === 0 ? (
+                                                            <p className="col-span-2 text-center text-white/10 italic py-8">Nessun gruppo disponibile</p>
+                                                        ) : (
+                                                            groups.map(g => (
+                                                                <button
+                                                                    key={g.id}
+                                                                    onClick={() => {
+                                                                        setDeleteSourceType('group');
+                                                                        setSelectedSourceForDelete(g.id);
+                                                                        setDeleteStep(2);
+                                                                    }}
+                                                                    className="h-24 bg-[#1a1a1c] hover:bg-[#252528] border border-white/5 border-b-4 border-black/40 rounded-2xl flex items-center justify-center gap-3 transition-all active:translate-y-1 active:border-b-0 group"
+                                                                >
+                                                                    <Folder className="w-6 h-6 text-green-400/60" />
+                                                                    <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{g.name}</span>
+                                                                </button>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* STEP 2: SONG SELECTION */}
+                                        {deleteStep === 2 && (
+                                            <div className="flex flex-col gap-2">
+                                                {(() => {
+                                                    const sourceSongs = deleteSourceType === 'group'
+                                                        ? (groupSongs[selectedSourceForDelete!] || [])
+                                                        : (selectedSourceForDelete === selectedSource ? processedSongs : songsDataSongs);
+
+                                                    if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano in questa sorgente</div>;
+
+                                                    return sourceSongs.map((song: Song) => {
+                                                        const isSelected = selectedSongsForDelete.some(s => s.id === song.id);
+                                                        return (
+                                                            <button
+                                                                key={song.id}
+                                                                onClick={() => {
+                                                                    if (isSelected) {
+                                                                        setSelectedSongsForDelete(prev => prev.filter(s => s.id !== song.id));
+                                                                    } else {
+                                                                        setSelectedSongsForDelete(prev => [...prev, song]);
+                                                                    }
+                                                                }}
+                                                                className={`w-full p-4 h-20 rounded-xl border border-b-4 transition-all flex items-center justify-between ${isSelected
+                                                                    ? 'bg-red-600 border-white/10 border-b-black/50 text-white'
+                                                                    : 'bg-[#1a1a1c] border-white/5 border-b-black/40 text-white/40 hover:text-white'
+                                                                    }`}
+                                                            >
+                                                                <span className="text-xl font-bold">{song.name}</span>
+                                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'border-white/10'
+                                                                    }`}>
+                                                                    {isSelected && <Check className="w-4 h-4 text-red-600" />}
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    });
+                                                })()}
+                                            </div>
+                                        )}
+
+                                        {/* STEP 3: CONFIRMATION */}
+                                        {deleteStep === 3 && (
+                                            <div className="flex flex-col items-center justify-center gap-10 py-10">
+                                                <div className="text-center space-y-4">
+                                                    <div className="w-24 h-24 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                                        <AlertTriangle className="w-12 h-12 text-red-500 animate-pulse" />
+                                                    </div>
+                                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Sei assolutamente sicuro?</h3>
+                                                    <p className="text-white/40 max-w-md mx-auto">
+                                                        Stai per eliminare definitivamente <span className="text-white font-bold">{selectedSongsForDelete.length}</span> brani.
+                                                        Questa azione non può essere annullata.
+                                                    </p>
+                                                    <div className="max-h-48 overflow-y-auto bg-black/40 rounded-2xl p-4 border border-white/5 mt-6">
+                                                        {selectedSongsForDelete.map(s => (
+                                                            <div key={s.id} className="text-sm text-white/60 py-1 border-b border-white/5 last:border-0">{s.name}</div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => deleteSongsMutation.mutate({
+                                                        sourceType: deleteSourceType!,
+                                                        sourceId: selectedSourceForDelete!,
+                                                        songs: selectedSongsForDelete
+                                                    })}
+                                                    disabled={deleteSongsMutation.isPending}
+                                                    className="h-24 px-20 bg-red-600 border border-t-white/20 border-b-8 border-black/50 rounded-[2rem] text-3xl font-black text-white uppercase tracking-tighter hover:brightness-110 active:translate-y-2 active:border-b-0 shadow-2xl transition-all disabled:opacity-50"
+                                                >
+                                                    {deleteSongsMutation.isPending ? 'ELIMINAZIONE...' : 'ELIMINA DEFINITIVAMENTE'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Modal Footer */}
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            onClick={() => {
+                                                if (deleteStep === 1) setIsDeleteModalOpen(false);
+                                                else setDeleteStep(p => (p - 1) as any);
+                                            }}
+                                            className="h-16 px-10 bg-[#1a1a1c] border border-white/10 border-b-4 border-black/40 rounded-2xl font-black text-white/40 uppercase tracking-widest hover:text-white"
+                                        >
+                                            Indietro
+                                        </button>
+                                        {deleteStep === 2 && (
+                                            <button
+                                                disabled={selectedSongsForDelete.length === 0}
+                                                onClick={() => setDeleteStep(3)}
+                                                className="h-16 px-10 bg-red-600 border border-t-white/10 border-b-4 border-black/50 rounded-2xl font-black text-white uppercase tracking-widest active:translate-y-1 active:border-b-0 disabled:opacity-50"
+                                            >
+                                                Procedi ({selectedSongsForDelete.length})
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }
+                </AnimatePresence >
 
                 {/* Delete Group Modal */}
                 <AnimatePresence>
-                    {isDeleteGroupModalOpen && (
-                        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-2xl max-h-[90vh] bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
-                                        <Trash2 className="w-10 h-10 text-red-500" />
-                                        Elimina Gruppo
-                                    </h2>
-                                    <button
-                                        onClick={() => {
-                                            setIsDeleteGroupModalOpen(false);
-                                            setSelectedGroupForAction(null);
-                                        }}
-                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
-                                    >
-                                        <X className="w-7 h-7 text-white/40" />
-                                    </button>
-                                </div>
+                    {
+                        isDeleteGroupModalOpen && (
+                            <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+                                <div className="w-full max-w-2xl max-h-[90vh] bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                            <Trash2 className="w-10 h-10 text-red-500" />
+                                            Elimina Gruppo
+                                        </h2>
+                                        <button
+                                            onClick={() => {
+                                                setIsDeleteGroupModalOpen(false);
+                                                setSelectedGroupForAction(null);
+                                            }}
+                                            className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
+                                        >
+                                            <X className="w-7 h-7 text-white/40" />
+                                        </button>
+                                    </div>
 
-                                <div className="flex-1 min-h-[300px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6">
-                                    {!selectedGroupForAction ? (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {groups.length === 0 ? (
-                                                <p className="col-span-2 text-center text-white/20 italic py-10">Nessun gruppo esistente</p>
-                                            ) : (
-                                                groups.map(g => (
-                                                    <button
-                                                        key={g.id}
-                                                        onClick={() => setSelectedGroupForAction(g)}
-                                                        className="h-24 bg-[#1a1a1c] hover:bg-red-600/20 border border-white/5 hover:border-red-500/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
-                                                    >
-                                                        <Folder className="w-6 h-6 text-red-400/60" />
-                                                        <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
-                                                    </button>
-                                                ))
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center gap-8 py-10 text-center">
-                                            <div className="w-20 h-20 bg-red-600/20 rounded-full flex items-center justify-center">
-                                                <AlertTriangle className="w-10 h-10 text-red-500 animate-pulse" />
+                                    <div className="flex-1 min-h-[300px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6">
+                                        {!selectedGroupForAction ? (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {groups.length === 0 ? (
+                                                    <p className="col-span-2 text-center text-white/20 italic py-10">Nessun gruppo esistente</p>
+                                                ) : (
+                                                    groups.map(g => (
+                                                        <button
+                                                            key={g.id}
+                                                            onClick={() => setSelectedGroupForAction(g)}
+                                                            className="h-24 bg-[#1a1a1c] hover:bg-red-600/20 border border-white/5 hover:border-red-500/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                        >
+                                                            <Folder className="w-6 h-6 text-red-400/60" />
+                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
+                                                        </button>
+                                                    ))
+                                                )}
                                             </div>
-                                            <div className="space-y-4">
-                                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Eliminare definitivamente?</h3>
-                                                <p className="text-white/40 max-w-sm mx-auto">Il gruppo <span className="text-white font-bold">{selectedGroupForAction.name}</span> verrà rimosso per sempre insieme a tutte le sue impostazioni.</p>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center gap-8 py-10 text-center">
+                                                <div className="w-20 h-20 bg-red-600/20 rounded-full flex items-center justify-center">
+                                                    <AlertTriangle className="w-10 h-10 text-red-500 animate-pulse" />
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Eliminare definitivamente?</h3>
+                                                    <p className="text-white/40 max-w-sm mx-auto">Il gruppo <span className="text-white font-bold">{selectedGroupForAction.name}</span> verrà rimosso per sempre insieme a tutte le sue impostazioni.</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => deleteGroupMutation.mutate(selectedGroupForAction.id)}
+                                                    disabled={deleteGroupMutation.isPending}
+                                                    className="h-20 px-12 bg-red-600 border-b-8 border-black/50 rounded-2xl text-xl font-black text-white hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                                >
+                                                    {deleteGroupMutation.isPending ? 'ELIMINAZIONE...' : 'ELIMINA DEFINITIVAMENTE'}
+                                                </button>
+                                                <button
+                                                    onClick={() => setSelectedGroupForAction(null)}
+                                                    className="text-white/20 hover:text-white font-black uppercase tracking-[0.3em] text-[10px]"
+                                                >
+                                                    Indietro alla selezione
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => deleteGroupMutation.mutate(selectedGroupForAction.id)}
-                                                disabled={deleteGroupMutation.isPending}
-                                                className="h-20 px-12 bg-red-600 border-b-8 border-black/50 rounded-2xl text-xl font-black text-white hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
-                                            >
-                                                {deleteGroupMutation.isPending ? 'ELIMINAZIONE...' : 'ELIMINA DEFINITIVAMENTE'}
-                                            </button>
-                                            <button
-                                                onClick={() => setSelectedGroupForAction(null)}
-                                                className="text-white/20 hover:text-white font-black uppercase tracking-[0.3em] text-[10px]"
-                                            >
-                                                Indietro alla selezione
-                                            </button>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                        )
+                    }
+                </AnimatePresence >
 
                 {/* Rename Group Modal */}
                 <AnimatePresence>
-                    {isRenameGroupModalOpen && (
-                        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
-                                        <Pencil className="w-10 h-10 text-amber-500" />
-                                        Rinomina Gruppo
-                                    </h2>
-                                    <button
-                                        onClick={() => {
-                                            setIsRenameGroupModalOpen(false);
-                                            setSelectedGroupForAction(null);
-                                            setRenamingGroupName('');
-                                            setRenameStep(1);
-                                        }}
-                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
-                                    >
-                                        <X className="w-7 h-7 text-white/40" />
-                                    </button>
-                                </div>
+                    {
+                        isRenameGroupModalOpen && (
+                            <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
+                                <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                            <Pencil className="w-10 h-10 text-amber-500" />
+                                            Rinomina Gruppo
+                                        </h2>
+                                        <button
+                                            onClick={() => {
+                                                setIsRenameGroupModalOpen(false);
+                                                setSelectedGroupForAction(null);
+                                                setRenamingGroupName('');
+                                                setRenameStep(1);
+                                            }}
+                                            className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
+                                        >
+                                            <X className="w-7 h-7 text-white/40" />
+                                        </button>
+                                    </div>
 
-                                <div className="flex-1 min-h-[400px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6 custom-scrollbar-hidden">
-                                    {/* STEP 1: SELECT GROUP */}
-                                    {renameStep === 1 && (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {groups.length === 0 ? (
-                                                <p className="col-span-2 text-center text-white/20 italic py-10">Nessun gruppo esistente</p>
-                                            ) : (
-                                                groups.map(g => (
-                                                    <button
-                                                        key={g.id}
-                                                        onClick={() => {
-                                                            setSelectedGroupForAction(g);
-                                                            setRenamingGroupName(g.name);
-                                                            setRenameStep(2);
-                                                        }}
-                                                        className="h-24 bg-[#1a1a1c] hover:bg-amber-600/20 border border-white/5 hover:border-amber-500/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
-                                                    >
-                                                        <Folder className="w-6 h-6 text-amber-400/60" />
-                                                        <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
-                                                    </button>
-                                                ))
-                                            )}
-                                        </div>
-                                    )}
+                                    <div className="flex-1 min-h-[400px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6 custom-scrollbar-hidden">
+                                        {/* STEP 1: SELECT GROUP */}
+                                        {renameStep === 1 && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {groups.length === 0 ? (
+                                                    <p className="col-span-2 text-center text-white/20 italic py-10">Nessun gruppo esistente</p>
+                                                ) : (
+                                                    groups.map(g => (
+                                                        <button
+                                                            key={g.id}
+                                                            onClick={() => {
+                                                                setSelectedGroupForAction(g);
+                                                                setRenamingGroupName(g.name);
+                                                                setRenameStep(2);
+                                                            }}
+                                                            className="h-24 bg-[#1a1a1c] hover:bg-amber-600/20 border border-white/5 hover:border-amber-500/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                        >
+                                                            <Folder className="w-6 h-6 text-amber-400/60" />
+                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
+                                                        </button>
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
 
-                                    {/* STEP 2: EDIT NAME (KEYBOARD) */}
-                                    {renameStep === 2 && (
-                                        <div className="space-y-8 flex flex-col h-full">
-                                            <div className="space-y-4">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20 ml-6">Nuovo nome gruppo</p>
-                                                <div className="relative group">
-                                                    <input
-                                                        type="text"
-                                                        value={renamingGroupName}
-                                                        readOnly
-                                                        className="w-full bg-white/5 border border-white/10 rounded-3xl px-10 h-24 text-4xl font-black text-white tracking-tighter placeholder:text-white/10 focus:outline-none focus:bg-white/10 transition-all border-b-8 border-b-black/40"
-                                                        placeholder="NOME GRUPPO..."
-                                                    />
-                                                    <button
-                                                        onClick={() => setRenamingGroupName(p => p.slice(0, -1))}
-                                                        className="absolute right-4 top-4 bottom-6 w-16 bg-white/5 hover:bg-red-600/20 border border-white/10 rounded-2xl flex items-center justify-center transition-all group-hover:border-red-500/30"
-                                                    >
-                                                        <Delete className="w-8 h-8 text-white/40 group-hover:text-red-500" />
-                                                    </button>
+                                        {/* STEP 2: EDIT NAME (KEYBOARD) */}
+                                        {renameStep === 2 && (
+                                            <div className="space-y-8 flex flex-col h-full">
+                                                <div className="space-y-4">
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20 ml-6">Nuovo nome gruppo</p>
+                                                    <div className="relative group">
+                                                        <input
+                                                            type="text"
+                                                            value={renamingGroupName}
+                                                            readOnly
+                                                            className="w-full bg-white/5 border border-white/10 rounded-3xl px-10 h-24 text-4xl font-black text-white tracking-tighter placeholder:text-white/10 focus:outline-none focus:bg-white/10 transition-all border-b-8 border-b-black/40"
+                                                            placeholder="NOME GRUPPO..."
+                                                        />
+                                                        <button
+                                                            onClick={() => setRenamingGroupName(p => p.slice(0, -1))}
+                                                            className="absolute right-4 top-4 bottom-6 w-16 bg-white/5 hover:bg-red-600/20 border border-white/10 rounded-2xl flex items-center justify-center transition-all group-hover:border-red-500/30"
+                                                        >
+                                                            <Delete className="w-8 h-8 text-white/40 group-hover:text-red-500" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-black/40 p-6 rounded-[2.5rem] border border-white/5 mt-auto">
+                                                    {(() => {
+                                                        const layout = keyboardLayout === 'alpha'
+                                                            ? [
+                                                                ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+                                                                ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+                                                                ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
+                                                            ]
+                                                            : [
+                                                                ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                                                                ['-', '/', ':', ';', '(', ')', '$', '&', '@', '"'],
+                                                                ['.', ',', '?', '!', "'"]
+                                                            ];
+
+                                                        return (
+                                                            <>
+                                                                {layout.map((row, i) => (
+                                                                    <div key={i} className="flex justify-center gap-2 mb-2">
+                                                                        {row.map(key => (
+                                                                            <button
+                                                                                key={key}
+                                                                                onClick={() => setRenamingGroupName(p => p + (isUppercase ? key : key.toLowerCase()))}
+                                                                                className="w-16 h-16 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-xl text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-xl"
+                                                                            >
+                                                                                {isUppercase ? key : key.toLowerCase()}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                    <div className="flex gap-3 justify-center mt-2">
+                                                        <button
+                                                            onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')}
+                                                            className="w-24 h-16 bg-blue-600/10 border border-blue-500/20 rounded-xl text-sm font-black text-blue-400"
+                                                        >
+                                                            {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setIsUppercase(!isUppercase)}
+                                                            className={`w-24 h-16 border rounded-xl text-sm font-black ${isUppercase ? 'bg-amber-600 text-white' : 'bg-white/5 text-white/40'}`}
+                                                        >
+                                                            {isUppercase ? 'SHIFT' : 'shift'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setRenamingGroupName(p => p + ' ')}
+                                                            className="flex-1 h-16 bg-white/5 border border-white/10 rounded-xl text-xs font-black uppercase text-white/30"
+                                                        >
+                                                            SPAZIO
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setRenameStep(3)}
+                                                            disabled={!renamingGroupName.trim()}
+                                                            className="w-32 h-16 bg-amber-600 rounded-xl font-black text-white uppercase disabled:opacity-50"
+                                                        >
+                                                            VAI
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
+                                        )}
 
-                                            <div className="bg-black/40 p-6 rounded-[2.5rem] border border-white/5 mt-auto">
+                                        {/* STEP 3: CONFIRM */}
+                                        {renameStep === 3 && (
+                                            <div className="flex flex-col items-center justify-center gap-12 py-10">
+                                                <div className="text-center space-y-6">
+                                                    <p className="text-xs font-black uppercase tracking-[0.4em] text-white/20">RIEPILOGO MODIFICA</p>
+                                                    <div className="flex items-center gap-8 bg-black/40 p-10 rounded-[3rem] border border-white/5">
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] text-white/20 font-bold uppercase">Originale</p>
+                                                            <p className="text-2xl font-black text-white/40 line-through uppercase">{selectedGroupForAction?.name}</p>
+                                                        </div>
+                                                        <ArrowRight className="w-8 h-8 text-amber-500" />
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] text-amber-500 font-bold uppercase">Nuovo</p>
+                                                            <p className="text-4xl font-black text-amber-500">{renamingGroupName}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => renameGroupMutation.mutate({ id: selectedGroupForAction!.id, name: renamingGroupName })}
+                                                    disabled={renameGroupMutation.isPending}
+                                                    className="h-24 px-20 bg-amber-600 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                                >
+                                                    {renameGroupMutation.isPending ? 'SALVATAGGIO...' : 'CONFERMA E SALVA'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            onClick={() => {
+                                                if (renameStep === 1) setIsRenameGroupModalOpen(false);
+                                                else setRenameStep(p => (p - 1) as any);
+                                            }}
+                                            className="h-16 px-10 bg-[#1a1a1c] border border-white/10 rounded-2xl font-black text-white/40 uppercase hover:text-white"
+                                        >
+                                            Indietro
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }
+                </AnimatePresence >
+
+                {/* Change Tempo Modal */}
+                <AnimatePresence>
+                    {
+                        isChangeTempoModalOpen && (
+                            <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+                                <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                                <Clock className="w-10 h-10 text-purple-500" />
+                                                Cambia Tempo
+                                            </h2>
+                                            <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
+                                                {changeTempoStep === 1 ? 'Step 1: Sorgente' :
+                                                    changeTempoStep === 2 ? 'Step 2: Seleziona Brano' :
+                                                        changeTempoStep === 3 ? 'Step 3: Inserisci BPM' :
+                                                            'Step 4: Conferma'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setIsChangeTempoModalOpen(false);
+                                                setChangeTempoStep(1);
+                                            }}
+                                            className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
+                                        >
+                                            <X className="w-7 h-7 text-white/40" />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex-1 min-h-[400px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6 custom-scrollbar-hidden">
+                                        {/* STEP 1: SOURCE SELECTION */}
+                                        {changeTempoStep === 1 && (
+                                            <div className="space-y-8">
+                                                <div className="space-y-4">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Sorgenti Fisiche</h3>
+                                                    <div className="grid grid-cols-3 gap-4">
+                                                        {sources.map(s => (
+                                                            <button
+                                                                key={s.id}
+                                                                onClick={() => {
+                                                                    setRenameSourceType('source');
+                                                                    setSelectedSourceForRename(s.id);
+                                                                    setChangeTempoStep(2);
+                                                                }}
+                                                                className="h-24 bg-[#1a1a1c] hover:bg-purple-600/10 border border-white/5 hover:border-purple-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                            >
+                                                                <Music className="w-6 h-6 text-blue-400/60" />
+                                                                <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Gruppi Personalizzati</h3>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {groups.map(g => (
+                                                            <button
+                                                                key={g.id}
+                                                                onClick={() => {
+                                                                    setRenameSourceType('group');
+                                                                    setSelectedSourceForRename(g.id);
+                                                                    setChangeTempoStep(2);
+                                                                }}
+                                                                className="h-24 bg-[#1a1a1c] hover:bg-purple-600/10 border border-white/5 hover:border-purple-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                            >
+                                                                <Folder className="w-6 h-6 text-green-400/60" />
+                                                                <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* STEP 2: SONG SELECTION */}
+                                        {changeTempoStep === 2 && (
+                                            <div className="flex flex-col gap-2">
                                                 {(() => {
-                                                    const layout = keyboardLayout === 'alpha'
-                                                        ? [
-                                                            ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-                                                            ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-                                                            ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
-                                                        ]
-                                                        : [
-                                                            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-                                                            ['-', '/', ':', ';', '(', ')', '$', '&', '@', '"'],
-                                                            ['.', ',', '?', '!', "'"]
-                                                        ];
+                                                    const sourceSongs = renameSourceType === 'group'
+                                                        ? (groupSongs[selectedSourceForRename!] || [])
+                                                        : (selectedSourceForRename === selectedSource ? processedSongs : songsDataSongs);
 
-                                                    return (
-                                                        <>
-                                                            {layout.map((row, i) => (
-                                                                <div key={i} className="flex justify-center gap-2 mb-2">
+                                                    if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano trovato</div>;
+
+                                                    return sourceSongs.map((song: Song) => (
+                                                        <button
+                                                            key={song.id}
+                                                            onClick={() => {
+                                                                setSelectedSongForRename(song);
+                                                                setChangeTempoStep(3);
+                                                            }}
+                                                            className="w-full p-4 h-20 bg-[#1a1a1c] border border-white/5 hover:border-purple-500/20 rounded-xl transition-all flex items-center justify-between group"
+                                                        >
+                                                            <span className="text-xl font-bold text-white/40 group-hover:text-white transition-colors">{song.name}</span>
+                                                            <ArrowRight className="w-5 h-5 text-white/10 group-hover:text-purple-500" />
+                                                        </button>
+                                                    ));
+                                                })()}
+                                            </div>
+                                        )}
+
+                                        {/* STEP 3: TEMPO INPUT (NUMPAD) */}
+                                        {changeTempoStep === 3 && (
+                                            <div className="flex flex-col items-center gap-10">
+                                                <div className="space-y-4 w-full max-w-md">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-white/20 text-center">Inserisci BPM</p>
+                                                    <div className="bg-black/40 border border-white/10 rounded-[2.5rem] p-8 text-center relative overflow-hidden">
+                                                        <div className="absolute inset-0 bg-purple-600/5 animate-pulse" />
+                                                        <span className="text-8xl font-black text-white tracking-tighter relative z-10">
+                                                            {tempoValue || '0'}
+                                                            <span className="text-2xl text-purple-500 ml-4 font-black">BPM</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-3 gap-4 w-full max-w-md">
+                                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
+                                                        <button
+                                                            key={n}
+                                                            onClick={() => setTempoValue(p => p.length < 5 ? p + n.toString() : p)}
+                                                            className="h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-2xl font-black text-white transition-all active:translate-y-1 active:border-b-0"
+                                                        >
+                                                            {n}
+                                                        </button>
+                                                    ))}
+                                                    <button
+                                                        onClick={() => setTempoValue(p => p.slice(0, -1))}
+                                                        className="h-20 bg-red-600/10 hover:bg-red-600/20 border-t border-red-500/20 border-b-4 border-black/40 rounded-2xl flex items-center justify-center transition-all group"
+                                                    >
+                                                        <Delete className="w-8 h-8 text-red-500/60 group-hover:text-red-500" />
+                                                    </button>
+                                                </div>
+
+                                                <button
+                                                    disabled={!tempoValue || isNaN(parseFloat(tempoValue))}
+                                                    onClick={() => setChangeTempoStep(4)}
+                                                    className="w-full max-w-md h-20 bg-purple-600 border-b-8 border-black/50 rounded-2xl text-2xl font-black text-white hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                                >
+                                                    PROSEGUI
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* STEP 4: CONFIRM */}
+                                        {changeTempoStep === 4 && (
+                                            <div className="flex flex-col items-center justify-center gap-12 py-10">
+                                                <div className="text-center space-y-8">
+                                                    <div className="w-24 h-24 bg-purple-600/10 rounded-full flex items-center justify-center mx-auto ring-8 ring-purple-600/5">
+                                                        <Clock className="w-12 h-12 text-purple-500" />
+                                                    </div>
+                                                    <div className="space-y-4">
+                                                        <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Conferma nuovo tempo</h3>
+                                                        <p className="text-white/40">Aggiornamento tempo per <span className="text-white font-bold">{selectedSongForRename?.name}</span></p>
+                                                    </div>
+                                                    <div className="text-7xl font-black text-purple-500 bg-black/40 px-12 py-8 rounded-[3rem] border border-white/5 inline-block">
+                                                        {tempoValue} <span className="text-xl opacity-50">BPM</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => changeTempoMutation.mutate({ id: selectedSongForRename!.id, tempo: parseFloat(tempoValue) })}
+                                                    disabled={changeTempoMutation.isPending}
+                                                    className="h-24 px-20 bg-purple-600 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                                >
+                                                    {changeTempoMutation.isPending ? 'SALVATAGGIO...' : 'CONFERMA E APPLICA'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            onClick={() => {
+                                                if (changeTempoStep === 1) setIsChangeTempoModalOpen(false);
+                                                else setChangeTempoStep(p => (p - 1) as any);
+                                            }}
+                                            className="h-16 px-10 bg-[#1a1a1c] border border-white/10 rounded-2xl font-black text-white/40 uppercase hover:text-white"
+                                        >
+                                            Indietro
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }
+                </AnimatePresence >
+
+                {/* Change Metadata Modal */}
+                <AnimatePresence>
+                    {
+                        isChangeMetadataModalOpen && (
+                            <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+                                <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                                <FileEdit className="w-10 h-10 text-cyan-500" />
+                                                Cambia Dati Brano
+                                            </h2>
+                                            <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
+                                                {changeMetadataStep === 1 ? 'Step 1: Sorgente' :
+                                                    changeMetadataStep === 2 ? 'Step 2: Brano' :
+                                                        changeMetadataStep === 3 ? 'Step 3: Modifica Dati' :
+                                                            'Step 4: Conferma'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setIsChangeMetadataModalOpen(false);
+                                                setChangeMetadataStep(1);
+                                            }}
+                                            className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
+                                        >
+                                            <X className="w-7 h-7 text-white/40" />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex-1 min-h-[400px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6 custom-scrollbar-hidden">
+                                        {/* STEP 1: SOURCE SELECTION */}
+                                        {changeMetadataStep === 1 && (
+                                            <div className="space-y-8">
+                                                <div className="space-y-4">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Sorgenti Fisiche</h3>
+                                                    <div className="grid grid-cols-3 gap-4">
+                                                        {sources.map(s => (
+                                                            <button
+                                                                key={s.id}
+                                                                onClick={() => {
+                                                                    setRenameSourceType('source');
+                                                                    setSelectedSourceForRename(s.id);
+                                                                    setChangeMetadataStep(2);
+                                                                }}
+                                                                className="h-24 bg-[#1a1a1c] hover:bg-cyan-600/10 border border-white/5 hover:border-cyan-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                            >
+                                                                <Music className="w-6 h-6 text-blue-400/60" />
+                                                                <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Gruppi Personalizzati</h3>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {groups.map(g => (
+                                                            <button
+                                                                key={g.id}
+                                                                onClick={() => {
+                                                                    setRenameSourceType('group');
+                                                                    setSelectedSourceForRename(g.id);
+                                                                    setChangeMetadataStep(2);
+                                                                }}
+                                                                className="h-24 bg-[#1a1a1c] hover:bg-cyan-600/10 border border-white/5 hover:border-cyan-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                            >
+                                                                <Folder className="w-6 h-6 text-green-400/60" />
+                                                                <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* STEP 2: SONG SELECTION */}
+                                        {changeMetadataStep === 2 && (
+                                            <div className="flex flex-col gap-2">
+                                                {(() => {
+                                                    const sourceSongs = renameSourceType === 'group'
+                                                        ? (groupSongs[selectedSourceForRename!] || [])
+                                                        : (selectedSourceForRename === selectedSource ? processedSongs : songsDataSongs);
+
+                                                    if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano trovato</div>;
+
+                                                    return sourceSongs.map((song: Song) => (
+                                                        <button
+                                                            key={song.id}
+                                                            onClick={() => {
+                                                                setSelectedSongForRename(song);
+                                                                setMetadataForm({
+                                                                    title: song.name,
+                                                                    artist: (song as any).artist || '',
+                                                                    album: (song as any).album || ''
+                                                                });
+                                                                setChangeMetadataStep(3);
+                                                            }}
+                                                            className="w-full p-4 h-20 bg-[#1a1a1c] border border-white/5 hover:border-cyan-500/20 rounded-xl transition-all flex items-center justify-between group"
+                                                        >
+                                                            <span className="text-xl font-bold text-white/40 group-hover:text-white transition-colors">{song.name}</span>
+                                                            <ArrowRight className="w-5 h-5 text-white/10 group-hover:text-cyan-500" />
+                                                        </button>
+                                                    ));
+                                                })()}
+                                            </div>
+                                        )}
+
+                                        {/* STEP 3: FORM & KEYBOARD */}
+                                        {changeMetadataStep === 3 && (
+                                            <div className="space-y-8 flex flex-col h-full">
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    {[
+                                                        { id: 'title', label: 'Titolo Brano', value: metadataForm.title },
+                                                        { id: 'artist', label: 'Artista', value: metadataForm.artist },
+                                                        { id: 'album', label: 'Album', value: metadataForm.album },
+                                                    ].map(field => (
+                                                        <div key={field.id} className="space-y-1">
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 ml-6">{field.label}</p>
+                                                            <button
+                                                                onClick={() => setActiveMetadataField(field.id as any)}
+                                                                className={`w-full bg-white/5 border rounded-3xl px-8 h-16 text-xl font-black text-left flex items-center justify-between transition-all ${activeMetadataField === field.id ? 'border-cyan-500 bg-cyan-500/10 text-white' : 'border-white/10 text-white/40'}`}
+                                                            >
+                                                                <span className="truncate">{field.value || `Inserisci ${field.label.toLowerCase()}...`}</span>
+                                                                {activeMetadataField === field.id && <div className="w-2 h-8 bg-cyan-500 animate-pulse rounded-full" />}
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {activeMetadataField && (
+                                                    <div className="bg-black/40 p-6 rounded-[2.5rem] border border-white/5 mt-auto">
+                                                        {(() => {
+                                                            const layout = keyboardLayout === 'alpha'
+                                                                ? [['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'], ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'], ['Z', 'X', 'C', 'V', 'B', 'N', 'M']]
+                                                                : [['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], ['-', '/', ':', ';', '(', ')', '$', '&', '@', '"'], ['.', ',', '?', '!', "'"]];
+
+                                                            return layout.map((row, i) => (
+                                                                <div key={i} className="flex justify-center gap-1.5 mb-1.5">
                                                                     {row.map(key => (
                                                                         <button
                                                                             key={key}
-                                                                            onClick={() => setRenamingGroupName(p => p + (isUppercase ? key : key.toLowerCase()))}
-                                                                            className="w-16 h-16 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-xl text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-xl"
+                                                                            onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p] + (isUppercase ? key : key.toLowerCase()) }))}
+                                                                            className="w-14 h-14 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-xl text-xl font-black transition-all active:translate-y-1 active:border-b-0"
                                                                         >
                                                                             {isUppercase ? key : key.toLowerCase()}
                                                                         </button>
                                                                     ))}
                                                                 </div>
-                                                            ))}
-                                                        </>
-                                                    );
-                                                })()}
-                                                <div className="flex gap-3 justify-center mt-2">
-                                                    <button
-                                                        onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')}
-                                                        className="w-24 h-16 bg-blue-600/10 border border-blue-500/20 rounded-xl text-sm font-black text-blue-400"
-                                                    >
-                                                        {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setIsUppercase(!isUppercase)}
-                                                        className={`w-24 h-16 border rounded-xl text-sm font-black ${isUppercase ? 'bg-amber-600 text-white' : 'bg-white/5 text-white/40'}`}
-                                                    >
-                                                        {isUppercase ? 'SHIFT' : 'shift'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setRenamingGroupName(p => p + ' ')}
-                                                        className="flex-1 h-16 bg-white/5 border border-white/10 rounded-xl text-xs font-black uppercase text-white/30"
-                                                    >
-                                                        SPAZIO
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setRenameStep(3)}
-                                                        disabled={!renamingGroupName.trim()}
-                                                        className="w-32 h-16 bg-amber-600 rounded-xl font-black text-white uppercase disabled:opacity-50"
-                                                    >
-                                                        VAI
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* STEP 3: CONFIRM */}
-                                    {renameStep === 3 && (
-                                        <div className="flex flex-col items-center justify-center gap-12 py-10">
-                                            <div className="text-center space-y-6">
-                                                <p className="text-xs font-black uppercase tracking-[0.4em] text-white/20">RIEPILOGO MODIFICA</p>
-                                                <div className="flex items-center gap-8 bg-black/40 p-10 rounded-[3rem] border border-white/5">
-                                                    <div className="space-y-1">
-                                                        <p className="text-[10px] text-white/20 font-bold uppercase">Originale</p>
-                                                        <p className="text-2xl font-black text-white/40 line-through uppercase">{selectedGroupForAction?.name}</p>
+                                                            ));
+                                                        })()}
+                                                        <div className="flex gap-2 justify-center mt-2">
+                                                            <button onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')} className="w-20 h-14 bg-blue-600/10 border border-blue-500/20 rounded-xl text-xs font-black text-blue-400">?123</button>
+                                                            <button onClick={() => setIsUppercase(!isUppercase)} className={`w-20 h-14 border rounded-xl text-xs font-black ${isUppercase ? 'bg-amber-600 text-white' : 'bg-white/5 text-white/40'}`}>{isUppercase ? 'SHIFT' : 'shift'}</button>
+                                                            <button onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p].slice(0, -1) }))} className="w-20 h-14 bg-red-600/10 border border-red-500/20 rounded-xl flex items-center justify-center"><Delete className="w-6 h-6 text-red-500" /></button>
+                                                            <button onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p] + ' ' }))} className="flex-1 h-14 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-white/30">SPAZIO</button>
+                                                            <button onClick={() => setChangeMetadataStep(4)} className="w-24 h-14 bg-cyan-600 rounded-xl font-black text-white text-xs uppercase">FINE</button>
+                                                        </div>
                                                     </div>
-                                                    <ArrowRight className="w-8 h-8 text-amber-500" />
-                                                    <div className="space-y-1">
-                                                        <p className="text-[10px] text-amber-500 font-bold uppercase">Nuovo</p>
-                                                        <p className="text-4xl font-black text-amber-500">{renamingGroupName}</p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* STEP 4: CONFIRM */}
+                                        {changeMetadataStep === 4 && (
+                                            <div className="flex flex-col items-center justify-center gap-10 py-10">
+                                                <div className="text-center space-y-6 w-full">
+                                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Conferma Nuovi Dati</h3>
+                                                    <div className="max-w-md mx-auto bg-black/40 p-8 rounded-[3rem] border border-white/5 space-y-6">
+                                                        {[
+                                                            { label: 'Titolo', value: metadataForm.title, icon: Music },
+                                                            { label: 'Artista', value: metadataForm.artist, icon: User },
+                                                            { label: 'Album', value: metadataForm.album, icon: Disc },
+                                                        ].map(item => (
+                                                            <div key={item.label} className="flex items-center gap-4 text-left">
+                                                                <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-cyan-500">
+                                                                    <item.icon className="w-5 h-5" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-[10px] font-bold text-white/20 uppercase">{item.label}</p>
+                                                                    <p className="text-xl font-black text-white truncate">{item.value || '---'}</p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <button
-                                                onClick={() => renameGroupMutation.mutate({ id: selectedGroupForAction!.id, name: renamingGroupName })}
-                                                disabled={renameGroupMutation.isPending}
-                                                className="h-24 px-20 bg-amber-600 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
-                                            >
-                                                {renameGroupMutation.isPending ? 'SALVATAGGIO...' : 'CONFERMA E SALVA'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <button
-                                        onClick={() => {
-                                            if (renameStep === 1) setIsRenameGroupModalOpen(false);
-                                            else setRenameStep(p => (p - 1) as any);
-                                        }}
-                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 rounded-2xl font-black text-white/40 uppercase hover:text-white"
-                                    >
-                                        Indietro
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </AnimatePresence>
-
-                {/* Change Tempo Modal */}
-                <AnimatePresence>
-                    {isChangeTempoModalOpen && (
-                        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
-                                            <Clock className="w-10 h-10 text-purple-500" />
-                                            Cambia Tempo
-                                        </h2>
-                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
-                                            {changeTempoStep === 1 ? 'Step 1: Sorgente' :
-                                                changeTempoStep === 2 ? 'Step 2: Seleziona Brano' :
-                                                    changeTempoStep === 3 ? 'Step 3: Inserisci BPM' :
-                                                        'Step 4: Conferma'}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            setIsChangeTempoModalOpen(false);
-                                            setChangeTempoStep(1);
-                                        }}
-                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
-                                    >
-                                        <X className="w-7 h-7 text-white/40" />
-                                    </button>
-                                </div>
-
-                                <div className="flex-1 min-h-[400px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6 custom-scrollbar-hidden">
-                                    {/* STEP 1: SOURCE SELECTION */}
-                                    {changeTempoStep === 1 && (
-                                        <div className="space-y-8">
-                                            <div className="space-y-4">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Sorgenti Fisiche</h3>
-                                                <div className="grid grid-cols-3 gap-4">
-                                                    {sources.map(s => (
-                                                        <button
-                                                            key={s.id}
-                                                            onClick={() => {
-                                                                setRenameSourceType('source');
-                                                                setSelectedSourceForRename(s.id);
-                                                                setChangeTempoStep(2);
-                                                            }}
-                                                            className="h-24 bg-[#1a1a1c] hover:bg-purple-600/10 border border-white/5 hover:border-purple-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
-                                                        >
-                                                            <Music className="w-6 h-6 text-blue-400/60" />
-                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Gruppi Personalizzati</h3>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    {groups.map(g => (
-                                                        <button
-                                                            key={g.id}
-                                                            onClick={() => {
-                                                                setRenameSourceType('group');
-                                                                setSelectedSourceForRename(g.id);
-                                                                setChangeTempoStep(2);
-                                                            }}
-                                                            className="h-24 bg-[#1a1a1c] hover:bg-purple-600/10 border border-white/5 hover:border-purple-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
-                                                        >
-                                                            <Folder className="w-6 h-6 text-green-400/60" />
-                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* STEP 2: SONG SELECTION */}
-                                    {changeTempoStep === 2 && (
-                                        <div className="flex flex-col gap-2">
-                                            {(() => {
-                                                const sourceSongs = renameSourceType === 'group'
-                                                    ? (groupSongs[selectedSourceForRename!] || [])
-                                                    : (selectedSourceForRename === selectedSource ? processedSongs : songsDataSongs);
-
-                                                if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano trovato</div>;
-
-                                                return sourceSongs.map((song: Song) => (
-                                                    <button
-                                                        key={song.id}
-                                                        onClick={() => {
-                                                            setSelectedSongForRename(song);
-                                                            setChangeTempoStep(3);
-                                                        }}
-                                                        className="w-full p-4 h-20 bg-[#1a1a1c] border border-white/5 hover:border-purple-500/20 rounded-xl transition-all flex items-center justify-between group"
-                                                    >
-                                                        <span className="text-xl font-bold text-white/40 group-hover:text-white transition-colors">{song.name}</span>
-                                                        <ArrowRight className="w-5 h-5 text-white/10 group-hover:text-purple-500" />
-                                                    </button>
-                                                ));
-                                            })()}
-                                        </div>
-                                    )}
-
-                                    {/* STEP 3: TEMPO INPUT (NUMPAD) */}
-                                    {changeTempoStep === 3 && (
-                                        <div className="flex flex-col items-center gap-10">
-                                            <div className="space-y-4 w-full max-w-md">
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-white/20 text-center">Inserisci BPM</p>
-                                                <div className="bg-black/40 border border-white/10 rounded-[2.5rem] p-8 text-center relative overflow-hidden">
-                                                    <div className="absolute inset-0 bg-purple-600/5 animate-pulse" />
-                                                    <span className="text-8xl font-black text-white tracking-tighter relative z-10">
-                                                        {tempoValue || '0'}
-                                                        <span className="text-2xl text-purple-500 ml-4 font-black">BPM</span>
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-3 gap-4 w-full max-w-md">
-                                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
-                                                    <button
-                                                        key={n}
-                                                        onClick={() => setTempoValue(p => p.length < 5 ? p + n.toString() : p)}
-                                                        className="h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-2xl font-black text-white transition-all active:translate-y-1 active:border-b-0"
-                                                    >
-                                                        {n}
-                                                    </button>
-                                                ))}
                                                 <button
-                                                    onClick={() => setTempoValue(p => p.slice(0, -1))}
-                                                    className="h-20 bg-red-600/10 hover:bg-red-600/20 border-t border-red-500/20 border-b-4 border-black/40 rounded-2xl flex items-center justify-center transition-all group"
+                                                    onClick={() => changeMetadataMutation.mutate({ id: selectedSongForRename!.id, metadata: metadataForm })}
+                                                    disabled={changeMetadataMutation.isPending}
+                                                    className="h-24 px-20 bg-cyan-600 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
                                                 >
-                                                    <Delete className="w-8 h-8 text-red-500/60 group-hover:text-red-500" />
+                                                    {changeMetadataMutation.isPending ? 'SALVATAGGIO...' : 'CONFERMA E SALVA'}
                                                 </button>
                                             </div>
-
-                                            <button
-                                                disabled={!tempoValue || isNaN(parseFloat(tempoValue))}
-                                                onClick={() => setChangeTempoStep(4)}
-                                                className="w-full max-w-md h-20 bg-purple-600 border-b-8 border-black/50 rounded-2xl text-2xl font-black text-white hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
-                                            >
-                                                PROSEGUI
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* STEP 4: CONFIRM */}
-                                    {changeTempoStep === 4 && (
-                                        <div className="flex flex-col items-center justify-center gap-12 py-10">
-                                            <div className="text-center space-y-8">
-                                                <div className="w-24 h-24 bg-purple-600/10 rounded-full flex items-center justify-center mx-auto ring-8 ring-purple-600/5">
-                                                    <Clock className="w-12 h-12 text-purple-500" />
-                                                </div>
-                                                <div className="space-y-4">
-                                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Conferma nuovo tempo</h3>
-                                                    <p className="text-white/40">Aggiornamento tempo per <span className="text-white font-bold">{selectedSongForRename?.name}</span></p>
-                                                </div>
-                                                <div className="text-7xl font-black text-purple-500 bg-black/40 px-12 py-8 rounded-[3rem] border border-white/5 inline-block">
-                                                    {tempoValue} <span className="text-xl opacity-50">BPM</span>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => changeTempoMutation.mutate({ id: selectedSongForRename!.id, tempo: parseFloat(tempoValue) })}
-                                                disabled={changeTempoMutation.isPending}
-                                                className="h-24 px-20 bg-purple-600 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
-                                            >
-                                                {changeTempoMutation.isPending ? 'SALVATAGGIO...' : 'CONFERMA E APPLICA'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <button
-                                        onClick={() => {
-                                            if (changeTempoStep === 1) setIsChangeTempoModalOpen(false);
-                                            else setChangeTempoStep(p => (p - 1) as any);
-                                        }}
-                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 rounded-2xl font-black text-white/40 uppercase hover:text-white"
-                                    >
-                                        Indietro
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </AnimatePresence>
-
-                {/* Change Metadata Modal */}
-                <AnimatePresence>
-                    {isChangeMetadataModalOpen && (
-                        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-                            <div className="w-full max-w-4xl max-h-[90vh] bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
-                                            <FileEdit className="w-10 h-10 text-cyan-500" />
-                                            Cambia Dati Brano
-                                        </h2>
-                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
-                                            {changeMetadataStep === 1 ? 'Step 1: Sorgente' :
-                                                changeMetadataStep === 2 ? 'Step 2: Brano' :
-                                                    changeMetadataStep === 3 ? 'Step 3: Modifica Dati' :
-                                                        'Step 4: Conferma'}
-                                        </p>
+                                        )}
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            setIsChangeMetadataModalOpen(false);
-                                            setChangeMetadataStep(1);
-                                        }}
-                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
-                                    >
-                                        <X className="w-7 h-7 text-white/40" />
-                                    </button>
-                                </div>
 
-                                <div className="flex-1 min-h-[400px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6 custom-scrollbar-hidden">
-                                    {/* STEP 1: SOURCE SELECTION */}
-                                    {changeMetadataStep === 1 && (
-                                        <div className="space-y-8">
-                                            <div className="space-y-4">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Sorgenti Fisiche</h3>
-                                                <div className="grid grid-cols-3 gap-4">
-                                                    {sources.map(s => (
-                                                        <button
-                                                            key={s.id}
-                                                            onClick={() => {
-                                                                setRenameSourceType('source');
-                                                                setSelectedSourceForRename(s.id);
-                                                                setChangeMetadataStep(2);
-                                                            }}
-                                                            className="h-24 bg-[#1a1a1c] hover:bg-cyan-600/10 border border-white/5 hover:border-cyan-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
-                                                        >
-                                                            <Music className="w-6 h-6 text-blue-400/60" />
-                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Gruppi Personalizzati</h3>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    {groups.map(g => (
-                                                        <button
-                                                            key={g.id}
-                                                            onClick={() => {
-                                                                setRenameSourceType('group');
-                                                                setSelectedSourceForRename(g.id);
-                                                                setChangeMetadataStep(2);
-                                                            }}
-                                                            className="h-24 bg-[#1a1a1c] hover:bg-cyan-600/10 border border-white/5 hover:border-cyan-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
-                                                        >
-                                                            <Folder className="w-6 h-6 text-green-400/60" />
-                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* STEP 2: SONG SELECTION */}
-                                    {changeMetadataStep === 2 && (
-                                        <div className="flex flex-col gap-2">
-                                            {(() => {
-                                                const sourceSongs = renameSourceType === 'group'
-                                                    ? (groupSongs[selectedSourceForRename!] || [])
-                                                    : (selectedSourceForRename === selectedSource ? processedSongs : songsDataSongs);
-
-                                                if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano trovato</div>;
-
-                                                return sourceSongs.map((song: Song) => (
-                                                    <button
-                                                        key={song.id}
-                                                        onClick={() => {
-                                                            setSelectedSongForRename(song);
-                                                            setMetadataForm({
-                                                                title: song.name,
-                                                                artist: (song as any).artist || '',
-                                                                album: (song as any).album || ''
-                                                            });
-                                                            setChangeMetadataStep(3);
-                                                        }}
-                                                        className="w-full p-4 h-20 bg-[#1a1a1c] border border-white/5 hover:border-cyan-500/20 rounded-xl transition-all flex items-center justify-between group"
-                                                    >
-                                                        <span className="text-xl font-bold text-white/40 group-hover:text-white transition-colors">{song.name}</span>
-                                                        <ArrowRight className="w-5 h-5 text-white/10 group-hover:text-cyan-500" />
-                                                    </button>
-                                                ));
-                                            })()}
-                                        </div>
-                                    )}
-
-                                    {/* STEP 3: FORM & KEYBOARD */}
-                                    {changeMetadataStep === 3 && (
-                                        <div className="space-y-8 flex flex-col h-full">
-                                            <div className="grid grid-cols-1 gap-4">
-                                                {[
-                                                    { id: 'title', label: 'Titolo Brano', value: metadataForm.title },
-                                                    { id: 'artist', label: 'Artista', value: metadataForm.artist },
-                                                    { id: 'album', label: 'Album', value: metadataForm.album },
-                                                ].map(field => (
-                                                    <div key={field.id} className="space-y-1">
-                                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 ml-6">{field.label}</p>
-                                                        <button
-                                                            onClick={() => setActiveMetadataField(field.id as any)}
-                                                            className={`w-full bg-white/5 border rounded-3xl px-8 h-16 text-xl font-black text-left flex items-center justify-between transition-all ${activeMetadataField === field.id ? 'border-cyan-500 bg-cyan-500/10 text-white' : 'border-white/10 text-white/40'}`}
-                                                        >
-                                                            <span className="truncate">{field.value || `Inserisci ${field.label.toLowerCase()}...`}</span>
-                                                            {activeMetadataField === field.id && <div className="w-2 h-8 bg-cyan-500 animate-pulse rounded-full" />}
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {activeMetadataField && (
-                                                <div className="bg-black/40 p-6 rounded-[2.5rem] border border-white/5 mt-auto">
-                                                    {(() => {
-                                                        const layout = keyboardLayout === 'alpha'
-                                                            ? [['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'], ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'], ['Z', 'X', 'C', 'V', 'B', 'N', 'M']]
-                                                            : [['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], ['-', '/', ':', ';', '(', ')', '$', '&', '@', '"'], ['.', ',', '?', '!', "'"]];
-
-                                                        return layout.map((row, i) => (
-                                                            <div key={i} className="flex justify-center gap-1.5 mb-1.5">
-                                                                {row.map(key => (
-                                                                    <button
-                                                                        key={key}
-                                                                        onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p] + (isUppercase ? key : key.toLowerCase()) }))}
-                                                                        className="w-14 h-14 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-xl text-xl font-black transition-all active:translate-y-1 active:border-b-0"
-                                                                    >
-                                                                        {isUppercase ? key : key.toLowerCase()}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        ));
-                                                    })()}
-                                                    <div className="flex gap-2 justify-center mt-2">
-                                                        <button onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')} className="w-20 h-14 bg-blue-600/10 border border-blue-500/20 rounded-xl text-xs font-black text-blue-400">?123</button>
-                                                        <button onClick={() => setIsUppercase(!isUppercase)} className={`w-20 h-14 border rounded-xl text-xs font-black ${isUppercase ? 'bg-amber-600 text-white' : 'bg-white/5 text-white/40'}`}>{isUppercase ? 'SHIFT' : 'shift'}</button>
-                                                        <button onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p].slice(0, -1) }))} className="w-20 h-14 bg-red-600/10 border border-red-500/20 rounded-xl flex items-center justify-center"><Delete className="w-6 h-6 text-red-500" /></button>
-                                                        <button onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p] + ' ' }))} className="flex-1 h-14 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-white/30">SPAZIO</button>
-                                                        <button onClick={() => setChangeMetadataStep(4)} className="w-24 h-14 bg-cyan-600 rounded-xl font-black text-white text-xs uppercase">FINE</button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* STEP 4: CONFIRM */}
-                                    {changeMetadataStep === 4 && (
-                                        <div className="flex flex-col items-center justify-center gap-10 py-10">
-                                            <div className="text-center space-y-6 w-full">
-                                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Conferma Nuovi Dati</h3>
-                                                <div className="max-w-md mx-auto bg-black/40 p-8 rounded-[3rem] border border-white/5 space-y-6">
-                                                    {[
-                                                        { label: 'Titolo', value: metadataForm.title, icon: Music },
-                                                        { label: 'Artista', value: metadataForm.artist, icon: User },
-                                                        { label: 'Album', value: metadataForm.album, icon: Disc },
-                                                    ].map(item => (
-                                                        <div key={item.label} className="flex items-center gap-4 text-left">
-                                                            <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-cyan-500">
-                                                                <item.icon className="w-5 h-5" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[10px] font-bold text-white/20 uppercase">{item.label}</p>
-                                                                <p className="text-xl font-black text-white truncate">{item.value || '---'}</p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => changeMetadataMutation.mutate({ id: selectedSongForRename!.id, metadata: metadataForm })}
-                                                disabled={changeMetadataMutation.isPending}
-                                                className="h-24 px-20 bg-cyan-600 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
-                                            >
-                                                {changeMetadataMutation.isPending ? 'SALVATAGGIO...' : 'CONFERMA E SALVA'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <button
-                                        onClick={() => {
-                                            if (changeMetadataStep === 1) setIsChangeMetadataModalOpen(false);
-                                            else setChangeMetadataStep(p => (p - 1) as any);
-                                        }}
-                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 rounded-2xl font-black text-white/40 uppercase hover:text-white"
-                                    >
-                                        Indietro
-                                    </button>
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            onClick={() => {
+                                                if (changeMetadataStep === 1) setIsChangeMetadataModalOpen(false);
+                                                else setChangeMetadataStep(p => (p - 1) as any);
+                                            }}
+                                            className="h-16 px-10 bg-[#1a1a1c] border border-white/10 rounded-2xl font-black text-white/40 uppercase hover:text-white"
+                                        >
+                                            Indietro
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                        )
+                    }
+                </AnimatePresence >
 
                 {/* OTP Dashboard Overlay - ANIMATED TRANSITION */}
                 <AnimatePresence>
-                    {isOTPDashboardOpen && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.98, filter: "blur(10px)" }}
-                            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                            exit={{ opacity: 0, scale: 0.98, filter: "blur(10px)" }}
-                            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                            className="fixed inset-0 z-[200] bg-[#050505] flex flex-col p-8 md:p-12 overflow-hidden text-white"
-                        >
-                            {/* Background Decorative Glows */}
-                            <div className="absolute top-1/4 -left-20 w-80 h-80 bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
-                            <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
+                    {
+                        isOTPDashboardOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.98, filter: "blur(10px)" }}
+                                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                                exit={{ opacity: 0, scale: 0.98, filter: "blur(10px)" }}
+                                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                className="fixed inset-0 z-[200] bg-[#050505] flex flex-col p-8 md:p-12 overflow-hidden text-white"
+                            >
+                                {/* Background Decorative Glows */}
+                                <div className="absolute top-1/4 -left-20 w-80 h-80 bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+                                <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
 
-                            {/* Top Bar: Navigation & Title Section */}
-                            <div className="flex items-center justify-between mb-8 relative z-10 shrink-0">
-                                <div className="space-y-1">
-                                    <h2 className="text-xl font-black text-white/30 uppercase tracking-[0.4em]">One Touch Player</h2>
-                                    <div className="h-1 w-24 bg-blue-600/50 rounded-full" />
-                                </div>
-
-                                <button
-                                    onClick={() => setIsOTPDashboardOpen(false)}
-                                    className="w-16 h-16 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-2xl active:translate-y-1 active:border-b-0 transition-all shadow-2xl group"
-                                >
-                                    <Undo2 className="w-8 h-8 text-blue-400/80 group-hover:text-blue-400 transition-colors" />
-                                </button>
-                            </div>
-
-                            {/* Main Interaction Area */}
-                            <div className="flex-1 flex gap-10 items-stretch min-h-0 relative z-10 pb-4">
-
-                                {/* LEFT SIDE: Refined Playback Controls */}
-                                <div className="flex-[1.5] flex flex-col gap-6">
-                                    <div className="flex-1 bg-white/[0.02] border border-white/10 rounded-[3rem] p-10 backdrop-blur-3xl shadow-2xl flex flex-col items-center justify-center relative overflow-hidden">
-                                        {/* Center Glow Effect */}
-                                        {playerStatus?.state === 'playing' && (
-                                            <div className="absolute inset-0 bg-blue-600/10 animate-pulse transition-opacity" />
-                                        )}
-
-                                        <div className="relative z-20 flex flex-col items-center gap-10">
-                                            {/* Large Primary Toggle Area */}
-                                            <div className="flex items-center gap-8">
-                                                {playerStatus?.state === 'playing' ? (
-                                                    <button
-                                                        onClick={() => pauseMutation.mutate()}
-                                                        className="w-40 h-40 rounded-full bg-blue-600 bg-clip-padding flex items-center justify-center shadow-[0_10px_30px_rgba(37,99,235,0.3)] border border-white/10 border-b-8 border-b-black/50 active:translate-y-2 active:border-b-0 transition-all hover:brightness-110"
-                                                    >
-                                                        <Pause className="w-20 h-20 text-white fill-white" />
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => playMutation.mutate()}
-                                                        className="w-40 h-40 rounded-full bg-[#1e1e20] flex items-center justify-center shadow-xl border border-white/10 border-b-8 border-white/10 active:translate-y-2 active:border-b-0 transition-all hover:bg-[#252528] group"
-                                                    >
-                                                        <Play className="w-20 h-20 text-blue-400/80 fill-blue-400/5 ml-3 group-hover:text-blue-400 transition-colors" />
-                                                    </button>
-                                                )}
-
-                                                <button
-                                                    onClick={() => stopMutation.mutate()}
-                                                    className="w-32 h-32 rounded-[2.5rem] bg-[#1e1e20] border border-white/10 border-b-8 border-white/10 active:translate-y-2 active:border-b-0 flex items-center justify-center shadow-xl hover:bg-[#252528] transition-all group"
-                                                >
-                                                    <Square className="w-12 h-12 text-red-500 fill-red-500/10 group-hover:text-red-400 group-hover:scale-110 transition-transform" />
-                                                </button>
-                                            </div>
-
-                                            {/* Status Bar */}
-                                            <div className={`px-10 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.5em] border ${playerStatus?.state === 'playing' ? 'bg-green-600/10 text-green-400 border-green-500/30' : playerStatus?.state === 'paused' ? 'bg-amber-600/10 text-amber-400 border-amber-500/30' : 'bg-red-600/10 text-red-500 border-red-500/30'}`}>
-                                                Stato Player: {playerStatus?.state === 'playing' ? 'IN RIPRODUZIONE' : playerStatus?.state === 'paused' ? 'IN PAUSA' : 'FERMO'}
-                                            </div>
-                                        </div>
+                                {/* Top Bar: Navigation & Title Section */}
+                                <div className="flex items-center justify-between mb-8 relative z-10 shrink-0">
+                                    <div className="space-y-1">
+                                        <h2 className="text-xl font-black text-white/30 uppercase tracking-[0.4em]">One Touch Player</h2>
+                                        <div className="h-1 w-24 bg-blue-600/50 rounded-full" />
                                     </div>
-                                </div>
 
-                                {/* RIGHT SIDE: EXACT DASHBOARD FADERS (REPLICATED STYLE) */}
-                                <div className="flex-1 bg-white/[0.02] border border-white/10 rounded-[3rem] px-8 py-8 backdrop-blur-3xl shadow-2xl flex justify-around gap-12">
-                                    {volumeControls.map((ctrl) => {
-                                        const val = pendingVolumes[ctrl.id] ?? controlValues[ctrl.id]?.volume ?? 0;
-                                        const isMuted = controlValues[ctrl.id]?.mute;
-                                        const min = ctrl.min || -96;
-                                        const max = ctrl.max || 12;
-                                        const range = max - min;
-                                        const percent = ((val - min) / range) * 100;
-
-                                        return (
-                                            <div key={`otp-fader-${ctrl.id}`} className="flex flex-col items-center gap-1 h-full">
-                                                {/* Plus Button */}
-                                                <button
-                                                    onClick={() => handleStepVolume(ctrl, 'up')}
-                                                    className="w-12 h-12 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0 text-blue-400"
-                                                >
-                                                    <Plus className="w-5 h-5" />
-                                                </button>
-
-                                                {/* Fader Track */}
-                                                <div className="flex-1 relative w-12 flex flex-col items-center group py-0">
-                                                    {/* Track Slot */}
-                                                    <div className="absolute inset-y-0 w-2.5 bg-black/80 rounded-full border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,1)] overflow-hidden">
-                                                        <div
-                                                            className="absolute bottom-0 w-full bg-gradient-to-t from-blue-600 to-blue-400 opacity-20 blur-[1px]"
-                                                            style={{ height: `${percent}%` }}
-                                                        />
-                                                    </div>
-
-                                                    {/* Fader Cap */}
-                                                    <div
-                                                        className="absolute w-12 h-18 z-20 pointer-events-none"
-                                                        style={{ bottom: `calc(${percent}% - 36px)` }}
-                                                    >
-                                                        <div className="w-full h-full bg-gradient-to-b from-[#444] via-[#1a1a1c] to-[#010101] border border-white/20 shadow-[0_10px_20px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded flex flex-col items-center justify-center">
-                                                            <div className="w-full h-1 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,1)] mb-1" />
-                                                            <div className="flex flex-col gap-0.5 opacity-20 mb-1">
-                                                                <div className="w-4 h-px bg-white" />
-                                                                <div className="w-4 h-px bg-white" />
-                                                                <div className="w-4 h-px bg-white" />
-                                                            </div>
-                                                            <div className="font-mono text-[10px] font-bold text-blue-400">
-                                                                {Math.round(val)}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Interaction Layer (Vertical Range Input) */}
-                                                    <input
-                                                        type="range"
-                                                        min={min}
-                                                        max={max}
-                                                        step={ctrl.step || 0.1}
-                                                        value={val}
-                                                        onChange={(e) => handleSliderChange(ctrl, e)}
-                                                        onMouseUp={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
-                                                        onTouchEnd={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
-                                                        className="absolute inset-x-0 -inset-y-0 opacity-0 cursor-pointer h-full w-[150%] -left-[25%] z-30"
-                                                        style={{
-                                                            appearance: 'slider-vertical' as any,
-                                                            WebkitAppearance: 'slider-vertical' as any,
-                                                            width: '48px',
-                                                        }}
-                                                    />
-                                                </div>
-
-                                                {/* Minus Button */}
-                                                <button
-                                                    onClick={() => handleStepVolume(ctrl, 'down')}
-                                                    className="w-12 h-12 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0 text-blue-400"
-                                                >
-                                                    <Minus className="w-5 h-5" />
-                                                </button>
-
-                                                {/* Mute Button */}
-                                                <button
-                                                    onClick={() => {
-                                                        const muteId = ctrl.second_id || ctrl.id;
-                                                        setControlMutation.mutate({ id: muteId, value: !isMuted });
-                                                        setControlValues(prev => ({
-                                                            ...prev,
-                                                            [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
-                                                        }));
-                                                    }}
-                                                    className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all border shrink-0 border-b-4 active:translate-y-1 active:border-b-0 ${isMuted
-                                                        ? 'bg-red-600 border-red-400 border-b-red-800 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
-                                                        : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-blue-400 hover:border-blue-500 shadow-lg'
-                                                        }`}
-                                                >
-                                                    <VolumeX className="w-6 h-6" />
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Footer Content: Unified Title & Timer */}
-                            <div className="mt-8 flex items-center justify-between gap-12 bg-white/[0.02] border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-3xl shadow-2xl relative z-10 shrink-0">
-
-                                {/* RPT SONG (ICON ONLY) */}
-                                <div className="pr-10 border-r border-white/10">
                                     <button
-                                        onClick={() => {
-                                            const isSong = playerStatus?.repeat_mode === 'song';
-                                            repeatMutation.mutate(isSong ? 'off' : 'one');
-                                        }}
-                                        className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all border-b-4 active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
-                                            ? 'bg-blue-600 bg-clip-padding border-white/10 border-b-black/50 text-white shadow-xl shadow-blue-500/20'
-                                            : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-white/40'
-                                            }`}
+                                        onClick={() => setIsOTPDashboardOpen(false)}
+                                        className="w-16 h-16 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-2xl active:translate-y-1 active:border-b-0 transition-all shadow-2xl group"
                                     >
-                                        <Repeat1 className="w-7 h-7" />
+                                        <Undo2 className="w-8 h-8 text-blue-400/80 group-hover:text-blue-400 transition-colors" />
                                     </button>
                                 </div>
 
-                                {/* Full Single-Row Title Display */}
-                                <div className="flex-1 min-w-0">
-                                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis w-full">
-                                        {playerStatus?.song_title || 'No Media Selected'}
-                                    </h1>
-                                </div>
+                                {/* Main Interaction Area */}
+                                <div className="flex-1 flex gap-10 items-stretch min-h-0 relative z-10 pb-4">
 
-                                {/* Precise Timer - Elegant & Smaller */}
-                                <div className="pl-8 text-right border-l border-white/5">
-                                    <div className="font-mono text-3xl font-medium text-blue-400 tabular-nums tracking-widest opacity-80">
-                                        {formatTime(playerStatus?.current_time)}
+                                    {/* LEFT SIDE: Refined Playback Controls */}
+                                    <div className="flex-[1.5] flex flex-col gap-6">
+                                        <div className="flex-1 bg-white/[0.02] border border-white/10 rounded-[3rem] p-10 backdrop-blur-3xl shadow-2xl flex flex-col items-center justify-center relative overflow-hidden">
+                                            {/* Center Glow Effect */}
+                                            {playerStatus?.state === 'playing' && (
+                                                <div className="absolute inset-0 bg-blue-600/10 animate-pulse transition-opacity" />
+                                            )}
+
+                                            <div className="relative z-20 flex flex-col items-center gap-10">
+                                                {/* Large Primary Toggle Area */}
+                                                <div className="flex items-center gap-8">
+                                                    {playerStatus?.state === 'playing' ? (
+                                                        <button
+                                                            onClick={() => pauseMutation.mutate()}
+                                                            className="w-40 h-40 rounded-full bg-clip-padding flex items-center justify-center shadow-2xl border border-white/10 border-b-8 border-b-black/50 active:translate-y-2 active:border-b-0 transition-all hover:brightness-110"
+                                                            style={{ backgroundColor: highlightColor, boxShadow: `0 10px 30px ${highlightColor}4d` }}
+                                                        >
+                                                            <Pause className="w-20 h-20 text-white fill-white" />
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => playMutation.mutate()}
+                                                            className="w-40 h-40 rounded-full bg-[#1e1e20] flex items-center justify-center shadow-xl border border-white/10 border-b-8 border-white/10 active:translate-y-2 active:border-b-0 transition-all hover:bg-[#252528] group"
+                                                        >
+                                                            <Play className="w-20 h-20 text-blue-400/80 fill-blue-400/5 ml-3 group-hover:text-blue-400 transition-colors" />
+                                                        </button>
+                                                    )}
+
+                                                    <button
+                                                        onClick={() => stopMutation.mutate()}
+                                                        className="w-32 h-32 rounded-[2.5rem] bg-[#1e1e20] border border-white/10 border-b-8 border-white/10 active:translate-y-2 active:border-b-0 flex items-center justify-center shadow-xl hover:bg-[#252528] transition-all group"
+                                                    >
+                                                        <Square className="w-12 h-12 text-red-500 fill-red-500/10 group-hover:text-red-400 group-hover:scale-110 transition-transform" />
+                                                    </button>
+                                                </div>
+
+                                                {/* Status Bar */}
+                                                <div className={`px-10 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.5em] border ${playerStatus?.state === 'playing' ? 'bg-green-600/10 text-green-400 border-green-500/30' : playerStatus?.state === 'paused' ? 'bg-amber-600/10 text-amber-400 border-amber-500/30' : 'bg-red-600/10 text-red-500 border-red-500/30'}`}>
+                                                    Stato Player: {playerStatus?.state === 'playing' ? 'IN RIPRODUZIONE' : playerStatus?.state === 'paused' ? 'IN PAUSA' : 'FERMO'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* RIGHT SIDE: EXACT DASHBOARD FADERS (REPLICATED STYLE) */}
+                                    <div className="flex-1 bg-white/[0.02] border border-white/10 rounded-[3rem] px-8 py-8 backdrop-blur-3xl shadow-2xl flex justify-around gap-12">
+                                        {volumeControls.map((ctrl) => {
+                                            const val = pendingVolumes[ctrl.id] ?? controlValues[ctrl.id]?.volume ?? 0;
+                                            const isMuted = controlValues[ctrl.id]?.mute;
+                                            const min = ctrl.min || -96;
+                                            const max = ctrl.max || 12;
+                                            const range = max - min;
+                                            const percent = ((val - min) / range) * 100;
+
+                                            return (
+                                                <div key={`otp-fader-${ctrl.id}`} className="flex flex-col items-center gap-1 h-full">
+                                                    {/* Plus Button */}
+                                                    <button
+                                                        onClick={() => handleStepVolume(ctrl, 'up')}
+                                                        className="w-12 h-12 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0 text-blue-400"
+                                                    >
+                                                        <Plus className="w-5 h-5" />
+                                                    </button>
+
+                                                    {/* Fader Track */}
+                                                    <div className="flex-1 relative w-12 flex flex-col items-center group py-0">
+                                                        {/* Track Slot */}
+                                                        <div className="absolute inset-y-0 w-2.5 bg-black/80 rounded-full border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,1)] overflow-hidden">
+                                                            <div
+                                                                className="absolute bottom-0 w-full bg-gradient-to-t from-blue-600 to-blue-400 opacity-20 blur-[1px]"
+                                                                style={{ height: `${percent}%` }}
+                                                            />
+                                                        </div>
+
+                                                        {/* Fader Cap */}
+                                                        <div
+                                                            className="absolute w-12 h-18 z-20 pointer-events-none"
+                                                            style={{ bottom: `calc(${percent}% - 36px)` }}
+                                                        >
+                                                            <div className="w-full h-full bg-gradient-to-b from-[#444] via-[#1a1a1c] to-[#010101] border border-white/20 shadow-[0_10px_20px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded flex flex-col items-center justify-center">
+                                                                <div className="w-full h-1 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,1)] mb-1" />
+                                                                <div className="flex flex-col gap-0.5 opacity-20 mb-1">
+                                                                    <div className="w-4 h-px bg-white" />
+                                                                    <div className="w-4 h-px bg-white" />
+                                                                    <div className="w-4 h-px bg-white" />
+                                                                </div>
+                                                                <div className="font-mono text-[10px] font-bold text-blue-400">
+                                                                    {Math.round(val)}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Interaction Layer (Vertical Range Input) */}
+                                                        <input
+                                                            type="range"
+                                                            min={min}
+                                                            max={max}
+                                                            step={ctrl.step || 0.1}
+                                                            value={val}
+                                                            onChange={(e) => handleSliderChange(ctrl, e)}
+                                                            onMouseUp={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
+                                                            onTouchEnd={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
+                                                            className="absolute inset-x-0 -inset-y-0 opacity-0 cursor-pointer h-full w-[150%] -left-[25%] z-30"
+                                                            style={{
+                                                                appearance: 'slider-vertical' as any,
+                                                                WebkitAppearance: 'slider-vertical' as any,
+                                                                width: '48px',
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    {/* Minus Button */}
+                                                    <button
+                                                        onClick={() => handleStepVolume(ctrl, 'down')}
+                                                        className="w-12 h-12 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0 text-blue-400"
+                                                    >
+                                                        <Minus className="w-5 h-5" />
+                                                    </button>
+
+                                                    {/* Mute Button */}
+                                                    <button
+                                                        onClick={() => {
+                                                            const muteId = ctrl.second_id || ctrl.id;
+                                                            setControlMutation.mutate({ id: muteId, value: !isMuted });
+                                                            setControlValues(prev => ({
+                                                                ...prev,
+                                                                [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
+                                                            }));
+                                                        }}
+                                                        className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all border shrink-0 border-b-4 active:translate-y-1 active:border-b-0 ${isMuted
+                                                            ? 'bg-red-600 border-red-400 border-b-red-800 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
+                                                            : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-blue-400 hover:border-blue-500 shadow-lg'
+                                                            }`}
+                                                    >
+                                                        <VolumeX className="w-6 h-6" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+
+                                {/* Footer Content: Unified Title & Timer */}
+                                <div className="mt-8 flex items-center justify-between gap-12 bg-white/[0.02] border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-3xl shadow-2xl relative z-10 shrink-0">
+
+                                    {/* RPT SONG (ICON ONLY) */}
+                                    <div className="pr-10 border-r border-white/10">
+                                        <button
+                                            onClick={() => {
+                                                const isSong = playerStatus?.repeat_mode === 'song';
+                                                repeatMutation.mutate(isSong ? 'off' : 'one');
+                                            }}
+                                            className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all border-b-4 active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
+                                                ? 'bg-clip-padding border-white/10 border-b-black/50 text-white'
+                                                : 'bg-[#1e1e20] hover:bg-[#252528] border-white/10 border-b-white/10 text-white/40'
+                                                }`}
+                                            style={playerStatus?.repeat_mode === 'song' ? { backgroundColor: highlightColor, boxShadow: `0 0 20px ${highlightColor}33` } : {}}
+                                        >
+                                            <Repeat1 className="w-7 h-7" />
+                                        </button>
+                                    </div>
+
+                                    {/* Full Single-Row Title Display */}
+                                    <div className="flex-1 min-w-0">
+                                        <h1 className="text-4xl font-black text-white tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                                            {playerStatus?.song_title || 'No Media Selected'}
+                                        </h1>
+                                    </div>
+
+                                    {/* Precise Timer - Elegant & Smaller */}
+                                    <div className="pl-8 text-right border-l border-white/5">
+                                        <div className="font-mono text-3xl font-medium text-blue-400 tabular-nums tracking-widest opacity-80">
+                                            {formatTime(playerStatus?.current_time)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )
+                    }
+                </AnimatePresence >
                 {/* END of OTP Dashboard Overlay */}
             </div >
         );
@@ -3429,14 +3473,14 @@ export const Players: React.FC = () => {
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
-                                    className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none"
+                                    className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-white/5 border-b-4 border-b-black text-gray-600 dark:text-gray-400 font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all active:translate-y-1 active:border-b-0 disabled:opacity-30 disabled:pointer-events-none"
                                 >
                                     Previous
                                 </button>
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages}
-                                    className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none"
+                                    className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-white/5 border-b-4 border-b-black text-gray-600 dark:text-gray-400 font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all active:translate-y-1 active:border-b-0 disabled:opacity-30 disabled:pointer-events-none"
                                 >
                                     Next
                                 </button>

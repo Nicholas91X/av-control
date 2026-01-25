@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { Check, User, Music, Save, Loader2 } from 'lucide-react';
 
 interface Preset {
@@ -123,10 +124,11 @@ export const Scenario: React.FC = () => {
             onClick={onClick}
             disabled={isLoading}
             className={`
-                relative group flex items-center justify-between p-4 md:p-5 rounded-2xl transition-all duration-300
-                border-2 ${isActive
-                    ? 'bg-green-500/10 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.1)] scale-[1.01]'
-                    : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10 active:scale-95'}
+                relative group flex items-center justify-between p-4 md:p-5 rounded-3xl transition-all duration-300
+                border-t-2 border-t-white/20 border-x border-x-white/10 border-b-[10px] ${isActive
+                    ? 'bg-green-600/20 border-green-500/50 border-b-green-950'
+                    : 'bg-[#2a2a2e] border-b-[#111114] shadow-2xl'}
+                active:translate-y-2 active:border-b-4
                 ${isNarrow ? 'w-full' : 'flex-1'}
             `}
         >
@@ -142,18 +144,16 @@ export const Scenario: React.FC = () => {
                 <Check size={28} className="text-green-400" />
             ) : null}
 
-            {/* Subtle inner glow for active state */}
-            {isActive && (
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-green-500/5 to-transparent pointer-events-none" />
-            )}
         </button>
     );
 
+    const { backgroundColor } = useSettings();
+
     return (
-        <div className="fixed inset-0 bg-black text-white p-6 md:p-12 font-sans overflow-hidden flex flex-col">
-            {/* Background Light Effect */}
-            <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-green-500/5 blur-[120px] rounded-full pointer-events-none" />
+        <div
+            className="fixed inset-0 bg-black text-gray-900 dark:text-white p-6 md:p-12 font-sans overflow-hidden flex flex-col transition-colors duration-500"
+            style={{ backgroundColor: backgroundColor }}
+        >
 
             {/* Header */}
             <div className="flex items-center justify-center mb-12 z-10 relative">

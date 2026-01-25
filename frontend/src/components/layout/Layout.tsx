@@ -17,6 +17,7 @@ import { Button } from '../ui/Button';
 import { WebSocketStatus } from '../WebSocketStatus';
 import { VersionDisplay } from './VersionDisplay';
 import { useIsTablet } from '../../hooks/useIsTablet';
+import { useSettings } from '../../context/SettingsContext';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -27,6 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const isTablet = useIsTablet();
+    const { backgroundColor } = useSettings();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const navigation = [
@@ -45,7 +47,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const isDashboard = location.pathname === '/';
 
     return (
-        <div className={`min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors duration-200 ${isTablet ? 'flex flex-col' : ''}`}>
+        <div
+            className={`min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors duration-500 ${isTablet ? 'flex flex-col' : ''}`}
+            style={{ backgroundColor: backgroundColor }}
+        >
             {/* Mobile Header - Hidden if tablet */}
             {!isTablet && (
                 <div className="lg:hidden bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between sticky top-0 z-40">

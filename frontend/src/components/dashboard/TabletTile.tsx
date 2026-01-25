@@ -33,16 +33,15 @@ export const TabletTile: React.FC<TabletTileProps> = ({
         <button
             onClick={onClick}
             className={`
-                relative flex flex-col items-center justify-center rounded-2xl transition-all duration-500 ease-out
-                hover:scale-105 active:scale-95
-                bg-[#1a1a1a] border border-white/10
-                group overflow-hidden shadow-2xl
+                relative flex flex-col items-center justify-center rounded-[2.5rem] transition-all duration-200 ease-out
+                bg-[#2a2a2e] border-t-2 border-t-white/20 border-x border-x-white/10 border-b-[14px] border-b-[#111114] shadow-[0_25px_60px_rgba(0,0,0,1)]
+                active:translate-y-2 active:border-b-[4px]
+                group overflow-hidden
                 ${sizeClasses[size as keyof typeof sizeClasses]}
                 ${className}
-                active:shadow-inner
             `}
             style={{
-                boxShadow: glowColor ? `0 0 30px ${glowColor}22, inset 0 0 10px rgba(255,255,255,0.05)` : 'inset 0 0 10px rgba(255,255,255,0.05)',
+                boxShadow: glowColor ? `0 0 30px ${glowColor}22, inset 0 0 10px rgba(181, 64, 64, 0.05)` : 'inset 0 0 10px rgba(255,255,255,0.05)',
                 backgroundColor: undefined // Will be overridden by tailwind or hover if needed
             }}
         >

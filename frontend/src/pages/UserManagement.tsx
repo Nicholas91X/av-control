@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSettings } from '../context/SettingsContext';
 import api from '../lib/api';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -25,6 +26,7 @@ interface CreateUserForm {
 }
 
 export const UserManagement: React.FC = () => {
+    const { highlightColor } = useSettings();
     const queryClient = useQueryClient();
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [formData, setFormData] = useState<CreateUserForm>({
@@ -217,16 +219,16 @@ export const UserManagement: React.FC = () => {
                                             key={role.value}
                                             type="button"
                                             onClick={() => handleInputChange('role', role.value)}
-                                            className={`p-4 rounded-lg border-2 transition-all text-left ${
-                                                formData.role === role.value
-                                                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                            }`}
+                                            className={`p-4 rounded-2xl border border-b-4 transition-all text-left active:translate-y-1 active:border-b-0 ${formData.role === role.value
+                                                ? 'bg-clip-padding border-white/10'
+                                                : 'border-gray-200 border-b-gray-400 dark:border-white/10 dark:border-b-black/60 dark:bg-[#1a1a1c] hover:border-gray-300 dark:hover:border-white/20'
+                                                }`}
+                                            style={formData.role === role.value ? { backgroundColor: `${highlightColor}33`, borderColor: highlightColor, borderBottomColor: highlightColor } : {}}
                                         >
-                                            <p className="font-semibold text-gray-900 dark:text-white">
+                                            <p className={`font-black uppercase tracking-widest text-[10px] ${formData.role === role.value ? '' : 'text-gray-500 dark:text-white/40'}`} style={formData.role === role.value ? { color: highlightColor } : {}}>
                                                 {role.label}
                                             </p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            <p className={`text-xl font-black mt-1 ${formData.role === role.value ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/20'}`}>
                                                 {role.desc}
                                             </p>
                                         </button>

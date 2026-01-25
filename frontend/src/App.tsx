@@ -15,6 +15,8 @@ import { Presets } from './pages/Presets';
 import { Scenario } from './pages/Scenario';
 import { UserManagement } from './pages/UserManagement';
 import { TabletDashboard } from './pages/TabletDashboard';
+import { Settings } from './pages/Settings';
+import { SettingsProvider } from './context/SettingsContext';
 import { useIsTablet } from './hooks/useIsTablet';
 import { PageTransition } from './components/layout/PageTransition';
 
@@ -122,6 +124,14 @@ const AppContent: React.FC = () => {
                 </PageTransition>
               }
             />
+            <Route
+              path="/settings"
+              element={
+                <PageTransition>
+                  <Settings />
+                </PageTransition>
+              }
+            />
             {/* Fallback for authenticated routes */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -134,14 +144,16 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <WebSocketProvider>
-            <AppContent />
-            <RealtimeNotifications />
-          </WebSocketProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <SettingsProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <WebSocketProvider>
+              <AppContent />
+              <RealtimeNotifications />
+            </WebSocketProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </SettingsProvider>
     </QueryClientProvider>
   );
 }

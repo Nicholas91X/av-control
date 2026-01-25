@@ -203,13 +203,13 @@ export const Controls: React.FC = () => {
                                 <button
                                     onClick={() => handleMuteToggle(control)}
                                     disabled={setControlMutation.isPending}
-                                    className={`p-2 rounded-lg transition-colors ${isMuted
-                                        ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                                        } hover:bg-opacity-80 disabled:opacity-50`}
+                                    className={`p-3 rounded-xl border-t-2 border-x border-b-[6px] transition-all active:translate-y-1 active:border-b-0 disabled:opacity-50 ${isMuted
+                                        ? 'bg-red-500 border-t-white/20 border-x-white/10 border-b-red-950 text-white'
+                                        : 'bg-[#2a2a2e] border-t-white/10 border-x-white/5 border-b-black text-white/40 hover:text-white hover:bg-[#323236]'
+                                        }`}
                                     title={isMuted ? 'Unmute' : 'Mute'}
                                 >
-                                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                                    {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
                                 </button>
                             </div>
                             <div className="flex items-center space-x-4 mt-4">

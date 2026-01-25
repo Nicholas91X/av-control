@@ -47,13 +47,13 @@ export const Login: React.FC = () => {
                     <img
                         src="/verbumdigital-logo.png"
                         alt="VerbumDigital"
-                        className="h-20 w-auto mx-auto object-contain"
+                        className="h-24 w-auto mx-auto object-contain filter drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]"
                     />
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to control your AV system</p>
+                    <h1 className="text-4xl font-black uppercase tracking-tighter text-gray-900 dark:text-white mt-4">Welcome Back</h1>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 dark:text-white/20 mt-1">Sign in to control your AV system</p>
                 </div>
 
-                <div className="bg-white dark:bg-dark-surface rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
+                <div className="bg-white dark:bg-[#1a1a1c] rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-white/10 border-b-[12px] border-b-gray-200 dark:border-b-black/60 p-10">
                     {error && (
                         <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm font-medium">
                             {error}

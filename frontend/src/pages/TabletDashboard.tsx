@@ -21,11 +21,13 @@ import {
     Users
 } from 'lucide-react';
 import { TabletTile } from '../components/dashboard/TabletTile';
+import { useSettings } from '../context/SettingsContext';
 
 export const TabletDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
     const { status } = useWebSocket();
+    const { backgroundColor } = useSettings();
     const [isStandby, setIsStandby] = useState(false);
 
     // Modal state management with animations
@@ -81,7 +83,10 @@ export const TabletDashboard: React.FC = () => {
     }
 
     return (
-        <div className="fixed inset-0 bg-black text-white overflow-hidden font-sans selection:bg-primary-500/30">
+        <div
+            className="fixed inset-0 bg-black text-gray-900 dark:text-white overflow-hidden font-sans selection:bg-primary-500/30 transition-colors duration-500"
+            style={{ backgroundColor: backgroundColor }}
+        >
             {/* Top Bar Decoration */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/5 to-transparent shadow-[0_0_15px_rgba(255,255,255,0.1)]" />
 
@@ -95,9 +100,9 @@ export const TabletDashboard: React.FC = () => {
                     {/* Left Actions Group */}
                     <div className="flex items-center space-x-3 z-10">
                         {/* Connection Status Icon */}
-                        <div className={`p-3 rounded-xl border transition-all shadow-lg ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 text-green-500' :
-                            status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500 animate-pulse' :
-                                'bg-red-500/10 border-red-500/20 text-red-500'
+                        <div className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500' :
+                            status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 border-b-yellow-900/60 text-yellow-500 animate-pulse' :
+                                'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
                             }`}>
                             {status === 'connected' ? <Wifi size={24} /> : <WifiOff size={24} />}
                         </div>
@@ -106,7 +111,7 @@ export const TabletDashboard: React.FC = () => {
                         {user?.role === 'admin' && (
                             <button
                                 onClick={() => navigate('/users')}
-                                className="p-3 text-white/40 hover:text-white transition-all bg-white/5 rounded-xl border border-white/10 hover:border-white/20 active:scale-95 shadow-lg"
+                                className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-black hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
                                 title="Gestione Utenti"
                             >
                                 <Users size={24} />
@@ -116,7 +121,7 @@ export const TabletDashboard: React.FC = () => {
                         {/* Logout Button */}
                         <button
                             onClick={logoutModal.open}
-                            className="p-3 text-red-500/40 hover:text-red-500 transition-all bg-red-500/5 rounded-xl border border-red-500/10 border-red-500/20 active:scale-95 shadow-lg"
+                            className="p-3 text-red-500/40 hover:text-red-500 transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-red-400/20 border-x border-x-red-400/10 border-b-[6px] border-b-red-950 active:translate-y-1 active:border-b-0 shadow-lg hover:bg-red-500/5"
                             title="Logout"
                         >
                             <LogOut size={24} />
@@ -135,7 +140,7 @@ export const TabletDashboard: React.FC = () => {
                         {/* Info Button */}
                         <button
                             onClick={infoModal.open}
-                            className="p-3 text-white/40 hover:text-white transition-all bg-white/5 rounded-xl border border-white/10 hover:border-white/20 active:scale-95 shadow-lg"
+                            className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-black hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
                             title="Informazioni"
                         >
                             <Info size={24} />
@@ -152,7 +157,7 @@ export const TabletDashboard: React.FC = () => {
                             icon={Power}
                             label="STANDBY"
                             size="small"
-                            glowColor="#f97316" // Orange
+                            glowColor="#f97316"
                             onClick={() => setIsStandby(true)}
                         />
                         <TabletTile
@@ -167,9 +172,8 @@ export const TabletDashboard: React.FC = () => {
                             icon={Wrench}
                             label="IMPOSTAZIONI"
                             size="small"
-                            glowColor="#64748b" // Slate
-                            className="opacity-40"
-                            onClick={() => { }}
+                            glowColor="#64748b"
+                            onClick={() => navigate('/settings')}
                         />
                     </div>
 
@@ -178,32 +182,32 @@ export const TabletDashboard: React.FC = () => {
                         <TabletTile
                             icon={Mic2}
                             label="SCENARIO"
-                            glowColor="#f59e0b" // Amber
+                            glowColor="#f59e0b"
                             onClick={() => navigate('/presets')}
                         />
                         <TabletTile
                             icon={Disc}
                             label="MEDIA PLAYER"
-                            glowColor="#3b82f6" // Blue
+                            glowColor="#3b82f6"
                             onClick={() => navigate('/players')}
                         />
                         <TabletTile
                             icon={Circle}
                             label="REGISTRATORE"
-                            glowColor="#ef4444" // Red
+                            glowColor="#ef4444"
                             iconClassName="text-red-500 fill-red-500/20"
                             onClick={() => navigate('/recorders')}
                         />
                         <TabletTile
                             icon={Sliders}
                             label="CONTROLLI"
-                            glowColor="#10b981" // Emerald
+                            glowColor="#10b981"
                             onClick={() => navigate('/controls')}
                         />
                         <TabletTile
                             icon={Globe}
                             label="STREAMING"
-                            glowColor="#6366f1" // Indigo
+                            glowColor="#6366f1"
                             className="opacity-40 grayscale"
                             onClick={() => { }}
                         />
@@ -304,7 +308,7 @@ export const TabletDashboard: React.FC = () => {
                             <div className="flex w-full space-x-4">
                                 <button
                                     onClick={logoutModal.close}
-                                    className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl font-semibold transition-all active:scale-95"
+                                    className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-2xl font-semibold transition-all active:translate-y-1 active:border-b-0"
                                 >
                                     Annulla
                                 </button>
@@ -313,7 +317,7 @@ export const TabletDashboard: React.FC = () => {
                                         logoutModal.close();
                                         logout();
                                     }}
-                                    className="flex-1 py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 transition-all active:scale-95"
+                                    className="flex-1 py-4 bg-red-500 hover:bg-red-600 border border-t-white/20 border-b-4 border-red-900/60 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 transition-all active:translate-y-1 active:border-b-0"
                                 >
                                     Esci
                                 </button>
