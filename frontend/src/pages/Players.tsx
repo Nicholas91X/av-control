@@ -34,7 +34,9 @@ import {
     Clock,
     FileEdit,
     Settings,
-    AlertTriangle
+    AlertTriangle,
+    User,
+    Disc
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useIsTablet } from '../hooks/useIsTablet';
@@ -116,6 +118,10 @@ export const Players: React.FC = () => {
     const [deleteSourceType, setDeleteSourceType] = useState<'source' | 'group' | null>(null);
     const [selectedSourceForDelete, setSelectedSourceForDelete] = useState<number | null>(null);
     const [selectedSongsForDelete, setSelectedSongsForDelete] = useState<Song[]>([]);
+    const [isDeleteGroupModalOpen, setIsDeleteGroupModalOpen] = useState(false);
+    const [isRenameGroupModalOpen, setIsRenameGroupModalOpen] = useState(false);
+    const [selectedGroupForAction, setSelectedGroupForAction] = useState<Group | null>(null);
+    const [renamingGroupName, setRenamingGroupName] = useState('');
 
     // Global persistence for group songs (mock state for now)
     const [groupSongs, setGroupSongs] = useState<Record<number, Song[]>>({});
@@ -129,6 +135,17 @@ export const Players: React.FC = () => {
     const [renamingName, setRenamingName] = useState('');
     const [renamedSongs, setRenamedSongs] = useState<Record<string, { newName: string, originalName: string }>>({}); // Key: "source/group:id:songId"
     const [playingSourceContext, setPlayingSourceContext] = useState<{ type: 'source' | 'group', id: number } | null>(null);
+
+    // Change Tempo Flow State
+    const [isChangeTempoModalOpen, setIsChangeTempoModalOpen] = useState(false);
+    const [changeTempoStep, setChangeTempoStep] = useState<1 | 2 | 3 | 4>(1); // 1: Source, 2: Song, 3: BPM Input, 4: Confirm
+    const [tempoValue, setTempoValue] = useState('');
+
+    // Change Metadata Flow State
+    const [isChangeMetadataModalOpen, setIsChangeMetadataModalOpen] = useState(false);
+    const [changeMetadataStep, setChangeMetadataStep] = useState<1 | 2 | 3 | 4>(1); // 1: Source, 2: Song, 3: Form, 4: Confirm
+    const [metadataForm, setMetadataForm] = useState({ title: '', artist: '', album: '' });
+    const [activeMetadataField, setActiveMetadataField] = useState<'title' | 'artist' | 'album' | null>(null);
 
     const [mockPlayerStatus, setMockPlayerStatus] = useState<PlayerStatus | null>(null);
 
@@ -535,6 +552,88 @@ export const Players: React.FC = () => {
             setDeleteStep(1);
             setSelectedSongsForDelete([]);
         },
+    });
+
+    const deleteGroupMutation = useMutation({
+        mutationFn: async (groupId: number) => {
+            // Mocking for now, or calling assumed endpoint
+            try {
+                await api.delete(`/device/player/groups/${groupId}`);
+            } catch (e) {
+                console.warn("Backend group deletion failed, using local fallback");
+            }
+            return groupId;
+        },
+        onMutate: async (groupId) => {
+            await queryClient.cancelQueries({ queryKey: ['player', 'groups'] });
+            const previousGroups = queryClient.getQueryData<{ groups: Group[] }>(['player', 'groups']);
+            queryClient.setQueryData<{ groups: Group[] }>(['player', 'groups'], (old) => {
+                return { groups: (old?.groups || []).filter(g => g.id !== groupId) };
+            });
+            return { previousGroups };
+        },
+        onSettled: () => {
+            setIsDeleteGroupModalOpen(false);
+            setIsManagementModalOpen(false);
+            setSelectedGroupForAction(null);
+        }
+    });
+
+    const renameGroupMutation = useMutation({
+        mutationFn: async ({ id, name }: { id: number, name: string }) => {
+            // Mocking for now
+            try {
+                await api.put(`/device/player/groups/${id}`, { name });
+            } catch (e) {
+                console.warn("Backend group rename failed, using local fallback");
+            }
+            return { id, name };
+        },
+        onMutate: async ({ id, name }) => {
+            await queryClient.cancelQueries({ queryKey: ['player', 'groups'] });
+            const previousGroups = queryClient.getQueryData<{ groups: Group[] }>(['player', 'groups']);
+            queryClient.setQueryData<{ groups: Group[] }>(['player', 'groups'], (old) => {
+                return {
+                    groups: (old?.groups || []).map(g => g.id === id ? { ...g, name } : g)
+                };
+            });
+            return { previousGroups };
+        },
+        onSettled: () => {
+            setIsRenameGroupModalOpen(false);
+            setIsManagementModalOpen(false);
+            setSelectedGroupForAction(null);
+            setRenamingGroupName('');
+            setRenameStep(1); // Reset rename step if reused
+        }
+    });
+
+    const changeTempoMutation = useMutation({
+        mutationFn: async ({ id, tempo }: { id: string | number, tempo: number }) => {
+            await api.put(`/device/player/songs/${id}/tempo`, { tempo });
+            return { id, tempo };
+        },
+        onSettled: () => {
+            setIsChangeTempoModalOpen(false);
+            setIsManagementModalOpen(false);
+            setChangeTempoStep(1);
+            setTempoValue('');
+            queryClient.invalidateQueries({ queryKey: ['player', 'songs'] });
+        }
+    });
+
+    const changeMetadataMutation = useMutation({
+        mutationFn: async ({ id, metadata }: { id: string | number, metadata: any }) => {
+            await api.put(`/device/player/songs/${id}/metadata`, metadata);
+            return { id, metadata };
+        },
+        onSettled: () => {
+            setIsChangeMetadataModalOpen(false);
+            setIsManagementModalOpen(false);
+            setChangeMetadataStep(1);
+            setMetadataForm({ title: '', artist: '', album: '' });
+            queryClient.invalidateQueries({ queryKey: ['player', 'songs'] });
+        }
     });
 
     // Mock Player Timer Logic
@@ -1373,77 +1472,173 @@ export const Players: React.FC = () => {
                                 </div>
 
                                 {/* Actions Grid */}
-                                <div className="grid grid-cols-3 gap-6 relative z-10">
-                                    {[
-                                        {
-                                            label: 'Nuovo Gruppo',
-                                            icon: FolderPlus,
-                                            color: 'text-blue-400',
-                                            bg: 'bg-blue-600/10',
-                                            border: 'border-blue-500/20',
-                                            action: () => setIsNewGroupModalOpen(true)
-                                        },
-                                        {
-                                            label: 'Aggiungi a un Gruppo',
-                                            icon: FolderInput,
-                                            color: 'text-green-400',
-                                            bg: 'bg-green-600/10',
-                                            border: 'border-green-500/20',
-                                            action: () => {
-                                                setAddToGroupStep(1);
-                                                setSelectedSourceForAdd(null);
-                                                setSelectedSongsForAdd([]);
-                                                setSelectedTargetGroupForAdd(null);
-                                                setIsAddToGroupModalOpen(true);
-                                                setIsManagementModalOpen(false);
-                                            }
-                                        },
-                                        {
-                                            label: 'Rinomina Brano',
-                                            icon: Pencil,
-                                            color: 'text-amber-400',
-                                            bg: 'bg-amber-600/10',
-                                            border: 'border-amber-500/20',
-                                            action: () => {
-                                                setRenameStep(1);
-                                                setRenameSourceType(null);
-                                                setSelectedSourceForRename(null);
-                                                setSelectedSongForRename(null);
-                                                setIsRenameModalOpen(true);
-                                                setIsManagementModalOpen(false);
-                                            }
-                                        },
-                                        {
-                                            label: 'Elimina Brano/i',
-                                            icon: Trash2,
-                                            color: 'text-red-400',
-                                            bg: 'bg-red-600/10',
-                                            border: 'border-red-500/20',
-                                            action: () => {
-                                                setDeleteStep(1);
-                                                setDeleteSourceType(null);
-                                                setSelectedSourceForDelete(null);
-                                                setSelectedSongsForDelete([]);
-                                                setIsDeleteModalOpen(true);
-                                                setIsManagementModalOpen(false);
-                                            }
-                                        },
-                                        { label: 'Cambia Tempo', icon: Clock, color: 'text-purple-400', bg: 'bg-purple-600/10', border: 'border-purple-500/20' },
-                                        { label: 'Cambia dati brano', icon: FileEdit, color: 'text-cyan-400', bg: 'bg-cyan-600/10', border: 'border-cyan-500/20' },
-                                    ].map((action, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={action.action}
-                                            className={`h-40 flex flex-col items-center justify-center gap-4 rounded-3xl border border-b-8 transition-all active:translate-y-2 active:border-b-0 group ${action.bg} ${action.border} hover:brightness-110`}
-                                        >
-                                            <div className={`p-4 rounded-full bg-black/20 ${action.color}`}>
-                                                <action.icon className="w-10 h-10" />
-                                            </div>
-                                            <span className={`text-lg font-black uppercase tracking-widest ${action.color} opacity-80 group-hover:opacity-100`}>
-                                                {action.label}
-                                            </span>
-                                        </button>
-                                    ))}
+                                <div className="space-y-12">
+                                    {/* SEZIONE GRUPPI */}
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-px flex-1 bg-white/5" />
+                                            <h3 className="text-xs font-black uppercase tracking-[0.4em] text-white/20 whitespace-nowrap">Macroarea Gruppi</h3>
+                                            <div className="h-px flex-1 bg-white/5" />
+                                        </div>
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                            {[
+                                                {
+                                                    label: 'Nuovo Gruppo',
+                                                    icon: FolderPlus,
+                                                    color: 'text-blue-400',
+                                                    bg: 'bg-blue-600/10',
+                                                    border: 'border-blue-500/20',
+                                                    action: () => {
+                                                        setNewGroupName('');
+                                                        setIsNewGroupModalOpen(true);
+                                                        setIsManagementModalOpen(false);
+                                                    }
+                                                },
+                                                {
+                                                    label: 'Aggiungi a Gruppo',
+                                                    icon: FolderInput,
+                                                    color: 'text-green-400',
+                                                    bg: 'bg-green-600/10',
+                                                    border: 'border-green-500/20',
+                                                    action: () => {
+                                                        setAddToGroupStep(1);
+                                                        setSelectedSourceForAdd(null);
+                                                        setSelectedSongsForAdd([]);
+                                                        setSelectedTargetGroupForAdd(null);
+                                                        setIsAddToGroupModalOpen(true);
+                                                        setIsManagementModalOpen(false);
+                                                    }
+                                                },
+                                                {
+                                                    label: 'Rinomina Gruppo',
+                                                    icon: Pencil,
+                                                    color: 'text-amber-400',
+                                                    bg: 'bg-amber-600/10',
+                                                    border: 'border-amber-500/20',
+                                                    action: () => {
+                                                        setRenameStep(1);
+                                                        setSelectedGroupForAction(null);
+                                                        setRenamingGroupName('');
+                                                        setIsRenameGroupModalOpen(true);
+                                                        setIsManagementModalOpen(false);
+                                                    }
+                                                },
+                                                {
+                                                    label: 'Elimina Gruppo',
+                                                    icon: Trash2,
+                                                    color: 'text-red-400',
+                                                    bg: 'bg-red-600/10',
+                                                    border: 'border-red-500/20',
+                                                    action: () => {
+                                                        setSelectedGroupForAction(null);
+                                                        setIsDeleteGroupModalOpen(true);
+                                                        setIsManagementModalOpen(false);
+                                                    }
+                                                },
+                                            ].map((action, idx) => (
+                                                <button
+                                                    key={`group-action-${idx}`}
+                                                    onClick={action.action}
+                                                    className={`h-40 flex flex-col items-center justify-center gap-4 rounded-3xl border border-b-8 transition-all active:translate-y-2 active:border-b-0 group ${action.bg} ${action.border} hover:brightness-110 shadow-xl`}
+                                                >
+                                                    <div className={`p-4 rounded-full bg-black/20 ${action.color}`}>
+                                                        <action.icon className="w-10 h-10" />
+                                                    </div>
+                                                    <span className={`text-sm font-black uppercase tracking-widest ${action.color} opacity-80 group-hover:opacity-100`}>
+                                                        {action.label}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* SEZIONE BRANI */}
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-px flex-1 bg-white/5" />
+                                            <h3 className="text-xs font-black uppercase tracking-[0.4em] text-white/20 whitespace-nowrap">Gestione Brani</h3>
+                                            <div className="h-px flex-1 bg-white/5" />
+                                        </div>
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                            {[
+                                                {
+                                                    label: 'Rinomina Brano',
+                                                    icon: Pencil,
+                                                    color: 'text-amber-400',
+                                                    bg: 'bg-amber-600/10',
+                                                    border: 'border-amber-500/20',
+                                                    action: () => {
+                                                        setRenameStep(1);
+                                                        setRenameSourceType(null);
+                                                        setSelectedSourceForRename(null);
+                                                        setSelectedSongForRename(null);
+                                                        setIsRenameModalOpen(true);
+                                                        setIsManagementModalOpen(false);
+                                                    }
+                                                },
+                                                {
+                                                    label: 'Elimina Brano/i',
+                                                    icon: Trash2,
+                                                    color: 'text-red-400',
+                                                    bg: 'bg-red-600/10',
+                                                    border: 'border-red-500/20',
+                                                    action: () => {
+                                                        setDeleteStep(1);
+                                                        setDeleteSourceType(null);
+                                                        setSelectedSourceForDelete(null);
+                                                        setSelectedSongsForDelete([]);
+                                                        setIsDeleteModalOpen(true);
+                                                        setIsManagementModalOpen(false);
+                                                    }
+                                                },
+                                                {
+                                                    label: 'Cambia Tempo',
+                                                    icon: Clock,
+                                                    color: 'text-purple-400',
+                                                    bg: 'bg-purple-600/10',
+                                                    border: 'border-purple-500/20',
+                                                    action: () => {
+                                                        setChangeTempoStep(1);
+                                                        setRenameSourceType(null);
+                                                        setSelectedSourceForRename(null);
+                                                        setSelectedSongForRename(null);
+                                                        setTempoValue('');
+                                                        setIsChangeTempoModalOpen(true);
+                                                        setIsManagementModalOpen(false);
+                                                    }
+                                                },
+                                                {
+                                                    label: 'Cambia dati brano',
+                                                    icon: FileEdit,
+                                                    color: 'text-cyan-400',
+                                                    bg: 'bg-cyan-600/10',
+                                                    border: 'border-cyan-500/20',
+                                                    action: () => {
+                                                        setChangeMetadataStep(1);
+                                                        setRenameSourceType(null);
+                                                        setSelectedSourceForRename(null);
+                                                        setSelectedSongForRename(null);
+                                                        setMetadataForm({ title: '', artist: '', album: '' });
+                                                        setIsChangeMetadataModalOpen(true);
+                                                        setIsManagementModalOpen(false);
+                                                    }
+                                                },
+                                            ].map((action, idx) => (
+                                                <button
+                                                    key={`song-action-${idx}`}
+                                                    onClick={action.action}
+                                                    className={`h-40 flex flex-col items-center justify-center gap-4 rounded-3xl border border-b-8 transition-all active:translate-y-2 active:border-b-0 group ${action.bg || 'bg-white/5'} ${action.border || 'border-white/10'} hover:brightness-110 shadow-xl`}
+                                                >
+                                                    <div className={`p-4 rounded-full bg-black/20 ${action.color}`}>
+                                                        <action.icon className="w-10 h-10" />
+                                                    </div>
+                                                    <span className={`text-sm font-black uppercase tracking-widest ${action.color} opacity-80 group-hover:opacity-100`}>
+                                                        {action.label}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </motion.div>
                         </div>
@@ -2157,6 +2352,648 @@ export const Players: React.FC = () => {
                                             Procedi ({selectedSongsForDelete.length})
                                         </button>
                                     )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Delete Group Modal */}
+                <AnimatePresence>
+                    {isDeleteGroupModalOpen && (
+                        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+                            <div className="w-full max-w-2xl bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                        <Trash2 className="w-10 h-10 text-red-500" />
+                                        Elimina Gruppo
+                                    </h2>
+                                    <button
+                                        onClick={() => {
+                                            setIsDeleteGroupModalOpen(false);
+                                            setSelectedGroupForAction(null);
+                                        }}
+                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
+                                    >
+                                        <X className="w-7 h-7 text-white/40" />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 min-h-[300px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6">
+                                    {!selectedGroupForAction ? (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {groups.length === 0 ? (
+                                                <p className="col-span-2 text-center text-white/20 italic py-10">Nessun gruppo esistente</p>
+                                            ) : (
+                                                groups.map(g => (
+                                                    <button
+                                                        key={g.id}
+                                                        onClick={() => setSelectedGroupForAction(g)}
+                                                        className="h-24 bg-[#1a1a1c] hover:bg-red-600/20 border border-white/5 hover:border-red-500/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                    >
+                                                        <Folder className="w-6 h-6 text-red-400/60" />
+                                                        <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center gap-8 py-10 text-center">
+                                            <div className="w-20 h-20 bg-red-600/20 rounded-full flex items-center justify-center">
+                                                <AlertTriangle className="w-10 h-10 text-red-500 animate-pulse" />
+                                            </div>
+                                            <div className="space-y-4">
+                                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Eliminare definitivamente?</h3>
+                                                <p className="text-white/40 max-w-sm mx-auto">Il gruppo <span className="text-white font-bold">{selectedGroupForAction.name}</span> verrà rimosso per sempre insieme a tutte le sue impostazioni.</p>
+                                            </div>
+                                            <button
+                                                onClick={() => deleteGroupMutation.mutate(selectedGroupForAction.id)}
+                                                disabled={deleteGroupMutation.isPending}
+                                                className="h-20 px-12 bg-red-600 border-b-8 border-black/50 rounded-2xl text-xl font-black text-white hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                            >
+                                                {deleteGroupMutation.isPending ? 'ELIMINAZIONE...' : 'ELIMINA DEFINITIVAMENTE'}
+                                            </button>
+                                            <button
+                                                onClick={() => setSelectedGroupForAction(null)}
+                                                className="text-white/20 hover:text-white font-black uppercase tracking-[0.3em] text-[10px]"
+                                            >
+                                                Indietro alla selezione
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Rename Group Modal */}
+                <AnimatePresence>
+                    {isRenameGroupModalOpen && (
+                        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
+                            <div className="w-full max-w-4xl bg-[#0a0a0c]/90 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                        <Pencil className="w-10 h-10 text-amber-500" />
+                                        Rinomina Gruppo
+                                    </h2>
+                                    <button
+                                        onClick={() => {
+                                            setIsRenameGroupModalOpen(false);
+                                            setSelectedGroupForAction(null);
+                                            setRenamingGroupName('');
+                                            setRenameStep(1);
+                                        }}
+                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
+                                    >
+                                        <X className="w-7 h-7 text-white/40" />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 min-h-[400px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6 custom-scrollbar-hidden">
+                                    {/* STEP 1: SELECT GROUP */}
+                                    {renameStep === 1 && (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {groups.length === 0 ? (
+                                                <p className="col-span-2 text-center text-white/20 italic py-10">Nessun gruppo esistente</p>
+                                            ) : (
+                                                groups.map(g => (
+                                                    <button
+                                                        key={g.id}
+                                                        onClick={() => {
+                                                            setSelectedGroupForAction(g);
+                                                            setRenamingGroupName(g.name);
+                                                            setRenameStep(2);
+                                                        }}
+                                                        className="h-24 bg-[#1a1a1c] hover:bg-amber-600/20 border border-white/5 hover:border-amber-500/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                    >
+                                                        <Folder className="w-6 h-6 text-amber-400/60" />
+                                                        <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* STEP 2: EDIT NAME (KEYBOARD) */}
+                                    {renameStep === 2 && (
+                                        <div className="space-y-8 flex flex-col h-full">
+                                            <div className="space-y-4">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20 ml-6">Nuovo nome gruppo</p>
+                                                <div className="relative group">
+                                                    <input
+                                                        type="text"
+                                                        value={renamingGroupName}
+                                                        readOnly
+                                                        className="w-full bg-white/5 border border-white/10 rounded-3xl px-10 h-24 text-4xl font-black text-white uppercase tracking-tighter placeholder:text-white/10 focus:outline-none focus:bg-white/10 transition-all border-b-8 border-b-black/40"
+                                                        placeholder="NOME GRUPPO..."
+                                                    />
+                                                    <button
+                                                        onClick={() => setRenamingGroupName(p => p.slice(0, -1))}
+                                                        className="absolute right-4 top-4 bottom-6 w-16 bg-white/5 hover:bg-red-600/20 border border-white/10 rounded-2xl flex items-center justify-center transition-all group-hover:border-red-500/30"
+                                                    >
+                                                        <Delete className="w-8 h-8 text-white/40 group-hover:text-red-500" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-black/40 p-6 rounded-[2.5rem] border border-white/5 mt-auto">
+                                                {(() => {
+                                                    const layout = keyboardLayout === 'alpha'
+                                                        ? [
+                                                            ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+                                                            ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+                                                            ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
+                                                        ]
+                                                        : [
+                                                            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                                                            ['-', '/', ':', ';', '(', ')', '$', '&', '@', '"'],
+                                                            ['.', ',', '?', '!', "'"]
+                                                        ];
+
+                                                    return (
+                                                        <>
+                                                            {layout.map((row, i) => (
+                                                                <div key={i} className="flex justify-center gap-2 mb-2">
+                                                                    {row.map(key => (
+                                                                        <button
+                                                                            key={key}
+                                                                            onClick={() => setRenamingGroupName(p => p + (isUppercase ? key : key.toLowerCase()))}
+                                                                            className="w-16 h-16 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-xl text-2xl font-black transition-all active:translate-y-1 active:border-b-0 shadow-xl"
+                                                                        >
+                                                                            {isUppercase ? key : key.toLowerCase()}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    );
+                                                })()}
+                                                <div className="flex gap-3 justify-center mt-2">
+                                                    <button
+                                                        onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')}
+                                                        className="w-24 h-16 bg-blue-600/10 border border-blue-500/20 rounded-xl text-sm font-black text-blue-400"
+                                                    >
+                                                        {keyboardLayout === 'alpha' ? '?123' : 'ABC'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setIsUppercase(!isUppercase)}
+                                                        className={`w-24 h-16 border rounded-xl text-sm font-black ${isUppercase ? 'bg-amber-600 text-white' : 'bg-white/5 text-white/40'}`}
+                                                    >
+                                                        {isUppercase ? 'SHIFT' : 'shift'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setRenamingGroupName(p => p + ' ')}
+                                                        className="flex-1 h-16 bg-white/5 border border-white/10 rounded-xl text-xs font-black uppercase text-white/30"
+                                                    >
+                                                        SPAZIO
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setRenameStep(3)}
+                                                        disabled={!renamingGroupName.trim()}
+                                                        className="w-32 h-16 bg-amber-600 rounded-xl font-black text-white uppercase disabled:opacity-50"
+                                                    >
+                                                        VAI
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* STEP 3: CONFIRM */}
+                                    {renameStep === 3 && (
+                                        <div className="flex flex-col items-center justify-center gap-12 py-10">
+                                            <div className="text-center space-y-6">
+                                                <p className="text-xs font-black uppercase tracking-[0.4em] text-white/20">RIEPILOGO MODIFICA</p>
+                                                <div className="flex items-center gap-8 bg-black/40 p-10 rounded-[3rem] border border-white/5">
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] text-white/20 font-bold uppercase">Originale</p>
+                                                        <p className="text-2xl font-black text-white/40 line-through uppercase">{selectedGroupForAction?.name}</p>
+                                                    </div>
+                                                    <ArrowRight className="w-8 h-8 text-amber-500" />
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] text-amber-500 font-bold uppercase">Nuovo</p>
+                                                        <p className="text-4xl font-black text-amber-500 uppercase">{renamingGroupName}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => renameGroupMutation.mutate({ id: selectedGroupForAction!.id, name: renamingGroupName })}
+                                                disabled={renameGroupMutation.isPending}
+                                                className="h-24 px-20 bg-amber-600 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                            >
+                                                {renameGroupMutation.isPending ? 'SALVATAGGIO...' : 'CONFERMA E SALVA'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        onClick={() => {
+                                            if (renameStep === 1) setIsRenameGroupModalOpen(false);
+                                            else setRenameStep(p => (p - 1) as any);
+                                        }}
+                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 rounded-2xl font-black text-white/40 uppercase hover:text-white"
+                                    >
+                                        Indietro
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Change Tempo Modal */}
+                <AnimatePresence>
+                    {isChangeTempoModalOpen && (
+                        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+                            <div className="w-full max-w-4xl bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                            <Clock className="w-10 h-10 text-purple-500" />
+                                            Cambia Tempo
+                                        </h2>
+                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
+                                            {changeTempoStep === 1 ? 'Step 1: Sorgente' :
+                                                changeTempoStep === 2 ? 'Step 2: Seleziona Brano' :
+                                                    changeTempoStep === 3 ? 'Step 3: Inserisci BPM' :
+                                                        'Step 4: Conferma'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setIsChangeTempoModalOpen(false);
+                                            setChangeTempoStep(1);
+                                        }}
+                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
+                                    >
+                                        <X className="w-7 h-7 text-white/40" />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 min-h-[400px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6 custom-scrollbar-hidden">
+                                    {/* STEP 1: SOURCE SELECTION */}
+                                    {changeTempoStep === 1 && (
+                                        <div className="space-y-8">
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Sorgenti Fisiche</h3>
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    {sources.map(s => (
+                                                        <button
+                                                            key={s.id}
+                                                            onClick={() => {
+                                                                setRenameSourceType('source');
+                                                                setSelectedSourceForRename(s.id);
+                                                                setChangeTempoStep(2);
+                                                            }}
+                                                            className="h-24 bg-[#1a1a1c] hover:bg-purple-600/10 border border-white/5 hover:border-purple-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                        >
+                                                            <Music className="w-6 h-6 text-blue-400/60" />
+                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Gruppi Personalizzati</h3>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {groups.map(g => (
+                                                        <button
+                                                            key={g.id}
+                                                            onClick={() => {
+                                                                setRenameSourceType('group');
+                                                                setSelectedSourceForRename(g.id);
+                                                                setChangeTempoStep(2);
+                                                            }}
+                                                            className="h-24 bg-[#1a1a1c] hover:bg-purple-600/10 border border-white/5 hover:border-purple-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                        >
+                                                            <Folder className="w-6 h-6 text-green-400/60" />
+                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* STEP 2: SONG SELECTION */}
+                                    {changeTempoStep === 2 && (
+                                        <div className="flex flex-col gap-2">
+                                            {(() => {
+                                                const sourceSongs = renameSourceType === 'group'
+                                                    ? (groupSongs[selectedSourceForRename!] || [])
+                                                    : (selectedSourceForRename === selectedSource ? processedSongs : songsDataSongs);
+
+                                                if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano trovato</div>;
+
+                                                return sourceSongs.map((song: Song) => (
+                                                    <button
+                                                        key={song.id}
+                                                        onClick={() => {
+                                                            setSelectedSongForRename(song);
+                                                            setChangeTempoStep(3);
+                                                        }}
+                                                        className="w-full p-4 h-20 bg-[#1a1a1c] border border-white/5 hover:border-purple-500/20 rounded-xl transition-all flex items-center justify-between group"
+                                                    >
+                                                        <span className="text-xl font-bold text-white/40 group-hover:text-white transition-colors">{song.name}</span>
+                                                        <ArrowRight className="w-5 h-5 text-white/10 group-hover:text-purple-500" />
+                                                    </button>
+                                                ));
+                                            })()}
+                                        </div>
+                                    )}
+
+                                    {/* STEP 3: TEMPO INPUT (NUMPAD) */}
+                                    {changeTempoStep === 3 && (
+                                        <div className="flex flex-col items-center gap-10">
+                                            <div className="space-y-4 w-full max-w-md">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-white/20 text-center">Inserisci BPM</p>
+                                                <div className="bg-black/40 border border-white/10 rounded-[2.5rem] p-8 text-center relative overflow-hidden">
+                                                    <div className="absolute inset-0 bg-purple-600/5 animate-pulse" />
+                                                    <span className="text-8xl font-black text-white tracking-tighter relative z-10">
+                                                        {tempoValue || '0'}
+                                                        <span className="text-2xl text-purple-500 ml-4 font-black">BPM</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-4 w-full max-w-md">
+                                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
+                                                    <button
+                                                        key={n}
+                                                        onClick={() => setTempoValue(p => p.length < 5 ? p + n.toString() : p)}
+                                                        className="h-20 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-2xl text-2xl font-black text-white transition-all active:translate-y-1 active:border-b-0"
+                                                    >
+                                                        {n}
+                                                    </button>
+                                                ))}
+                                                <button
+                                                    onClick={() => setTempoValue(p => p.slice(0, -1))}
+                                                    className="h-20 bg-red-600/10 hover:bg-red-600/20 border-t border-red-500/20 border-b-4 border-black/40 rounded-2xl flex items-center justify-center transition-all group"
+                                                >
+                                                    <Delete className="w-8 h-8 text-red-500/60 group-hover:text-red-500" />
+                                                </button>
+                                            </div>
+
+                                            <button
+                                                disabled={!tempoValue || isNaN(parseFloat(tempoValue))}
+                                                onClick={() => setChangeTempoStep(4)}
+                                                className="w-full max-w-md h-20 bg-purple-600 border-b-8 border-black/50 rounded-2xl text-2xl font-black text-white hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                            >
+                                                PROSEGUI
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* STEP 4: CONFIRM */}
+                                    {changeTempoStep === 4 && (
+                                        <div className="flex flex-col items-center justify-center gap-12 py-10">
+                                            <div className="text-center space-y-8">
+                                                <div className="w-24 h-24 bg-purple-600/10 rounded-full flex items-center justify-center mx-auto ring-8 ring-purple-600/5">
+                                                    <Clock className="w-12 h-12 text-purple-500" />
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Conferma nuovo tempo</h3>
+                                                    <p className="text-white/40">Aggiornamento tempo per <span className="text-white font-bold">{selectedSongForRename?.name}</span></p>
+                                                </div>
+                                                <div className="text-7xl font-black text-purple-500 bg-black/40 px-12 py-8 rounded-[3rem] border border-white/5 inline-block">
+                                                    {tempoValue} <span className="text-xl opacity-50">BPM</span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => changeTempoMutation.mutate({ id: selectedSongForRename!.id, tempo: parseFloat(tempoValue) })}
+                                                disabled={changeTempoMutation.isPending}
+                                                className="h-24 px-20 bg-purple-600 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                            >
+                                                {changeTempoMutation.isPending ? 'SALVATAGGIO...' : 'CONFERMA E APPLICA'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        onClick={() => {
+                                            if (changeTempoStep === 1) setIsChangeTempoModalOpen(false);
+                                            else setChangeTempoStep(p => (p - 1) as any);
+                                        }}
+                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 rounded-2xl font-black text-white/40 uppercase hover:text-white"
+                                    >
+                                        Indietro
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Change Metadata Modal */}
+                <AnimatePresence>
+                    {isChangeMetadataModalOpen && (
+                        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+                            <div className="w-full max-w-4xl bg-[#0a0a0c]/95 border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col gap-8 overflow-hidden">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h2 className="text-4xl font-black uppercase tracking-tighter text-white flex items-center gap-3">
+                                            <FileEdit className="w-10 h-10 text-cyan-500" />
+                                            Cambia Dati Brano
+                                        </h2>
+                                        <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em] ml-14">
+                                            {changeMetadataStep === 1 ? 'Step 1: Sorgente' :
+                                                changeMetadataStep === 2 ? 'Step 2: Brano' :
+                                                    changeMetadataStep === 3 ? 'Step 3: Modifica Dati' :
+                                                        'Step 4: Conferma'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setIsChangeMetadataModalOpen(false);
+                                            setChangeMetadataStep(1);
+                                        }}
+                                        className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
+                                    >
+                                        <X className="w-7 h-7 text-white/40" />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 min-h-[400px] overflow-y-auto bg-white/5 border border-white/10 rounded-[2rem] p-6 custom-scrollbar-hidden">
+                                    {/* STEP 1: SOURCE SELECTION */}
+                                    {changeMetadataStep === 1 && (
+                                        <div className="space-y-8">
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Sorgenti Fisiche</h3>
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    {sources.map(s => (
+                                                        <button
+                                                            key={s.id}
+                                                            onClick={() => {
+                                                                setRenameSourceType('source');
+                                                                setSelectedSourceForRename(s.id);
+                                                                setChangeMetadataStep(2);
+                                                            }}
+                                                            className="h-24 bg-[#1a1a1c] hover:bg-cyan-600/10 border border-white/5 hover:border-cyan-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                        >
+                                                            <Music className="w-6 h-6 text-blue-400/60" />
+                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{s.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Gruppi Personalizzati</h3>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {groups.map(g => (
+                                                        <button
+                                                            key={g.id}
+                                                            onClick={() => {
+                                                                setRenameSourceType('group');
+                                                                setSelectedSourceForRename(g.id);
+                                                                setChangeMetadataStep(2);
+                                                            }}
+                                                            className="h-24 bg-[#1a1a1c] hover:bg-cyan-600/10 border border-white/5 hover:border-cyan-500/20 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                                                        >
+                                                            <Folder className="w-6 h-6 text-green-400/60" />
+                                                            <span className="font-bold uppercase tracking-tight text-white/60 group-hover:text-white uppercase">{g.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* STEP 2: SONG SELECTION */}
+                                    {changeMetadataStep === 2 && (
+                                        <div className="flex flex-col gap-2">
+                                            {(() => {
+                                                const sourceSongs = renameSourceType === 'group'
+                                                    ? (groupSongs[selectedSourceForRename!] || [])
+                                                    : (selectedSourceForRename === selectedSource ? processedSongs : songsDataSongs);
+
+                                                if (sourceSongs.length === 0) return <div className="text-center py-20 text-white/20 italic">Nessun brano trovato</div>;
+
+                                                return sourceSongs.map((song: Song) => (
+                                                    <button
+                                                        key={song.id}
+                                                        onClick={() => {
+                                                            setSelectedSongForRename(song);
+                                                            setMetadataForm({
+                                                                title: song.name,
+                                                                artist: (song as any).artist || '',
+                                                                album: (song as any).album || ''
+                                                            });
+                                                            setChangeMetadataStep(3);
+                                                        }}
+                                                        className="w-full p-4 h-20 bg-[#1a1a1c] border border-white/5 hover:border-cyan-500/20 rounded-xl transition-all flex items-center justify-between group"
+                                                    >
+                                                        <span className="text-xl font-bold text-white/40 group-hover:text-white transition-colors">{song.name}</span>
+                                                        <ArrowRight className="w-5 h-5 text-white/10 group-hover:text-cyan-500" />
+                                                    </button>
+                                                ));
+                                            })()}
+                                        </div>
+                                    )}
+
+                                    {/* STEP 3: FORM & KEYBOARD */}
+                                    {changeMetadataStep === 3 && (
+                                        <div className="space-y-8 flex flex-col h-full">
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {[
+                                                    { id: 'title', label: 'Titolo Brano', value: metadataForm.title },
+                                                    { id: 'artist', label: 'Artista', value: metadataForm.artist },
+                                                    { id: 'album', label: 'Album', value: metadataForm.album },
+                                                ].map(field => (
+                                                    <div key={field.id} className="space-y-1">
+                                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 ml-6">{field.label}</p>
+                                                        <button
+                                                            onClick={() => setActiveMetadataField(field.id as any)}
+                                                            className={`w-full bg-white/5 border rounded-3xl px-8 h-16 text-xl font-black text-left flex items-center justify-between transition-all ${activeMetadataField === field.id ? 'border-cyan-500 bg-cyan-500/10 text-white' : 'border-white/10 text-white/40'}`}
+                                                        >
+                                                            <span className="truncate">{field.value || `Inserisci ${field.label.toLowerCase()}...`}</span>
+                                                            {activeMetadataField === field.id && <div className="w-2 h-8 bg-cyan-500 animate-pulse rounded-full" />}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {activeMetadataField && (
+                                                <div className="bg-black/40 p-6 rounded-[2.5rem] border border-white/5 mt-auto">
+                                                    {(() => {
+                                                        const layout = keyboardLayout === 'alpha'
+                                                            ? [['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'], ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'], ['Z', 'X', 'C', 'V', 'B', 'N', 'M']]
+                                                            : [['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], ['-', '/', ':', ';', '(', ')', '$', '&', '@', '"'], ['.', ',', '?', '!', "'"]];
+
+                                                        return layout.map((row, i) => (
+                                                            <div key={i} className="flex justify-center gap-1.5 mb-1.5">
+                                                                {row.map(key => (
+                                                                    <button
+                                                                        key={key}
+                                                                        onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p] + (isUppercase ? key : key.toLowerCase()) }))}
+                                                                        className="w-14 h-14 bg-white/5 hover:bg-white/10 border-t border-white/10 border-b-4 border-black/40 rounded-xl text-xl font-black transition-all active:translate-y-1 active:border-b-0"
+                                                                    >
+                                                                        {isUppercase ? key : key.toLowerCase()}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        ));
+                                                    })()}
+                                                    <div className="flex gap-2 justify-center mt-2">
+                                                        <button onClick={() => setKeyboardLayout(p => p === 'alpha' ? 'symbols' : 'alpha')} className="w-20 h-14 bg-blue-600/10 border border-blue-500/20 rounded-xl text-xs font-black text-blue-400">?123</button>
+                                                        <button onClick={() => setIsUppercase(!isUppercase)} className={`w-20 h-14 border rounded-xl text-xs font-black ${isUppercase ? 'bg-amber-600 text-white' : 'bg-white/5 text-white/40'}`}>{isUppercase ? 'SHIFT' : 'shift'}</button>
+                                                        <button onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p].slice(0, -1) }))} className="w-20 h-14 bg-red-600/10 border border-red-500/20 rounded-xl flex items-center justify-center"><Delete className="w-6 h-6 text-red-500" /></button>
+                                                        <button onClick={() => setMetadataForm(p => ({ ...p, [activeMetadataField]: p[activeMetadataField as keyof typeof p] + ' ' }))} className="flex-1 h-14 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-white/30">SPAZIO</button>
+                                                        <button onClick={() => setChangeMetadataStep(4)} className="w-24 h-14 bg-cyan-600 rounded-xl font-black text-white text-xs uppercase">FINE</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* STEP 4: CONFIRM */}
+                                    {changeMetadataStep === 4 && (
+                                        <div className="flex flex-col items-center justify-center gap-10 py-10">
+                                            <div className="text-center space-y-6 w-full">
+                                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Conferma Nuovi Dati</h3>
+                                                <div className="max-w-md mx-auto bg-black/40 p-8 rounded-[3rem] border border-white/5 space-y-6">
+                                                    {[
+                                                        { label: 'Titolo', value: metadataForm.title, icon: Music },
+                                                        { label: 'Artista', value: metadataForm.artist, icon: User },
+                                                        { label: 'Album', value: metadataForm.album, icon: Disc },
+                                                    ].map(item => (
+                                                        <div key={item.label} className="flex items-center gap-4 text-left">
+                                                            <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-cyan-500">
+                                                                <item.icon className="w-5 h-5" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] font-bold text-white/20 uppercase">{item.label}</p>
+                                                                <p className="text-xl font-black text-white uppercase truncate">{item.value || '---'}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => changeMetadataMutation.mutate({ id: selectedSongForRename!.id, metadata: metadataForm })}
+                                                disabled={changeMetadataMutation.isPending}
+                                                className="h-24 px-20 bg-cyan-600 border-b-8 border-black/50 rounded-[2.5rem] text-3xl font-black text-white uppercase hover:brightness-110 active:translate-y-2 active:border-b-0 transition-all disabled:opacity-50"
+                                            >
+                                                {changeMetadataMutation.isPending ? 'SALVATAGGIO...' : 'CONFERMA E SALVA'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        onClick={() => {
+                                            if (changeMetadataStep === 1) setIsChangeMetadataModalOpen(false);
+                                            else setChangeMetadataStep(p => (p - 1) as any);
+                                        }}
+                                        className="h-16 px-10 bg-[#1a1a1c] border border-white/10 rounded-2xl font-black text-white/40 uppercase hover:text-white"
+                                    >
+                                        Indietro
+                                    </button>
                                 </div>
                             </div>
                         </div>
