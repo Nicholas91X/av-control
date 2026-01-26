@@ -168,7 +168,7 @@ export const Scenario: React.FC = () => {
                 </div>
             </div>
 
-            <div className="mt-32 h-4 shrink-0" />
+            <div className="mt-28 h-4 shrink-0" />
 
             {/* Main Content: Split Columns */}
             <div className="flex-1 flex flex-col gap-8 md:gap-12 overflow-y-auto pr-2 custom-scrollbar pb-12">

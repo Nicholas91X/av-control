@@ -379,7 +379,7 @@ export const Controls: React.FC = () => {
             </div>
 
             {/* 2. UTILITY NAVIGATION BAR */}
-            <div className="mt-24 h-20 px-8 flex items-center justify-between border-b border-white/5 bg-black/5 backdrop-blur-2xl shrink-0 z-50">
+            <div className="mt-20 h-20 px-8 flex items-center justify-between border-b border-white/5 bg-black/5 backdrop-blur-2xl shrink-0 z-50">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={handleResetAll}

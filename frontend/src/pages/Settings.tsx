@@ -40,7 +40,7 @@ export const Settings: React.FC = () => {
                 </div>
             </div>
 
-            <div className="mt-32 h-4 shrink-0" />
+            <div className="mt-28 h-4 shrink-0" />
 
             <div className="flex-1 space-y-12 p-6 md:p-16 max-w-6xl mx-auto overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12">
