@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
@@ -7,6 +7,7 @@ import {
     VolumeX,
     RefreshCw,
     Save,
+    ChevronLeft,
     ChevronRight,
     Plus,
     Minus,
@@ -42,6 +43,7 @@ export const Controls: React.FC = () => {
     const [controlValues, setControlValues] = useState<Record<number, ControlValue>>({});
     const [viewMode, setViewMode] = useState<'mixer' | 'compact'>('mixer');
     const [isMutating, setIsMutating] = useState(false);
+    const [volStep, setVolStep] = useState(0.1);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     // Fetch all controls
@@ -52,13 +54,35 @@ export const Controls: React.FC = () => {
             return response.data;
         },
     });
-    const controls = controlsData.controls || [];
+
+    const baseControls = controlsData.controls || [];
+    // TEST: Duplicate controls to reach 12 items
+    const controls = useMemo(() => {
+        if (baseControls.length === 0) return [];
+        return Array.from({ length: 12 }, (_, i) => {
+            const isEven = (i + 1) % 2 === 0;
+            return {
+                ...baseControls[i % baseControls.length],
+                id: 1000 + i,
+                name: isEven ? `BUS ${i + 1}` : `CH ${i + 1}`,
+                max: isEven ? 6 : 12,
+                min: -96,
+                step: volStep
+            };
+        });
+    }, [baseControls, volStep]);
+
+    const initialFetchDone = useRef(false);
 
     // Fetch individual control values
     useEffect(() => {
         const fetchControlValues = async () => {
             const values: Record<number, ControlValue> = {};
             for (const control of controls) {
+                if (control.id >= 1000) {
+                    values[control.id] = { id: control.id, volume: -10, mute: false };
+                    continue;
+                }
                 try {
                     const volumeResponse = await api.get(`/device/controls/volume/${control.id}`);
                     values[control.id] = {
@@ -80,49 +104,60 @@ export const Controls: React.FC = () => {
             setControlValues(values);
         };
 
-        if (controls.length > 0) {
+        if (controls.length > 0 && !initialFetchDone.current) {
             fetchControlValues();
+            initialFetchDone.current = true;
         }
     }, [controls]);
 
     const setControlMutation = useMutation({
         mutationFn: async ({ id, value }: { id: number; value: number | boolean }) => {
+            if (id >= 1000) return; // Mock success
             await api.post(`/device/controls/${id}`, { value });
         },
         onMutate: async ({ id, value }) => {
             setIsMutating(true);
             await queryClient.cancelQueries({ queryKey: ['controls'] });
-            const previousValues = { ...controlValues };
 
             setControlValues((prev) => {
                 const next = { ...prev };
-                if (next[id]) {
-                    if (typeof value === 'number') next[id] = { ...next[id], volume: value };
-                    else next[id] = { ...next[id], mute: value };
-                } else {
-                    const ownerControl = controls.find(c => c.second_id === id);
-                    if (ownerControl && next[ownerControl.id]) {
-                        next[ownerControl.id] = { ...next[ownerControl.id], mute: value as boolean };
+                // Find control that owns this ID (could be volume or mute)
+                const controlId = Object.keys(next).find(cid => {
+                    const c = controls.find(ctrl => ctrl.id === Number(cid));
+                    return c?.id === id || c?.second_id === id;
+                }) || id;
+
+                if (next[Number(controlId)]) {
+                    if (typeof value === 'number') {
+                        next[Number(controlId)] = { ...next[Number(controlId)], volume: value };
+                    } else {
+                        next[Number(controlId)] = { ...next[Number(controlId)], mute: value };
                     }
                 }
                 return next;
             });
-
-            return { previousValues };
         },
         onSettled: async (_data, _error, variables) => {
-            const control = controls.find(c => c.id === variables.id || c.second_id === variables.id);
-            if (control) {
-                try {
-                    const res = await api.get(`/device/controls/volume/${control.id}`);
-                    setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], volume: res.data.volume } }));
+            if (variables.id >= 1000) {
+                if (typeof variables.value === 'number') {
+                    setControlValues(p => ({ ...p, [variables.id]: { ...p[variables.id], volume: variables.value as number } }));
+                } else {
+                    setControlValues(p => ({ ...p, [variables.id]: { ...p[variables.id], mute: variables.value as boolean } }));
+                }
+            } else {
+                const control = controls.find(c => c.id === variables.id || c.second_id === variables.id);
+                if (control) {
+                    try {
+                        const res = await api.get(`/device/controls/volume/${control.id}`);
+                        setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], volume: res.data.volume } }));
 
-                    if (control.second_id) {
-                        const muteRes = await api.get(`/device/controls/mute/${control.second_id}`);
-                        setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], mute: muteRes.data.mute } }));
+                        if (control.second_id) {
+                            const muteRes = await api.get(`/device/controls/mute/${control.second_id}`);
+                            setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], mute: muteRes.data.mute } }));
+                        }
+                    } catch (e) {
+                        console.error("Error refreshing control state:", e);
                     }
-                } catch (e) {
-                    console.error("Error refreshing control state:", e);
                 }
             }
 
@@ -148,22 +183,21 @@ export const Controls: React.FC = () => {
 
     const handleVolumeRelease = (controlId: number, value: number) => {
         setControlMutation.mutate({ id: controlId, value });
-        setControlValues(prev => ({
-            ...prev,
-            [controlId]: { ...prev[controlId], volume: value }
-        }));
     };
 
     const handleStepVolume = (control: Control, direction: 'up' | 'down') => {
         const current = controlValues[control.id]?.volume ?? 0;
-        const step = control.step || 1;
+        const step = volStep;
         const next = direction === 'up' ? current + step : current - step;
-        const clamped = Math.max(control.min || -96, Math.min(control.max || 12, next));
+        const max = control.max ?? 12;
+        const clamped = Math.max(control.min || -96, Math.min(max, next));
         setControlMutation.mutate({ id: control.id, value: clamped });
-        setControlValues(prev => ({
-            ...prev,
-            [control.id]: { ...prev[control.id], volume: clamped }
-        }));
+    };
+
+    const handleResetAll = () => {
+        controls.forEach(control => {
+            setControlMutation.mutate({ id: control.id, value: 0 });
+        });
     };
 
     const handleMuteToggle = (control: Control) => {
@@ -187,49 +221,50 @@ export const Controls: React.FC = () => {
         const percent = ((val - min) / (max - min)) * 100;
 
         return (
-            <div key={control.id} className="flex flex-col items-center h-full w-40 shrink-0 select-none border-r border-white/5 relative last:border-r-0">
+            <div key={control.id} className="flex flex-col items-center h-full w-40 shrink-0 select-none border-r border-white/5 relative last:border-r-0 pb-12">
                 {/* Channel Label */}
-                <div className="h-12 flex items-center justify-center w-full px-2 mb-4 shrink-0">
-                    <span className="text-xs font-black text-white/40 uppercase tracking-widest text-center truncate">
+                <div className="h-16 flex items-center justify-center w-full px-2 mt-4 shrink-0">
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] text-center line-clamp-2 leading-relaxed">
                         {control.name}
                     </span>
                 </div>
 
                 {/* Fader Track Container */}
-                <div className="flex-1 relative w-16 flex flex-col items-center group py-4">
-                    {/* Track Slot */}
-                    <div className="absolute inset-y-4 w-3 bg-black rounded-full border border-white/5 shadow-[inset_0_2px_10px_rgba(0,0,0,1)] overflow-hidden">
+                <div className="flex-1 w-full relative flex flex-col items-center group px-6 my-10">
+                    <div className="absolute inset-y-0 w-2 bg-black/70 rounded-full border border-white/5 shadow-[inset_0_2px_15px_rgba(0,0,0,1)] overflow-hidden pointer-events-none">
                         <div
-                            className="absolute bottom-0 w-full opacity-20 blur-[2px] transition-all duration-300"
+                            className="absolute bottom-0 w-full opacity-60 transition-all duration-300"
                             style={{
                                 height: `${percent}%`,
-                                backgroundColor: highlightColor
+                                backgroundColor: highlightColor,
+                                boxShadow: `0 0 30px ${highlightColor}66`
                             }}
                         />
                     </div>
 
-                    {/* Fader Cap */}
                     <div
-                        className="absolute w-14 h-20 z-20 pointer-events-none transition-all duration-75"
-                        style={{ bottom: `calc(${percent}% - 40px)` }}
+                        className="absolute w-14 h-24 z-20 pointer-events-none transition-all duration-75 flex flex-col items-center justify-center translate-y-1/2"
+                        style={{ bottom: `${percent}%` }}
                     >
-                        <div className="w-full h-full bg-gradient-to-b from-[#444] via-[#1a1a1c] to-[#010101] border border-white/10 shadow-[0_15px_30px_rgba(0,0,0,1),inset_0_1px_1px_rgba(255,255,255,0.1)] rounded-lg flex flex-col items-center justify-center overflow-hidden">
+                        <div className="w-full h-full bg-gradient-to-b from-[#555] via-[#1a1a1c] to-[#000] border border-white/20 shadow-[0_20px_40px_-12px_rgba(0,0,0,1),inset_0_1px_1px_rgba(255,255,255,0.1)] rounded-xl flex flex-col items-center justify-center overflow-hidden">
                             <div
-                                className="w-full h-1.5 shadow-[0_0_15px_2px]"
+                                className="w-full h-2.5 shrink-0"
                                 style={{
-                                    backgroundColor: highlightColor,
-                                    boxShadow: `0 0 15px 2px ${highlightColor}`
+                                    backgroundColor: highlightColor || '#3b82f6',
+                                    boxShadow: `0 0 15px ${highlightColor || '#3b82f6'}`
                                 }}
                             />
-                            <div className="flex-1 flex flex-col items-center justify-center gap-1 opacity-20">
-                                <div className="w-6 h-px bg-white" />
-                                <div className="w-6 h-px bg-white" />
-                                <div className="w-6 h-px bg-white" />
+                            <div className="flex-1 flex flex-col items-center justify-center gap-1.5 opacity-30 my-2">
+                                <div className="w-8 h-[1.5px] bg-white/40" />
+                                <div className="w-8 h-[1.5px] bg-white/40" />
+                                <div className="w-8 h-[1.5px] bg-white/40" />
+                            </div>
+                            <div className="font-mono text-[10px] font-black text-blue-400/80 mb-2">
+                                {val.toFixed(1)}
                             </div>
                         </div>
                     </div>
 
-                    {/* Interaction Layer */}
                     <input
                         type="range"
                         min={min}
@@ -237,49 +272,48 @@ export const Controls: React.FC = () => {
                         step={control.step || 0.1}
                         value={val}
                         onInput={(e) => handleVolumeChange(control.id, parseFloat((e.target as HTMLInputElement).value))}
-                        onChange={(e) => handleVolumeChange(control.id, parseFloat(e.target.value))}
+                        onChange={(e) => handleVolumeChange(control.id, parseFloat((e.target as HTMLInputElement).value))}
                         onMouseUp={(e) => handleVolumeRelease(control.id, parseFloat((e.target as HTMLInputElement).value))}
                         onTouchEnd={(e) => handleVolumeRelease(control.id, parseFloat((e.target as HTMLInputElement).value))}
-                        className="absolute inset-x-0 -inset-y-0 opacity-0 cursor-pointer h-full z-30"
+                        className="absolute inset-y-0 inset-x-0 opacity-0 cursor-pointer w-full z-30"
                         style={{
                             appearance: 'slider-vertical' as any,
                             WebkitAppearance: 'slider-vertical' as any,
-                            width: '64px',
                         }}
                     />
                 </div>
 
                 {/* DB Value Display */}
-                <div className="mt-2 mb-4">
-                    <span className="font-mono text-lg font-bold text-white/50 tabular-nums">
-                        {val.toFixed(1)} <span className="text-[10px] opacity-40">dB</span>
+                <div className="h-10 flex items-center mb-2 shrink-0">
+                    <span className="font-mono text-xl font-bold text-white/50 tabular-nums tracking-wider uppercase">
+                        {val.toFixed(1)} <span className="text-[10px] opacity-30 ml-0.5">dB</span>
                     </span>
                 </div>
 
                 {/* Precision Controls & Mute */}
-                <div className="flex flex-col gap-2 w-full px-6 pb-6 shrink-0">
+                <div className="flex flex-col gap-3 w-full px-6 shrink-0 mt-auto">
                     <div className="flex gap-2">
                         <button
                             onClick={() => handleStepVolume(control, 'down')}
-                            className="flex-1 h-12 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/5 border-b-4 border-black/50 rounded-xl transition-all active:translate-y-1 active:border-b-0"
+                            className="flex-1 h-14 flex items-center justify-center bg-[#18181a] hover:bg-[#202022] border border-white/5 border-b-4 border-black/80 rounded-2xl transition-all active:translate-y-0.5 active:border-b-0 shadow-lg"
                         >
-                            <Minus className="w-5 h-5 text-blue-400" />
+                            <Minus className="w-6 h-6 text-blue-400" />
                         </button>
                         <button
                             onClick={() => handleStepVolume(control, 'up')}
-                            className="flex-1 h-12 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/5 border-b-4 border-black/50 rounded-xl transition-all active:translate-y-1 active:border-b-0"
+                            className="flex-1 h-14 flex items-center justify-center bg-[#18181a] hover:bg-[#202022] border border-white/5 border-b-4 border-black/80 rounded-2xl transition-all active:translate-y-0.5 active:border-b-0 shadow-lg"
                         >
-                            <Plus className="w-5 h-5 text-blue-400" />
+                            <Plus className="w-6 h-6 text-blue-400" />
                         </button>
                     </div>
                     <button
                         onClick={() => handleMuteToggle(control)}
-                        className={`h-12 w-full flex items-center justify-center rounded-xl border border-white/5 border-b-4 transition-all active:translate-y-1 active:border-b-0 ${isMuted
-                            ? 'bg-red-600 border-red-500 border-b-red-900 text-white'
-                            : 'bg-[#1e1e20] hover:bg-[#252528] border-b-black/50 text-blue-400'
+                        className={`h-14 w-full flex items-center justify-center rounded-2xl border border-white/5 border-b-4 transition-all active:translate-y-0.5 active:border-b-0 shadow-lg ${isMuted
+                            ? 'bg-red-600/90 border-red-500/50 border-b-red-950 text-white'
+                            : 'bg-[#18181a] hover:bg-[#202022] border-b-black/80 text-blue-400'
                             }`}
                     >
-                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        {isMuted ? <VolumeX className="w-7 h-7" /> : <Volume2 className="w-7 h-7" />}
                     </button>
                 </div>
             </div>
@@ -331,7 +365,7 @@ export const Controls: React.FC = () => {
             className="fixed inset-0 flex flex-col overflow-hidden text-white"
             style={{ backgroundColor }}
         >
-            {/* 1. TOP TITLE ROW (Aligned with Dashboard button row) */}
+            {/* 1. TOP TITLE ROW */}
             <div className="absolute top-8 inset-x-0 h-16 flex items-center justify-center pointer-events-none z-[60]">
                 <div className="flex flex-col items-center">
                     <div className="flex items-center gap-3 mb-1">
@@ -344,38 +378,59 @@ export const Controls: React.FC = () => {
                 </div>
             </div>
 
-            {/* 2. UTILITY NAVIGATION BAR (Shifted down for layout) */}
-            <div className="mt-32 h-24 px-8 flex items-center justify-between border-b border-white/5 bg-black/5 backdrop-blur-2xl shrink-0 z-50">
+            {/* 2. UTILITY NAVIGATION BAR */}
+            <div className="mt-24 h-20 px-8 flex items-center justify-between border-b border-white/5 bg-black/5 backdrop-blur-2xl shrink-0 z-50">
                 <div className="flex items-center gap-4">
-                    <button className="w-14 h-14 bg-blue-600/20 border border-blue-500/30 rounded-2xl flex items-center justify-center text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.15)] active:scale-95 transition-all">
-                        <RefreshCw size={28} />
+                    <button
+                        onClick={handleResetAll}
+                        className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)] active:scale-95 transition-all"
+                    >
+                        <RefreshCw size={24} />
                     </button>
-                    <button className="w-14 h-14 bg-blue-600/20 border border-blue-500/30 rounded-2xl flex items-center justify-center text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.15)] active:scale-95 transition-all">
-                        <Save size={28} />
+                    <button className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)] active:scale-95 transition-all">
+                        <Save size={24} />
                     </button>
+
+                    <div className="h-12 flex items-center bg-black/40 border border-white/10 rounded-xl px-4 gap-3 shadow-inner">
+                        <span className="text-[10px] font-black text-white/30 uppercase tracking-widest whitespace-nowrap">Step Volume</span>
+                        <select
+                            value={volStep}
+                            onChange={(e) => setVolStep(parseFloat(e.target.value))}
+                            className="bg-transparent border-none text-blue-400 font-bold text-sm outline-none cursor-pointer hover:text-white transition-colors"
+                        >
+                            <option value="0.1" className="bg-[#1a1a1c]">0.1 dB</option>
+                            <option value="0.2" className="bg-[#1a1a1c]">0.2 dB</option>
+                            <option value="0.5" className="bg-[#1a1a1c]">0.5 dB</option>
+                            <option value="1.0" className="bg-[#1a1a1c]">1.0 dB</option>
+                        </select>
+                    </div>
                 </div>
 
-                {/* Empty Middle Space for Title above */}
                 <div className="flex-1" />
 
                 <div className="flex items-center gap-4">
-                    <div className="flex bg-black/40 rounded-2xl p-1 border border-white/5 mr-4 shadow-inner">
+                    <div className="flex bg-black/40 rounded-xl p-1 border border-white/5 mr-4 shadow-inner">
                         <button
                             onClick={() => setViewMode('mixer')}
-                            className={`px-6 py-2 rounded-xl transition-all flex items-center gap-2 font-bold uppercase tracking-widest text-[11px] ${viewMode === 'mixer' ? 'bg-white/10 text-white shadow-lg' : 'text-white/20 hover:text-white/40'}`}
+                            className={`px-5 py-2 rounded-lg transition-all flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] ${viewMode === 'mixer' ? 'bg-white/10 text-white shadow-lg' : 'text-white/20 hover:text-white/40'}`}
                         >
-                            <LayoutList size={16} /> Mixer
+                            <LayoutList size={14} /> Mixer
                         </button>
                         <button
                             onClick={() => setViewMode('compact')}
-                            className={`px-6 py-2 rounded-xl transition-all flex items-center gap-2 font-bold uppercase tracking-widest text-[11px] ${viewMode === 'compact' ? 'bg-white/10 text-white shadow-lg' : 'text-white/20 hover:text-white/40'}`}
+                            className={`px-5 py-2 rounded-lg transition-all flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] ${viewMode === 'compact' ? 'bg-white/10 text-white shadow-lg' : 'text-white/20 hover:text-white/40'}`}
                         >
-                            <Grid size={16} /> Compact
+                            <Grid size={14} /> Compact
                         </button>
                     </div>
-                    <button onClick={() => scroll('right')} className="w-14 h-14 bg-blue-600/20 border border-blue-500/30 rounded-2xl flex items-center justify-center text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.15)] active:scale-95 transition-all">
-                        <ChevronRight size={32} />
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => scroll('left')} className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)] active:scale-95 transition-all">
+                            <ChevronLeft size={28} />
+                        </button>
+                        <button onClick={() => scroll('right')} className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)] active:scale-95 transition-all">
+                            <ChevronRight size={28} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -411,7 +466,6 @@ export const Controls: React.FC = () => {
                     )}
                 </AnimatePresence>
 
-                {/* Subtle Scroll Hint for Mixer */}
                 {viewMode === 'mixer' && controls.length > 5 && (
                     <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-black/20 to-transparent w-20 h-full pointer-events-none" />
                 )}
