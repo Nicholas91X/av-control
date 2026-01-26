@@ -3,14 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import {
     Mic,
-    ArrowLeft,
     Database,
     HardDrive,
     Volume2
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSettings } from '../context/SettingsContext';
-import { useNavigate } from 'react-router-dom';
 
 interface RecorderStatus {
     state: 'recording' | 'stopped' | 'nomedia';
@@ -27,7 +25,6 @@ const AVAILABLE_CHANNELS = [
 ];
 
 export const Recorders: React.FC = () => {
-    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
     const { highlightColor, backgroundColor } = useSettings();
@@ -118,14 +115,6 @@ export const Recorders: React.FC = () => {
                 </div>
             </div>
 
-            {/* Back Button */}
-            <button
-                onClick={() => navigate(-1)}
-                className="absolute top-8 left-8 w-12 h-12 bg-white/5 border-t border-white/20 border-x border-white/10 border-b-4 border-black/60 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 active:translate-y-1 active:border-b-0 transition-all z-[70] shadow-2xl"
-            >
-                <ArrowLeft size={24} />
-            </button>
-
             {/* Reduced Top Margin */}
             <div className="mt-28 h-2 shrink-0" />
 
@@ -188,52 +177,83 @@ export const Recorders: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Main Interaction Area - Reduced height */}
-                    <div className="flex-1 flex flex-col lg:flex-row gap-8 items-stretch overflow-hidden">
-                        {/* Recording Panel Left */}
-                        <div className="flex-1 min-h-[300px] bg-[#0d0d0f] border-t border-white/5 border-x border-white/2 border-b-[8px] border-black rounded-[2rem] flex flex-col items-center justify-center p-8 relative overflow-hidden group shadow-2xl">
-                            {/* Subtle Inner Glow */}
-                            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+                    {/* Main Interaction Area */}
+                    <div className="flex-1 flex flex-col lg:flex-row gap-8 items-stretch">
+                        {/* Left Column: Rec Panel + Memory Selection */}
+                        <div className="flex-1 flex flex-col gap-6">
+                            {/* Recording Panel */}
+                            <div className="flex-1 min-h-[300px] bg-[#0d0d0f] border-t border-white/5 border-x border-white/2 border-b-[8px] border-black rounded-[2rem] flex flex-col items-center justify-center p-8 relative overflow-hidden group shadow-2xl">
+                                {/* Subtle Inner Glow */}
+                                <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
 
-                            {/* Decorative background grid */}
-                            <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                                {/* Decorative background grid */}
+                                <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-                            {/* 3D Button Container with perspective */}
-                            <div className="relative" style={{ perspective: '1000px' }}>
-                                <button
-                                    onClick={() => isRecording ? stopRecordingMutation.mutate() : startRecordingMutation.mutate()}
-                                    disabled={startRecordingMutation.isPending || stopRecordingMutation.isPending}
-                                    className={`relative w-48 h-48 rounded-full flex flex-col items-center justify-center gap-3 transition-all duration-500 z-10 
-                                        active:translate-y-2 active:shadow-none
-                                        ${isRecording
-                                            ? 'bg-gradient-to-b from-red-500/20 to-red-900/40 border-t-2 border-red-400/50 border-x border-red-500/20 border-b-[10px] border-red-950 text-red-500 shadow-[0_30px_60px_rgba(239,68,68,0.3)]'
-                                            : 'bg-gradient-to-b from-[#222] to-[#0a0a0c] border-t-2 border-white/10 border-x border-white/5 border-b-[10px] border-black text-white hover:from-[#2a2a2e] hover:to-[#0f0f12] shadow-[0_30px_60px_rgba(0,0,0,1)]'}`}
-                                >
-                                    {isRecording ? (
-                                        <>
-                                            <div className="w-14 h-14 bg-red-500 rounded-xl animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.8)]" />
-                                            <span className="font-black uppercase tracking-[0.4em] text-[12px] mt-2">Ferma</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="w-14 h-14 rounded-full bg-red-600 shadow-[0_0_30px_rgba(220,38,38,0.6)] border-t-4 border-red-400/40" />
-                                            <span className="font-black uppercase tracking-[0.4em] text-[12px] mt-2">Registra</span>
-                                        </>
-                                    )}
-                                </button>
+                                {/* 3D Button Container with perspective */}
+                                <div className="relative" style={{ perspective: '1000px' }}>
+                                    <button
+                                        onClick={() => isRecording ? stopRecordingMutation.mutate() : startRecordingMutation.mutate()}
+                                        disabled={startRecordingMutation.isPending || stopRecordingMutation.isPending}
+                                        className={`relative w-48 h-48 rounded-full flex flex-col items-center justify-center gap-3 transition-all duration-500 z-10 
+                                            active:translate-y-2 active:shadow-none
+                                            ${isRecording
+                                                ? 'bg-gradient-to-b from-red-500/20 to-red-900/40 border-t-2 border-red-400/50 border-x border-red-500/20 border-b-[10px] border-red-950 text-red-500 shadow-[0_30px_60px_rgba(239,68,68,0.3)]'
+                                                : 'bg-gradient-to-b from-[#222] to-[#0a0a0c] border-t-2 border-white/10 border-x border-white/5 border-b-[10px] border-black text-white hover:from-[#2a2a2e] hover:to-[#0f0f12] shadow-[0_30px_60px_rgba(0,0,0,1)]'}`}
+                                    >
+                                        {isRecording ? (
+                                            <>
+                                                <div className="w-14 h-14 bg-red-500 rounded-xl animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.8)]" />
+                                                <span className="font-black uppercase tracking-[0.4em] text-[12px] mt-2">Ferma</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="w-14 h-14 rounded-full bg-red-600 shadow-[0_0_30px_rgba(220,38,38,0.6)] border-t-4 border-red-400/40" />
+                                                <span className="font-black uppercase tracking-[0.4em] text-[12px] mt-2">Registra</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                {/* Dynamic Status Label */}
+                                <div className={`mt-8 px-6 py-2 rounded-full border border-white/5 bg-black/40 flex items-center gap-3 transition-all duration-500 ${isRecording ? 'shadow-[0_0_30px_rgba(239,68,68,0.1)] border-red-500/20' : ''}`}>
+                                    <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,1)]' : 'bg-white/10'}`} />
+                                    <span className={`font-black uppercase tracking-[0.4em] text-[10px] ${isRecording ? 'text-red-400' : 'text-white/20'}`}>
+                                        {isRecording ? 'Registrazione in corso' : 'In attesa'}
+                                    </span>
+                                </div>
                             </div>
 
-                            {/* Dynamic Status Label */}
-                            <div className={`mt-8 px-6 py-2 rounded-full border border-white/5 bg-black/40 flex items-center gap-3 transition-all duration-500 ${isRecording ? 'shadow-[0_0_30px_rgba(239,68,68,0.1)] border-red-500/20' : ''}`}>
-                                <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,1)]' : 'bg-white/10'}`} />
-                                <span className={`font-black uppercase tracking-[0.4em] text-[10px] ${isRecording ? 'text-red-400' : 'text-white/20'}`}>
-                                    {isRecording ? 'Registrazione in corso' : 'In attesa'}
-                                </span>
+                            {/* Memory Selection (Moved Here) */}
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em] pl-1">Destinazione Salvataggio</label>
+                                <div className="relative group overflow-hidden rounded-[1.5rem]">
+                                    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-blue-500/30 rounded-[1.5rem] blur opacity-10 group-hover:opacity-100 transition duration-700 animate-gradient-x" />
+                                    <div className="relative bg-[#0a0a0c] border-t border-white/10 border-x border-white/5 border-b-[6px] border-black px-6 py-4 flex items-center gap-5 shadow-[inset_0_2px_10px_rgba(0,0,0,1)] group-hover:bg-[#111113] transition-all">
+                                        <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-lg text-blue-400">
+                                            {targetMemory === 'internal' ? <Database size={24} /> : <HardDrive size={24} />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-0.5">Memoria</h3>
+                                            <select
+                                                value={targetMemory}
+                                                onChange={(e) => setTargetMemory(e.target.value as 'internal' | 'usb')}
+                                                className="bg-transparent border-none text-white font-black text-xl outline-none cursor-pointer w-full appearance-none uppercase tracking-[0.2em] hover:text-blue-400 transition-colors"
+                                            >
+                                                <option value="internal" className="bg-[#1a1a1c]">Memoria Interna</option>
+                                                <option value="usb" className="bg-[#1a1a1c]">Chiavetta USB</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col gap-1.5 opacity-20">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* VU Meters and Fader Right - Optimized height */}
-                        <div className="w-full lg:w-[280px] flex gap-6 items-stretch">
+                        {/* Right Column: VU Meters and Fader */}
+                        <div className="w-full lg:w-[280px] flex gap-6 items-stretch overflow-visible">
                             {/* VuMeter Bars */}
                             <div className="flex-1 flex gap-2.5 bg-[#0d0d0f] border-t border-white/5 border-x border-white/2 border-b-[6px] border-black p-4 rounded-[2rem] justify-between shadow-2xl">
                                 {/* Left VU */}
@@ -267,15 +287,10 @@ export const Recorders: React.FC = () => {
                             </div>
 
                             {/* Recording Fader */}
-                            <div className="w-32 flex flex-col items-center">
-                                <div className="mb-4 bg-black/80 px-3 py-1 rounded-lg border-t border-white/10 border-x border-white/5 border-b border-black shadow-lg">
-                                    <span className="font-mono text-sm font-black text-blue-400 tabular-nums">
-                                        {volValue.toFixed(1)}
-                                    </span>
-                                </div>
-                                <div className="flex-1 w-full relative flex flex-col items-center">
+                            <div className="w-32 flex flex-col items-center py-2 overflow-visible">
+                                <div className="flex-1 w-full relative flex flex-col items-center mb-4">
                                     {/* Track */}
-                                    <div className="absolute inset-y-0 w-2.5 bg-black rounded-full border-t border-white/5 border-x border-white/2 border-b border-black shadow-[inset_0_4px_15px_rgba(0,0,0,1)] overflow-hidden pointer-events-none">
+                                    <div className="absolute top-10 bottom-10 w-2.5 bg-black rounded-full border-t border-white/5 border-x border-white/2 border-b border-black shadow-[inset_0_4px_15px_rgba(0,0,0,1)] overflow-hidden pointer-events-none">
                                         <div
                                             className="absolute bottom-0 w-full opacity-60 transition-all duration-300"
                                             style={{
@@ -288,10 +303,10 @@ export const Recorders: React.FC = () => {
 
                                     {/* Knob */}
                                     <div
-                                        className="absolute w-14 h-24 z-20 pointer-events-none transition-all duration-75 flex flex-col items-center justify-center translate-y-1/2"
-                                        style={{ bottom: `${percent}%` }}
+                                        className="absolute w-14 h-24 z-20 pointer-events-none transition-all duration-75 flex flex-col items-center justify-center -translate-y-1/2"
+                                        style={{ top: `${100 - percent}%`, marginTop: '0' }}
                                     >
-                                        <div className="w-full h-full bg-gradient-to-b from-[#555] via-[#1a1a1c] to-[#000] border-t-2 border-white/20 border-x border-white/10 border-b-[8px] border-black shadow-[0_20px_40px_-10px_rgba(0,0,0,1),inset_0_1px_1px_rgba(255,255,255,0.1)] rounded-xl flex flex-col items-center justify-center overflow-hidden">
+                                        <div className="w-full h-24 bg-gradient-to-b from-[#555] via-[#1a1a1c] to-[#000] border-t-2 border-white/20 border-x border-white/10 border-b-[8px] border-black shadow-[0_20px_40px_-10px_rgba(0,0,0,1),inset_0_1px_1px_rgba(255,255,255,0.1)] rounded-xl flex flex-col items-center justify-center overflow-hidden">
                                             <div
                                                 className="w-full h-2.5 shrink-0"
                                                 style={{
@@ -317,37 +332,16 @@ export const Recorders: React.FC = () => {
                                         step="0.1"
                                         value={volValue}
                                         onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                                        className="absolute inset-y-0 inset-x-0 opacity-0 cursor-pointer w-full z-30"
+                                        className="absolute top-0 bottom-0 inset-x-0 opacity-0 cursor-pointer w-full z-30"
                                         style={{ appearance: 'slider-vertical' as any, WebkitAppearance: 'slider-vertical' as any }}
                                     />
                                 </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Bottom Target Memory Selection - Compact */}
-                    <div className="flex flex-col gap-2 max-w-xl">
-                        <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em] pl-1">Destinazione Salvataggio</label>
-                        <div className="relative group overflow-hidden rounded-[1.5rem]">
-                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-blue-500/30 rounded-[1.5rem] blur opacity-10 group-hover:opacity-100 transition duration-700 animate-gradient-x" />
-                            <div className="relative bg-[#0a0a0c] border-t border-white/10 border-x border-white/5 border-b-[6px] border-black px-6 py-4 flex items-center gap-5 shadow-[inset_0_2px_10px_rgba(0,0,0,1)] group-hover:bg-[#111113] transition-all">
-                                <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-lg text-blue-400">
-                                    {targetMemory === 'internal' ? <Database size={24} /> : <HardDrive size={24} />}
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-0.5">Memoria</h3>
-                                    <select
-                                        value={targetMemory}
-                                        onChange={(e) => setTargetMemory(e.target.value as 'internal' | 'usb')}
-                                        className="bg-transparent border-none text-white font-black text-xl outline-none cursor-pointer w-full appearance-none uppercase tracking-[0.2em] hover:text-blue-400 transition-colors"
-                                    >
-                                        <option value="internal" className="bg-[#1a1a1c]">Memoria Interna</option>
-                                        <option value="usb" className="bg-[#1a1a1c]">Chiavetta USB</option>
-                                    </select>
-                                </div>
-                                <div className="flex flex-col gap-1.5 opacity-20">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                {/* Volume Display at Bottom */}
+                                <div className="bg-black/90 px-4 py-1.5 rounded-xl border-t border-white/10 border-x border-white/5 border-b border-black shadow-lg shrink-0">
+                                    <span className="font-mono text-base font-black text-blue-400 tabular-nums">
+                                        {volValue.toFixed(1)} <span className="text-[10px] opacity-40 ml-0.5">dB</span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -387,6 +381,6 @@ export const Recorders: React.FC = () => {
                     animation: gradient-x 15s ease infinite;
                 }
             ` }} />
-        </div>
+        </div >
     );
 };
