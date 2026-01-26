@@ -11,7 +11,7 @@ type User struct {
 	ID           string `gorm:"primaryKey"`
 	Username     string `gorm:"uniqueIndex;not null"`
 	PasswordHash string `gorm:"not null"`
-	Role         string `gorm:"not null"` // admin, priest, technician, volunteer
+	Role         string `gorm:"not null"` // admin, operator, viewer
 	FullName     string `gorm:"not null"`
 	Email        string
 	LastLogin    *time.Time

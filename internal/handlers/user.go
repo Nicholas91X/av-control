@@ -21,7 +21,7 @@ func NewUserHandler(db *gorm.DB) *UserHandler {
 type CreateUserRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required,min=6"`
-	Role     string `json:"role" binding:"required,oneof=admin user"`
+	Role     string `json:"role" binding:"required,oneof=admin operator viewer"`
 	FullName string `json:"full_name" binding:"required"`
 	Email    string `json:"email"`
 }
