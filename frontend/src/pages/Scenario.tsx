@@ -4,7 +4,7 @@ import api from '../lib/api';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
-import { Check, User, Music, Save, Loader2 } from 'lucide-react';
+import { Check, User, Music, Save, Loader2, LayoutGrid } from 'lucide-react';
 
 interface Preset {
     id: string;
@@ -155,12 +155,20 @@ export const Scenario: React.FC = () => {
             style={{ backgroundColor: backgroundColor }}
         >
 
-            {/* Header */}
-            <div className="flex items-center justify-center mb-12 z-10 relative">
-                <h1 className="text-5xl font-black tracking-tight text-white/90 drop-shadow-lg">
-                    SCENARIO
-                </h1>
+            {/* 1. TOP TITLE ROW */}
+            <div className="absolute top-8 inset-x-0 h-16 flex items-center justify-center pointer-events-none z-[60]">
+                <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-3 mb-1">
+                        <LayoutGrid className="w-5 h-5 text-blue-400" />
+                        <h2 className="text-2xl font-black text-white uppercase tracking-[0.4em]">
+                            Scenario
+                        </h2>
+                    </div>
+                    <div className="w-64 h-[2px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
+                </div>
             </div>
+
+            <div className="mt-32 h-4 shrink-0" />
 
             {/* Main Content: Split Columns */}
             <div className="flex-1 flex flex-col gap-8 md:gap-12 overflow-y-auto pr-2 custom-scrollbar pb-12">

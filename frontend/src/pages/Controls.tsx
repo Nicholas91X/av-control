@@ -371,7 +371,7 @@ export const Controls: React.FC = () => {
                     <div className="flex items-center gap-3 mb-1">
                         <Sliders className="w-5 h-5 text-blue-400" />
                         <h2 className="text-2xl font-black text-white uppercase tracking-[0.4em]">
-                            Sezione Controlli
+                            Controlli
                         </h2>
                     </div>
                     <div className="w-64 h-[2px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
