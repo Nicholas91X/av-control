@@ -290,7 +290,7 @@ export const Recorders: React.FC = () => {
                             <div className="w-32 flex flex-col items-center py-2 overflow-visible">
                                 <div className="flex-1 w-full relative flex flex-col items-center mb-4">
                                     {/* Track */}
-                                    <div className="absolute top-10 bottom-10 w-2.5 bg-black rounded-full border-t border-white/5 border-x border-white/2 border-b border-black shadow-[inset_0_4px_15px_rgba(0,0,0,1)] overflow-hidden pointer-events-none">
+                                    <div className="absolute top-12 bottom-12 w-2.5 bg-black rounded-full border-t border-white/5 border-x border-white/2 border-b border-black shadow-[inset_0_4px_15px_rgba(0,0,0,1)] overflow-hidden pointer-events-none">
                                         <div
                                             className="absolute bottom-0 w-full opacity-60 transition-all duration-300"
                                             style={{
@@ -304,7 +304,7 @@ export const Recorders: React.FC = () => {
                                     {/* Knob */}
                                     <div
                                         className="absolute w-14 h-24 z-20 pointer-events-none transition-all duration-75 flex flex-col items-center justify-center -translate-y-1/2"
-                                        style={{ top: `${100 - percent}%`, marginTop: '0' }}
+                                        style={{ top: `calc(3rem + (100 - ${percent}) * (100% - 6rem) / 100)` }}
                                     >
                                         <div className="w-full h-24 bg-gradient-to-b from-[#555] via-[#1a1a1c] to-[#000] border-t-2 border-white/20 border-x border-white/10 border-b-[8px] border-black shadow-[0_20px_40px_-10px_rgba(0,0,0,1),inset_0_1px_1px_rgba(255,255,255,0.1)] rounded-xl flex flex-col items-center justify-center overflow-hidden">
                                             <div
@@ -332,7 +332,7 @@ export const Recorders: React.FC = () => {
                                         step="0.1"
                                         value={volValue}
                                         onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                                        className="absolute top-0 bottom-0 inset-x-0 opacity-0 cursor-pointer w-full z-30"
+                                        className="absolute top-12 bottom-12 inset-x-0 opacity-0 cursor-pointer w-full z-30"
                                         style={{ appearance: 'slider-vertical' as any, WebkitAppearance: 'slider-vertical' as any }}
                                     />
                                 </div>
