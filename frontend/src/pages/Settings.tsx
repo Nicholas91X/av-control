@@ -26,7 +26,7 @@ export const Settings: React.FC = () => {
     } = useSettings();
 
     return (
-        <div className="relative min-h-screen transition-colors duration-500" style={{ backgroundColor }}>
+        <div className="fixed inset-0 flex flex-col overflow-hidden transition-colors duration-500" style={{ backgroundColor }}>
             {/* 1. TOP TITLE ROW */}
             <div className="absolute top-8 inset-x-0 h-16 flex items-center justify-center pointer-events-none z-[60]">
                 <div className="flex flex-col items-center">
@@ -40,7 +40,9 @@ export const Settings: React.FC = () => {
                 </div>
             </div>
 
-            <div className="space-y-12 p-6 md:p-16 pt-[1480px] max-w-6xl mx-auto overflow-y-auto">
+            <div className="mt-32 h-4 shrink-0" />
+
+            <div className="flex-1 space-y-12 p-6 md:p-16 max-w-6xl mx-auto overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12">
                     {/* Background Color Selection */}
                     <Card className="p-8 space-y-6">
