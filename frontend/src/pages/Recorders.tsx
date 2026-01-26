@@ -197,7 +197,7 @@ export const Recorders: React.FC = () => {
                                         className={`relative w-48 h-48 rounded-full flex flex-col items-center justify-center gap-3 transition-all duration-500 z-10 
                                             active:translate-y-2 active:shadow-none
                                             ${isRecording
-                                                ? 'bg-gradient-to-b from-red-500/20 to-red-900/40 border-t-2 border-red-400/50 border-x border-red-500/20 border-b-[10px] border-red-950 text-red-500 shadow-[0_30px_60px_rgba(239,68,68,0.3)]'
+                                                ? 'bg-gradient-to-b from-red-500/20 to-red-900/40 border-t-2 border-red-400/50 border-x border-red-500/20 border-b-[10px] border-red-950 text-red-500 shadow-[0_20px_40px_rgba(239,68,68,0.2)]'
                                                 : 'bg-gradient-to-b from-[#222] to-[#0a0a0c] border-t-2 border-white/10 border-x border-white/5 border-b-[10px] border-black text-white hover:from-[#2a2a2e] hover:to-[#0f0f12] shadow-[0_30px_60px_rgba(0,0,0,1)]'}`}
                                     >
                                         {isRecording ? (
