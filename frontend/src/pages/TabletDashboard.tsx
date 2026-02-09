@@ -18,7 +18,8 @@ import {
     Wifi,
     WifiOff,
     LogOut,
-    Users
+    Users,
+    Cpu
 } from 'lucide-react';
 import { TabletTile } from '../components/dashboard/TabletTile';
 import { useSettings } from '../context/SettingsContext';
@@ -29,6 +30,25 @@ export const TabletDashboard: React.FC = () => {
     const { status } = useWebSocket();
     const { backgroundColor } = useSettings();
     const [isStandby, setIsStandby] = useState(false);
+
+    // Hardware daemon connection status
+    interface SystemStatus {
+        connected: boolean;
+        preset?: { id: string };
+        player?: { state: string; song_title?: string; repeat_mode?: string };
+        recorder?: { state: string };
+    }
+
+    const { data: systemStatus } = useQuery<SystemStatus>({
+        queryKey: ['system', 'status'],
+        queryFn: async () => {
+            const response = await api.get('/device/status');
+            return response.data;
+        },
+        refetchInterval: 5000, // Check every 5 seconds
+    });
+
+    const isHardwareConnected = systemStatus?.connected ?? false;
 
     // Modal state management with animations
     const useModalAnimation = (initialState: boolean) => {
@@ -99,12 +119,26 @@ export const TabletDashboard: React.FC = () => {
                 <div className="w-full relative flex items-center justify-between min-h-[64px]">
                     {/* Left Actions Group */}
                     <div className="flex items-center space-x-3 z-10">
-                        {/* Connection Status Icon */}
-                        <div className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500' :
-                            status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 border-b-yellow-900/60 text-yellow-500 animate-pulse' :
-                                'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
-                            }`}>
+                        {/* WebSocket Connection Status Icon */}
+                        <div
+                            className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500' :
+                                status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 border-b-yellow-900/60 text-yellow-500 animate-pulse' :
+                                    'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
+                                }`}
+                            title={`WebSocket: ${status}`}
+                        >
                             {status === 'connected' ? <Wifi size={24} /> : <WifiOff size={24} />}
+                        </div>
+
+                        {/* Hardware Daemon Connection Status Icon */}
+                        <div
+                            className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${isHardwareConnected
+                                ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500'
+                                : 'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
+                                }`}
+                            title={`Hardware Daemon: ${isHardwareConnected ? 'Connected' : 'Disconnected'}`}
+                        >
+                            <Cpu size={24} />
                         </div>
 
                         {/* Admin-only User Management */}
