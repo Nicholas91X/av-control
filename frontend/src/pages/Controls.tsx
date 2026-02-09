@@ -55,22 +55,14 @@ export const Controls: React.FC = () => {
         },
     });
 
-    const baseControls = controlsData.controls || [];
-    // TEST: Duplicate controls to reach 12 items
+    // Use real controls from the API
     const controls = useMemo(() => {
-        if (baseControls.length === 0) return [];
-        return Array.from({ length: 12 }, (_, i) => {
-            const isEven = (i + 1) % 2 === 0;
-            return {
-                ...baseControls[i % baseControls.length],
-                id: 1000 + i,
-                name: isEven ? `BUS ${i + 1}` : `CH ${i + 1}`,
-                max: isEven ? 6 : 12,
-                min: -96,
-                step: volStep
-            };
-        });
-    }, [baseControls, volStep]);
+        const baseControls = controlsData.controls || [];
+        return baseControls.map(control => ({
+            ...control,
+            step: volStep
+        }));
+    }, [controlsData.controls, volStep]);
 
     const initialFetchDone = useRef(false);
 
@@ -79,10 +71,6 @@ export const Controls: React.FC = () => {
         const fetchControlValues = async () => {
             const values: Record<number, ControlValue> = {};
             for (const control of controls) {
-                if (control.id >= 1000) {
-                    values[control.id] = { id: control.id, volume: -10, mute: false };
-                    continue;
-                }
                 try {
                     const volumeResponse = await api.get(`/device/controls/volume/${control.id}`);
                     values[control.id] = {
@@ -112,7 +100,6 @@ export const Controls: React.FC = () => {
 
     const setControlMutation = useMutation({
         mutationFn: async ({ id, value }: { id: number; value: number | boolean }) => {
-            if (id >= 1000) return; // Mock success
             await api.post(`/device/controls/${id}`, { value });
         },
         onMutate: async ({ id, value }) => {
@@ -138,26 +125,18 @@ export const Controls: React.FC = () => {
             });
         },
         onSettled: async (_data, _error, variables) => {
-            if (variables.id >= 1000) {
-                if (typeof variables.value === 'number') {
-                    setControlValues(p => ({ ...p, [variables.id]: { ...p[variables.id], volume: variables.value as number } }));
-                } else {
-                    setControlValues(p => ({ ...p, [variables.id]: { ...p[variables.id], mute: variables.value as boolean } }));
-                }
-            } else {
-                const control = controls.find(c => c.id === variables.id || c.second_id === variables.id);
-                if (control) {
-                    try {
-                        const res = await api.get(`/device/controls/volume/${control.id}`);
-                        setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], volume: res.data.volume } }));
+            const control = controls.find(c => c.id === variables.id || c.second_id === variables.id);
+            if (control) {
+                try {
+                    const res = await api.get(`/device/controls/volume/${control.id}`);
+                    setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], volume: res.data.volume } }));
 
-                        if (control.second_id) {
-                            const muteRes = await api.get(`/device/controls/mute/${control.second_id}`);
-                            setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], mute: muteRes.data.mute } }));
-                        }
-                    } catch (e) {
-                        console.error("Error refreshing control state:", e);
+                    if (control.second_id) {
+                        const muteRes = await api.get(`/device/controls/mute/${control.second_id}`);
+                        setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], mute: muteRes.data.mute } }));
                     }
+                } catch (e) {
+                    console.error("Error refreshing control state:", e);
                 }
             }
 
