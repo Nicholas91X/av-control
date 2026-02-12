@@ -485,3 +485,83 @@ func (h *Handler) GetSystemStatus(c *gin.Context) {
 	}
 	h.respondSuccess(c, status)
 }
+
+func (h *Handler) GetSystemInfo(c *gin.Context) {
+	info, err := h.hwClient.GetSystemInfo()
+	if err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+	h.respondSuccess(c, info)
+}
+
+// SavePreset saves current control configuration to an existing preset
+func (h *Handler) SavePreset(c *gin.Context) {
+	var req struct {
+		ID string `json:"id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.respondError(c, http.StatusBadRequest, "Preset ID is required", "INVALID_REQUEST")
+		return
+	}
+
+	if err := h.hwClient.SavePreset(req.ID); err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+
+	log.Printf("Preset saved: %s", req.ID)
+	h.respondSuccess(c, nil)
+}
+
+// SetFade sets the fade-out duration (0-5 seconds)
+func (h *Handler) SetFade(c *gin.Context) {
+	var req struct {
+		Fade int `json:"fade"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.respondError(c, http.StatusBadRequest, "Fade value is required", "INVALID_REQUEST")
+		return
+	}
+
+	if req.Fade < 0 || req.Fade > 5 {
+		h.respondError(c, http.StatusBadRequest, "Fade must be between 0 and 5", "INVALID_VALUE")
+		return
+	}
+
+	if err := h.hwClient.SetFade(req.Fade); err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+
+	h.respondSuccess(c, nil)
+}
+
+// GetRecorderSources returns available recording sources
+func (h *Handler) GetRecorderSources(c *gin.Context) {
+	sources, err := h.hwClient.GetRecorderSources()
+	if err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+	c.JSON(http.StatusOK, sources)
+}
+
+// SetRecorderSource sets the left and right recording source
+func (h *Handler) SetRecorderSource(c *gin.Context) {
+	var req struct {
+		Left  int `json:"left"`
+		Right int `json:"right"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.respondError(c, http.StatusBadRequest, "Left and right source IDs are required", "INVALID_REQUEST")
+		return
+	}
+
+	if err := h.hwClient.SetRecorderSource(req.Left, req.Right); err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+
+	h.respondSuccess(c, nil)
+}

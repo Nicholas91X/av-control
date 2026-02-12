@@ -87,6 +87,24 @@ export const TabletDashboard: React.FC = () => {
         },
     });
 
+    // Daemon system info
+    interface SystemInfo {
+        connected: boolean;
+        ip: string;
+        name: string;
+        serial: string;
+        version: string;
+    }
+
+    const { data: systemInfo } = useQuery<SystemInfo>({
+        queryKey: ['system', 'info'],
+        queryFn: async () => {
+            const response = await api.get('/device/info');
+            return response.data;
+        },
+        refetchInterval: 10000,
+    });
+
     if (isStandby) {
         return (
             <div
@@ -317,6 +335,27 @@ export const TabletDashboard: React.FC = () => {
                             <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
                                 <span className="text-white/40 font-medium">Architettura</span>
                                 <span className="font-mono uppercase text-white/60">{versionData?.arch || 'ARMv7'}</span>
+                            </div>
+
+                            {/* Daemon Info Section */}
+                            <div className="mt-6 pt-4 border-t border-white/5">
+                                <h3 className="text-sm font-bold text-white/30 uppercase tracking-widest mb-4">Daemon Hardware</h3>
+                            </div>
+                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
+                                <span className="text-white/40 font-medium">Nome</span>
+                                <span className="font-mono text-white/80">{systemInfo?.name || '—'}</span>
+                            </div>
+                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
+                                <span className="text-white/40 font-medium">Versione Daemon</span>
+                                <span className="font-mono text-blue-400 font-bold">{systemInfo?.version || '—'}</span>
+                            </div>
+                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
+                                <span className="text-white/40 font-medium">Indirizzo IP</span>
+                                <span className="font-mono text-white/80">{systemInfo?.ip || '—'}</span>
+                            </div>
+                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
+                                <span className="text-white/40 font-medium">Seriale</span>
+                                <span className="font-mono text-white/60 text-sm">{systemInfo?.serial || '—'}</span>
                             </div>
                         </div>
                     </div>

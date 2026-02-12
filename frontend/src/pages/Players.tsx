@@ -102,6 +102,13 @@ export const Players: React.FC = () => {
     const [fadeValue, setFadeValue] = useState(4);
     const [isFadeDropdownOpen, setIsFadeDropdownOpen] = useState(false);
     const fadeRef = useRef<HTMLDivElement>(null);
+
+    // Fade mutation
+    const fadeMutation = useMutation({
+        mutationFn: async (fade: number) => {
+            await api.post('/device/player/fade', { fade });
+        },
+    });
     const [isOTPDashboardOpen, setIsOTPDashboardOpen] = useState(false);
     const [isManagementModalOpen, setIsManagementModalOpen] = useState(false);
 
@@ -1295,6 +1302,7 @@ export const Players: React.FC = () => {
                                                     e.stopPropagation();
                                                     setFadeValue(val);
                                                     setIsFadeDropdownOpen(false);
+                                                    fadeMutation.mutate(val);
                                                 }}
                                                 className={`w-full h-12 flex items-center justify-between px-6 transition-all border-b border-white/5 last:border-0 ${fadeValue === val
                                                     ? 'text-white'

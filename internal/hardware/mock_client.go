@@ -323,3 +323,41 @@ func (m *MockHardwareClient) GetSystemStatus() (*models.SystemStatus, error) {
 		Recorder:  *recorder,
 	}, nil
 }
+
+func (m *MockHardwareClient) SavePreset(presetID string) error {
+	for _, p := range m.presets {
+		if p.ID == presetID {
+			return nil
+		}
+	}
+	return errors.New("preset not found")
+}
+
+func (m *MockHardwareClient) SetFade(fade int) error {
+	return nil
+}
+
+func (m *MockHardwareClient) GetRecorderSources() (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"0":     "MIC IN1",
+		"1":     "MIC IN2",
+		"2":     "MIC IN3",
+		"3":     "MIC IN4",
+		"left":  float64(0),
+		"right": float64(1),
+	}, nil
+}
+
+func (m *MockHardwareClient) SetRecorderSource(left, right int) error {
+	return nil
+}
+
+func (m *MockHardwareClient) GetSystemInfo() (*models.SystemInfo, error) {
+	return &models.SystemInfo{
+		Connected: true,
+		IP:        "192.168.1.154",
+		Name:      "S-Mix (Mock)",
+		Serial:    "MOCK-SERIAL-001",
+		Version:   "v0.0.0-mock",
+	}, nil
+}

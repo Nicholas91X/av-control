@@ -7,6 +7,7 @@ type HardwareClient interface {
 	GetPresets() (*models.PresetsResponse, error)
 	GetCurrentPreset() (*models.CurrentPresetResponse, error)
 	LoadPreset(presetID string) error
+	SavePreset(presetID string) error
 
 	// Player
 	GetSources() (*models.SourcesResponse, error)
@@ -21,11 +22,14 @@ type HardwareClient interface {
 	Seek(time int) error
 	SetRepeatMode(mode string) error
 	GetPlayerStatus() (*models.PlayerStatus, error)
+	SetFade(fade int) error
 
 	// Recorder
 	StartRecording(filename string) (string, error)
 	StopRecording() error
 	GetRecorderStatus() (*models.RecorderStatus, error)
+	GetRecorderSources() (map[string]interface{}, error)
+	SetRecorderSource(left, right int) error
 
 	// Controls
 	GetControls() (*models.ControlsResponse, error)
@@ -34,4 +38,5 @@ type HardwareClient interface {
 
 	// System
 	GetSystemStatus() (*models.SystemStatus, error)
+	GetSystemInfo() (*models.SystemInfo, error)
 }

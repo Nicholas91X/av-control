@@ -230,6 +230,7 @@ func main() {
 		{
 			// System Status
 			device.GET("/status", deviceHandler.GetSystemStatus)
+			device.GET("/info", deviceHandler.GetSystemInfo)
 
 			// PRESETS
 			presets := device.Group("/presets")
@@ -237,6 +238,7 @@ func main() {
 				presets.GET("", deviceHandler.GetPresets)
 				presets.GET("/current", deviceHandler.GetCurrentPreset)
 				presets.POST("/load", deviceHandler.LoadPreset)
+				presets.POST("/save", deviceHandler.SavePreset)
 			}
 
 			// PLAYER
@@ -254,6 +256,7 @@ func main() {
 				player.POST("/seek", deviceHandler.Seek)
 				player.POST("/repeat", deviceHandler.SetRepeatMode)
 				player.GET("/status", deviceHandler.GetPlayerStatus)
+				player.POST("/fade", deviceHandler.SetFade)
 			}
 
 			// RECORDER
@@ -262,6 +265,8 @@ func main() {
 				recorder.POST("/start", deviceHandler.StartRecording)
 				recorder.POST("/stop", deviceHandler.StopRecording)
 				recorder.GET("/status", deviceHandler.GetRecorderStatus)
+				recorder.GET("/sources", deviceHandler.GetRecorderSources)
+				recorder.POST("/source", deviceHandler.SetRecorderSource)
 			}
 
 			// CONTROLS

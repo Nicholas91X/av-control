@@ -20,9 +20,7 @@ interface RecorderStatus {
     target_memory?: 'internal' | 'usb';
 }
 
-const AVAILABLE_CHANNELS = [
-    'OUT 1', 'OUT 2', 'OUT 3', 'OUT 4', 'CH 1', 'CH 2', 'CH 3', 'CH 4', 'BUS 1', 'BUS 2'
-];
+// Channels now fetched from API instead of hardcoded
 
 export const Recorders: React.FC = () => {
     const queryClient = useQueryClient();
@@ -30,12 +28,54 @@ export const Recorders: React.FC = () => {
     const { highlightColor, backgroundColor } = useSettings();
 
     // State for selectors
-    const [leftSource, setLeftSource] = useState('OUT 1');
-    const [rightSource, setRightSource] = useState('Same as Left');
+    const [leftSource, setLeftSource] = useState<number>(0);
+    const [rightSource, setRightSource] = useState<number>(1);
     const [targetMemory, setTargetMemory] = useState<'internal' | 'usb'>('internal');
     const [volValue, setVolValue] = useState(0.0);
     const [vuLeft, setVuLeft] = useState(0);
     const [vuRight, setVuRight] = useState(0);
+
+    // Fetch available recording sources from daemon
+    const { data: sourcesData } = useQuery<Record<string, any>>({
+        queryKey: ['recorder', 'sources'],
+        queryFn: async () => {
+            const response = await api.get('/device/recorder/sources');
+            return response.data;
+        },
+    });
+
+    // Parse sources into a list: [{index: 0, name: 'MIC IN1'}, ...]
+    const availableSources = React.useMemo(() => {
+        if (!sourcesData) return [];
+        return Object.entries(sourcesData)
+            .filter(([key]) => key !== 'left' && key !== 'right')
+            .map(([key, value]) => ({ index: parseInt(key), name: value as string }))
+            .sort((a, b) => a.index - b.index);
+    }, [sourcesData]);
+
+    // Init selections from API response
+    useEffect(() => {
+        if (sourcesData) {
+            if (typeof sourcesData.left === 'number') setLeftSource(sourcesData.left);
+            if (typeof sourcesData.right === 'number') setRightSource(sourcesData.right);
+        }
+    }, [sourcesData]);
+
+    // Mutation to save source selection
+    const setSourceMutation = useMutation({
+        mutationFn: async ({ left, right }: { left: number; right: number }) => {
+            await api.post('/device/recorder/source', { left, right });
+        },
+    });
+
+    const handleSourceChange = (side: 'left' | 'right', value: number) => {
+        const newLeft = side === 'left' ? value : leftSource;
+        const newRight = side === 'right' ? value : rightSource;
+        if (side === 'left') setLeftSource(value);
+        else setRightSource(value);
+        setSourceMutation.mutate({ left: newLeft, right: newRight });
+    };
+
 
     // Fetch recorder status
     const { data: recorderStatus, refetch: refetchStatus } = useQuery<RecorderStatus>({
@@ -137,10 +177,10 @@ export const Recorders: React.FC = () => {
                                     </div>
                                     <select
                                         value={leftSource}
-                                        onChange={(e) => setLeftSource(e.target.value)}
+                                        onChange={(e) => handleSourceChange('left', parseInt(e.target.value))}
                                         className="bg-transparent border-none text-white font-black text-base outline-none cursor-pointer w-full appearance-none uppercase tracking-widest"
                                     >
-                                        {AVAILABLE_CHANNELS.map(ch => <option key={ch} value={ch} className="bg-[#1a1a1c]">{ch}</option>)}
+                                        {availableSources.map(src => <option key={src.index} value={src.index} className="bg-[#1a1a1c]">{src.name}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -156,11 +196,10 @@ export const Recorders: React.FC = () => {
                                     </div>
                                     <select
                                         value={rightSource}
-                                        onChange={(e) => setRightSource(e.target.value)}
+                                        onChange={(e) => handleSourceChange('right', parseInt(e.target.value))}
                                         className="bg-transparent border-none text-white font-black text-base outline-none cursor-pointer w-full appearance-none uppercase tracking-widest"
                                     >
-                                        <option value="Same as Left" className="bg-[#1a1a1c]">Stessa di sinistra</option>
-                                        {AVAILABLE_CHANNELS.map(ch => <option key={ch} value={ch} className="bg-[#1a1a1c]">{ch}</option>)}
+                                        {availableSources.map(src => <option key={src.index} value={src.index} className="bg-[#1a1a1c]">{src.name}</option>)}
                                     </select>
                                 </div>
                             </div>

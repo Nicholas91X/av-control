@@ -13,7 +13,9 @@ import {
     Minus,
     Grid,
     LayoutList,
-    Sliders
+    Sliders,
+    Check,
+    X
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSettings } from '../context/SettingsContext';
@@ -45,6 +47,45 @@ export const Controls: React.FC = () => {
     const [isMutating, setIsMutating] = useState(false);
     const [volStep, setVolStep] = useState(0.1);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [saveModalOpen, setSaveModalOpen] = useState(false);
+    const [selectedPresetToSave, setSelectedPresetToSave] = useState<string | null>(null);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+
+    // Fetch presets list for save dialog
+    const { data: presetsData } = useQuery<{ presets: { id: string; name: string }[] }>({
+        queryKey: ['presets'],
+        queryFn: async () => {
+            const response = await api.get('/device/presets');
+            return response.data;
+        },
+    });
+
+    // Fetch current active preset
+    const { data: currentPresetData } = useQuery<{ id: string }>({
+        queryKey: ['presets', 'current'],
+        queryFn: async () => {
+            const response = await api.get('/device/presets/current');
+            return response.data;
+        },
+    });
+
+    // Save preset mutation
+    const savePresetMutation = useMutation({
+        mutationFn: async (presetId: string) => {
+            await api.post('/device/presets/save', { id: presetId });
+        },
+        onSuccess: () => {
+            setSaveSuccess(true);
+            setTimeout(() => {
+                setSaveSuccess(false);
+                setSaveModalOpen(false);
+                setSelectedPresetToSave(null);
+            }, 1500);
+        },
+        onError: (error) => {
+            console.error('Failed to save preset:', error);
+        },
+    });
 
     // Fetch all controls
     const { data: controlsData = { controls: [] }, isLoading } = useQuery<{ controls: Control[] }>({
@@ -366,7 +407,13 @@ export const Controls: React.FC = () => {
                     >
                         <RefreshCw size={24} />
                     </button>
-                    <button className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)] active:scale-95 transition-all">
+                    <button
+                        onClick={() => {
+                            setSelectedPresetToSave(currentPresetData?.id || null);
+                            setSaveModalOpen(true);
+                        }}
+                        className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)] active:scale-95 transition-all"
+                    >
                         <Save size={24} />
                     </button>
 
@@ -449,6 +496,61 @@ export const Controls: React.FC = () => {
                     <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-black/20 to-transparent w-20 h-full pointer-events-none" />
                 )}
             </main>
+            {/* Save Preset Modal */}
+            {saveModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-8">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xl" onClick={() => setSaveModalOpen(false)} />
+                    <div className="relative bg-[#1a1a1a] border border-white/10 p-8 rounded-[2rem] max-w-md w-full shadow-2xl">
+                        <button
+                            onClick={() => setSaveModalOpen(false)}
+                            className="absolute top-6 right-6 text-white/30 hover:text-white transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+
+                        {saveSuccess ? (
+                            <div className="flex flex-col items-center py-8">
+                                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
+                                    <Check size={32} className="text-green-400" />
+                                </div>
+                                <h3 className="text-xl font-bold text-green-400">Preset Salvato!</h3>
+                            </div>
+                        ) : (
+                            <>
+                                <h3 className="text-xl font-bold mb-6 text-white">Salva su Preset</h3>
+                                <p className="text-sm text-white/40 mb-4">Seleziona il preset su cui sovrascrivere la configurazione corrente:</p>
+                                <div className="space-y-2 max-h-64 overflow-y-auto mb-6">
+                                    {presetsData?.presets?.map((preset) => (
+                                        <button
+                                            key={preset.id}
+                                            onClick={() => setSelectedPresetToSave(preset.id)}
+                                            className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${selectedPresetToSave === preset.id
+                                                    ? 'border-blue-500 bg-blue-500/10 text-white'
+                                                    : 'border-white/5 bg-white/5 text-white/60 hover:bg-white/10'
+                                                } ${currentPresetData?.id === preset.id ? 'ring-1 ring-blue-400/30' : ''}`}
+                                        >
+                                            <span className="font-semibold">{preset.name || preset.id}</span>
+                                            {currentPresetData?.id === preset.id && (
+                                                <span className="ml-2 text-xs text-blue-400 font-bold">(attivo)</span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => selectedPresetToSave && savePresetMutation.mutate(selectedPresetToSave)}
+                                    disabled={!selectedPresetToSave || savePresetMutation.isPending}
+                                    className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-white/5 disabled:text-white/20 rounded-xl font-bold transition-all active:scale-[0.98]"
+                                >
+                                    {savePresetMutation.isPending ? 'Salvataggio...' : 'Conferma Salvataggio'}
+                                </button>
+                                {savePresetMutation.isError && (
+                                    <p className="text-red-400 text-sm mt-3 text-center">Errore nel salvataggio. Riprova.</p>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -40,6 +40,7 @@ type PlayerStatus struct {
 	CurrentTime int    `json:"current_time"`
 	TotalTime   int    `json:"total_time"`
 	RepeatMode  string `json:"repeat_mode"`
+	Fade        int    `json:"fade"`
 }
 
 // Recorder
@@ -86,4 +87,13 @@ type ErrorResponse struct {
 	Success   bool   `json:"success"`
 	Error     string `json:"error"`
 	ErrorCode string `json:"error_code"`
+}
+
+// System Info (from daemon /api/device/info)
+type SystemInfo struct {
+	Connected bool   `json:"connected"`
+	IP        string `json:"ip"`
+	Name      string `json:"name"`
+	Serial    string `json:"serial"`
+	Version   string `json:"version"`
 }

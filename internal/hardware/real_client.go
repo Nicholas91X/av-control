@@ -99,6 +99,11 @@ func (r *RealHardwareClient) LoadPreset(presetID string) error {
 	return r.post("/api/device/presets/load", payload, nil)
 }
 
+func (r *RealHardwareClient) SavePreset(presetID string) error {
+	payload := map[string]string{"id": presetID}
+	return r.post("/api/device/presets/save", payload, nil)
+}
+
 // ============================================================================
 // PLAYER
 // ============================================================================
@@ -161,6 +166,11 @@ func (r *RealHardwareClient) GetPlayerStatus() (*models.PlayerStatus, error) {
 	return &response, err
 }
 
+func (r *RealHardwareClient) SetFade(fade int) error {
+	payload := map[string]int{"fade": fade}
+	return r.post("/api/device/player/fade", payload, nil)
+}
+
 // ============================================================================
 // RECORDER
 // ============================================================================
@@ -192,6 +202,17 @@ func (r *RealHardwareClient) GetRecorderStatus() (*models.RecorderStatus, error)
 	var response models.RecorderStatus
 	err := r.get("/api/device/recorder/status", &response)
 	return &response, err
+}
+
+func (r *RealHardwareClient) GetRecorderSources() (map[string]interface{}, error) {
+	var response map[string]interface{}
+	err := r.get("/api/device/recorder/sources", &response)
+	return response, err
+}
+
+func (r *RealHardwareClient) SetRecorderSource(left, right int) error {
+	payload := map[string]int{"left": left, "right": right}
+	return r.post("/api/device/recorder/source", payload, nil)
 }
 
 // ============================================================================
@@ -256,6 +277,12 @@ func (r *RealHardwareClient) SetControlValue(controlID string, value interface{}
 func (r *RealHardwareClient) GetSystemStatus() (*models.SystemStatus, error) {
 	var response models.SystemStatus
 	err := r.get("/api/device/status", &response)
+	return &response, err
+}
+
+func (r *RealHardwareClient) GetSystemInfo() (*models.SystemInfo, error) {
+	var response models.SystemInfo
+	err := r.get("/api/device/info", &response)
 	return &response, err
 }
 
