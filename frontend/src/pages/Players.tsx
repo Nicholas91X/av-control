@@ -85,9 +85,9 @@ export const Players: React.FC = () => {
     const [controlValues, setControlValues] = useState<Record<number, any>>({});
     const [isSeeking, setIsSeeking] = useState(false);
     const [seekingTime, setSeekingTime] = useState(0);
-    const lastSeekTimeRef = useRef<number>(0);
-    const lastTransportActionTimeRef = useRef<number>(0);
     const lastKnownPlayheadRef = useRef<{ time: number; timestamp: number }>({ time: 0, timestamp: 0 });
+    const pendingSongRef = useRef<Song | null>(null);
+    const seekTargetRef = useRef<number | null>(null);
 
     // Search State
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -296,19 +296,28 @@ export const Players: React.FC = () => {
             const response = await api.get('/device/player/status');
             let data = response.data;
 
-            // Dopo un seek, manteniamo la posizione locale per evitare che il polling sovrascriva
-            // EXTENDED GRACE PERIOD: 8 seconds instead of 3
-            const timeSinceSeek = Date.now() - lastSeekTimeRef.current;
-            const timeSinceTransportAction = Date.now() - lastTransportActionTimeRef.current;
+            // Se stiamo attivamente seeking, usa il valore locale
+            if (isSeeking) {
+                data = { ...data, current_time: seekingTime };
+            } else if (seekTargetRef.current !== null) {
+                // Dopo un seek, controlla se il server ha recepito la nuova posizione
+                const serverTime = data.current_time || 0;
+                const seekTarget = seekTargetRef.current;
+                const diff = Math.abs(serverTime - seekTarget);
 
-            if ((isSeeking || timeSinceSeek < 8000 || timeSinceTransportAction < 5000)
-                && lastKnownPlayheadRef.current.time >= 0) {
-                const isPlaying = data.state === 'playing';
-                const elapsed = isPlaying ? Math.floor((Date.now() - lastKnownPlayheadRef.current.timestamp) / 1000) : 0;
-                const projectedTime = Math.min(lastKnownPlayheadRef.current.time + elapsed, data.total_time || 999);
-                data = { ...data, current_time: projectedTime };
+                if (diff <= 3) {
+                    // Il server ha recepito il seek, fine della protezione
+                    seekTargetRef.current = null;
+                    lastKnownPlayheadRef.current = { time: serverTime, timestamp: Date.now() };
+                } else {
+                    // Il server non ha ancora recepito, proietta dalla posizione locale
+                    const isPlaying = data.state === 'playing';
+                    const elapsed = isPlaying ? Math.floor((Date.now() - lastKnownPlayheadRef.current.timestamp) / 1000) : 0;
+                    const projectedTime = Math.min(seekTarget + elapsed, data.total_time || 999);
+                    data = { ...data, current_time: projectedTime };
+                }
             } else {
-                // After grace period, update local reference with real value
+                // Nessun seek attivo, usa il valore del server
                 lastKnownPlayheadRef.current = { time: data.current_time || 0, timestamp: Date.now() };
             }
 
@@ -349,39 +358,25 @@ export const Players: React.FC = () => {
         },
     });
 
-    const selectSongMutation = useMutation({
-        mutationFn: async (song: Song) => {
-            setPlayingSourceContext({ type: selectedSourceType as any, id: selectedSource! });
+    // Selezione locale: NON chiama nessuna API, salva solo il brano in pending
+    const handleSelectSong = (song: Song) => {
+        pendingSongRef.current = song;
+        setPlayingSourceContext({ type: selectedSourceType as any, id: selectedSource! });
 
-            if (song.id >= 1000) {
-                const newStatus: PlayerStatus = {
-                    state: 'stopped',
-                    song_title: song.name,
-                    current_source: 'Group',
-                    current_time: 0,
-                    total_time: 180,
-                    repeat_mode: 'none'
-                };
-                setMockPlayerStatus(newStatus);
-                queryClient.setQueryData(['player', 'status'], newStatus);
-                return;
-            }
-
-            await api.post('/device/player/song', { id: song.id });
-            await wait(100);  // Let daemon process selection
-            await api.post('/device/player/stop');  // Force stop
-            await wait(200);  // Ensure stop is applied
-        },
-        onMutate: async () => {
-            setIsMutating(true);
-            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
-        },
-        onSuccess: async () => {
-            await wait(300);
-            queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
-        },
-        onSettled: () => setIsMutating(false)
-    });
+        // Per i mock, aggiorna lo status visivamente senza play
+        if (song.id >= 1000) {
+            const newStatus: PlayerStatus = {
+                state: 'stopped',
+                song_title: song.name,
+                current_source: 'Group',
+                current_time: 0,
+                total_time: 180,
+                repeat_mode: 'none'
+            };
+            setMockPlayerStatus(newStatus);
+            queryClient.setQueryData(['player', 'status'], newStatus);
+        }
+    };
 
     const playMutation = useMutation({
         mutationFn: async () => {
@@ -389,6 +384,14 @@ export const Players: React.FC = () => {
                 setMockPlayerStatus({ ...mockPlayerStatus, state: 'playing' });
                 return;
             }
+            // Se c'è un brano in pending, lo selezioniamo prima di fare play
+            if (pendingSongRef.current && pendingSongRef.current.id < 1000) {
+                await api.post('/device/player/song', { id: pendingSongRef.current.id });
+                pendingSongRef.current = null;
+                // Il daemon avvia automaticamente la riproduzione con /song
+                return;
+            }
+            pendingSongRef.current = null;
             await api.post('/device/player/play');
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
@@ -466,8 +469,8 @@ export const Players: React.FC = () => {
         mutationFn: async (time: number) => api.post('/device/player/seek', { time }),
         onMutate: async (time: number) => {
             setIsMutating(true);
-            lastTransportActionTimeRef.current = Date.now();
-            lastSeekTimeRef.current = Date.now();
+            // Salva il target del seek per la protezione nel polling
+            seekTargetRef.current = time;
             lastKnownPlayheadRef.current = { time, timestamp: Date.now() };
 
             await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
@@ -479,7 +482,6 @@ export const Players: React.FC = () => {
             return { previousStatus };
         },
         onSuccess: () => {
-            // Keep local data fresh
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         },
         onSettled: () => setIsMutating(false),
@@ -899,7 +901,7 @@ export const Players: React.FC = () => {
                                                         return;
                                                     }
 
-                                                    selectSongMutation.mutate(song);
+                                                    handleSelectSong(song);
 
                                                     // If search is active and this song is in results, update current match index
                                                     if (isSearchActive) {
@@ -950,23 +952,16 @@ export const Players: React.FC = () => {
                             const status = getStatusDisplay(playerStatus?.state);
 
                             // TRANSPORT STABILITY ENGINE
-                            const now = Date.now();
                             const isPlaying = playerStatus?.state === 'playing';
-                            const timeSinceLastAction = now - lastTransportActionTimeRef.current;
-                            const isInGracePeriod = timeSinceLastAction < 10000; // Increased to 10s for max safety
 
                             let effectiveTime: number;
 
                             if (isSeeking) {
                                 effectiveTime = seekingTime;
-                            } else if (isInGracePeriod) {
-                                // During grace period, calculate local projection
-                                const baseTime = lastKnownPlayheadRef.current.time;
-                                const elapsed = isPlaying ? Math.floor((now - lastKnownPlayheadRef.current.timestamp) / 1000) : 0;
-                                effectiveTime = Math.min(baseTime + elapsed, playerStatus?.total_time || 999);
                             } else {
+                                // Il queryFn già gestisce la proiezione locale dopo un seek
+                                // Qui usiamo semplicemente il valore dal polling
                                 effectiveTime = playerStatus?.current_time || 0;
-                                lastKnownPlayheadRef.current = { time: effectiveTime, timestamp: now };
                             }
 
                             const progressPercent = ((effectiveTime / (playerStatus?.total_time || 1)) * 100);
@@ -1003,8 +998,6 @@ export const Players: React.FC = () => {
                                         <button
                                             onClick={() => {
                                                 const newTime = Math.max(0, effectiveTime - 5);
-                                                lastTransportActionTimeRef.current = Date.now();
-                                                lastKnownPlayheadRef.current = { time: newTime, timestamp: Date.now() };
                                                 seekMutation.mutate(newTime);
                                             }}
                                             className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
@@ -1042,8 +1035,6 @@ export const Players: React.FC = () => {
                                         <button
                                             onClick={() => {
                                                 const newTime = Math.min(playerStatus?.total_time || 999, effectiveTime + 5);
-                                                lastTransportActionTimeRef.current = Date.now();
-                                                lastKnownPlayheadRef.current = { time: newTime, timestamp: Date.now() };
                                                 seekMutation.mutate(newTime);
                                             }}
                                             className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
@@ -1099,19 +1090,13 @@ export const Players: React.FC = () => {
                                                 }}
                                                 onMouseUp={(e) => {
                                                     const val = parseInt((e.target as HTMLInputElement).value);
-                                                    lastTransportActionTimeRef.current = Date.now();
-                                                    lastKnownPlayheadRef.current = { time: val, timestamp: Date.now() };
-                                                    lastSeekTimeRef.current = Date.now();
                                                     seekMutation.mutate(val);
-                                                    setTimeout(() => setIsSeeking(false), 5000);
+                                                    setTimeout(() => setIsSeeking(false), 3000);
                                                 }}
                                                 onTouchEnd={(e) => {
                                                     const val = parseInt((e.target as HTMLInputElement).value);
-                                                    lastTransportActionTimeRef.current = Date.now();
-                                                    lastKnownPlayheadRef.current = { time: val, timestamp: Date.now() };
-                                                    lastSeekTimeRef.current = Date.now();
                                                     seekMutation.mutate(val);
-                                                    setTimeout(() => setIsSeeking(false), 5000);
+                                                    setTimeout(() => setIsSeeking(false), 3000);
                                                 }}
                                                 className="absolute inset-x-0 w-full h-20 -top-8 opacity-0 cursor-pointer z-30"
                                             />
@@ -3495,7 +3480,7 @@ export const Players: React.FC = () => {
                                 return (
                                     <button
                                         key={song.id}
-                                        onClick={() => selectSongMutation.mutate(song)}
+                                        onClick={() => handleSelectSong(song)}
                                         className={`w-full group px-6 py-5 text-left transition-all flex items-center justify-between rounded-2xl ${isCurrentSelection
                                             ? 'bg-blue-600/40 border-blue-400 shadow-[inset_0_0_20px_rgba(59,130,246,0.3)]'
                                             : isSearchResult
