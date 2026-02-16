@@ -297,12 +297,19 @@ export const Players: React.FC = () => {
             let data = response.data;
 
             // Dopo un seek, manteniamo la posizione locale per evitare che il polling sovrascriva
+            // EXTENDED GRACE PERIOD: 8 seconds instead of 3
             const timeSinceSeek = Date.now() - lastSeekTimeRef.current;
-            if (timeSinceSeek < 3000 && lastKnownPlayheadRef.current.time > 0) {
+            const timeSinceTransportAction = Date.now() - lastTransportActionTimeRef.current;
+
+            if ((isSeeking || timeSinceSeek < 8000 || timeSinceTransportAction < 5000)
+                && lastKnownPlayheadRef.current.time >= 0) {
                 const isPlaying = data.state === 'playing';
                 const elapsed = isPlaying ? Math.floor((Date.now() - lastKnownPlayheadRef.current.timestamp) / 1000) : 0;
                 const projectedTime = Math.min(lastKnownPlayheadRef.current.time + elapsed, data.total_time || 999);
                 data = { ...data, current_time: projectedTime };
+            } else {
+                // After grace period, update local reference with real value
+                lastKnownPlayheadRef.current = { time: data.current_time || 0, timestamp: Date.now() };
             }
 
             if (data.song_title && playingSourceContext) {
@@ -344,10 +351,8 @@ export const Players: React.FC = () => {
 
     const selectSongMutation = useMutation({
         mutationFn: async (song: Song) => {
-            // Aggiorniamo il contesto di riproduzione
             setPlayingSourceContext({ type: selectedSourceType as any, id: selectedSource! });
 
-            // Handle Mock Songs
             if (song.id >= 1000) {
                 const newStatus: PlayerStatus = {
                     state: 'stopped',
@@ -361,14 +366,21 @@ export const Players: React.FC = () => {
                 queryClient.setQueryData(['player', 'status'], newStatus);
                 return;
             }
-            // Real Songs - solo seleziona senza riprodurre
+
             await api.post('/device/player/song', { id: song.id });
-            // Dopo la selezione, fermiamo immediatamente la riproduzione
-            await api.post('/device/player/stop');
+            await wait(100);  // Let daemon process selection
+            await api.post('/device/player/stop');  // Force stop
+            await wait(200);  // Ensure stop is applied
         },
-        onSuccess: () => {
+        onMutate: async () => {
+            setIsMutating(true);
+            await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
+        },
+        onSuccess: async () => {
+            await wait(300);
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
         },
+        onSettled: () => setIsMutating(false)
     });
 
     const playMutation = useMutation({
@@ -1091,7 +1103,7 @@ export const Players: React.FC = () => {
                                                     lastKnownPlayheadRef.current = { time: val, timestamp: Date.now() };
                                                     lastSeekTimeRef.current = Date.now();
                                                     seekMutation.mutate(val);
-                                                    setTimeout(() => setIsSeeking(false), 2000);
+                                                    setTimeout(() => setIsSeeking(false), 5000);
                                                 }}
                                                 onTouchEnd={(e) => {
                                                     const val = parseInt((e.target as HTMLInputElement).value);
@@ -1099,7 +1111,7 @@ export const Players: React.FC = () => {
                                                     lastKnownPlayheadRef.current = { time: val, timestamp: Date.now() };
                                                     lastSeekTimeRef.current = Date.now();
                                                     seekMutation.mutate(val);
-                                                    setTimeout(() => setIsSeeking(false), 2000);
+                                                    setTimeout(() => setIsSeeking(false), 5000);
                                                 }}
                                                 className="absolute inset-x-0 w-full h-20 -top-8 opacity-0 cursor-pointer z-30"
                                             />
