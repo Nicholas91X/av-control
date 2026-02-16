@@ -157,6 +157,7 @@ export const Players: React.FC = () => {
     const [activeMetadataField, setActiveMetadataField] = useState<'title' | 'artist' | 'album' | null>(null);
 
     const [mockPlayerStatus, setMockPlayerStatus] = useState<PlayerStatus | null>(null);
+    const [isSearchNavigating, setIsSearchNavigating] = useState(false);
 
     // Fetch controls to find Volume 1 and Volume 2
     const { data: controlsData } = useQuery<{ controls: any[] }>({
@@ -746,8 +747,11 @@ export const Players: React.FC = () => {
             setCurrentSearchIndex(0);
             setIsSearchActive(true);
             setIsSearchModalOpen(false);
+            setIsSearchNavigating(true);
             // Solo scroll al risultato, senza selezionare/riprodurre
             setTimeout(() => scrollToSong(results[0]), 100);
+            // Reset del flag dopo il scroll
+            setTimeout(() => setIsSearchNavigating(false), 600);
         }
     };
 
@@ -755,8 +759,11 @@ export const Players: React.FC = () => {
         if (searchResults.length === 0) return;
         const nextIndex = (currentSearchIndex + 1) % searchResults.length;
         setCurrentSearchIndex(nextIndex);
+        setIsSearchNavigating(true);
         // Solo scroll al risultato, senza selezionare/riprodurre
         scrollToSong(searchResults[nextIndex]);
+        // Reset del flag dopo il scroll
+        setTimeout(() => setIsSearchNavigating(false), 500);
     };
 
     const clearSearch = () => {
@@ -874,7 +881,14 @@ export const Players: React.FC = () => {
                                             <button
                                                 key={song.id}
                                                 onClick={() => {
+                                                    // Se stiamo navigando la ricerca, NON selezionare automaticamente
+                                                    if (isSearchNavigating) {
+                                                        setIsSearchNavigating(false);
+                                                        return;
+                                                    }
+
                                                     selectSongMutation.mutate(song);
+
                                                     // If search is active and this song is in results, update current match index
                                                     if (isSearchActive) {
                                                         const resIdx = searchResults.indexOf(index);
