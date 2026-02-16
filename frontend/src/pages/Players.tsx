@@ -293,7 +293,16 @@ export const Players: React.FC = () => {
         queryFn: async () => {
             if (mockPlayerStatus) return mockPlayerStatus;
             const response = await api.get('/device/player/status');
-            const data = response.data;
+            let data = response.data;
+
+            // Dopo un seek, manteniamo la posizione locale per evitare che il polling sovrascriva
+            const timeSinceSeek = Date.now() - lastSeekTimeRef.current;
+            if (timeSinceSeek < 3000 && lastKnownPlayheadRef.current.time > 0) {
+                const isPlaying = data.state === 'playing';
+                const elapsed = isPlaying ? Math.floor((Date.now() - lastKnownPlayheadRef.current.timestamp) / 1000) : 0;
+                const projectedTime = Math.min(lastKnownPlayheadRef.current.time + elapsed, data.total_time || 999);
+                data = { ...data, current_time: projectedTime };
+            }
 
             if (data.song_title && playingSourceContext) {
                 const contextPrefix = `${playingSourceContext.type}:${playingSourceContext.id}:`;
@@ -340,7 +349,7 @@ export const Players: React.FC = () => {
             // Handle Mock Songs
             if (song.id >= 1000) {
                 const newStatus: PlayerStatus = {
-                    state: 'playing',
+                    state: 'stopped',
                     song_title: song.name,
                     current_source: 'Group',
                     current_time: 0,
@@ -351,8 +360,10 @@ export const Players: React.FC = () => {
                 queryClient.setQueryData(['player', 'status'], newStatus);
                 return;
             }
-            // Real Songs
+            // Real Songs - solo seleziona senza riprodurre
             await api.post('/device/player/song', { id: song.id });
+            // Dopo la selezione, fermiamo immediatamente la riproduzione
+            await api.post('/device/player/stop');
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
@@ -735,9 +746,7 @@ export const Players: React.FC = () => {
             setCurrentSearchIndex(0);
             setIsSearchActive(true);
             setIsSearchModalOpen(false);
-            // Select the first result on the server
-            selectSongMutation.mutate(songs[results[0]]);
-            // We use a small timeout to ensure states are updated
+            // Solo scroll al risultato, senza selezionare/riprodurre
             setTimeout(() => scrollToSong(results[0]), 100);
         }
     };
@@ -746,8 +755,7 @@ export const Players: React.FC = () => {
         if (searchResults.length === 0) return;
         const nextIndex = (currentSearchIndex + 1) % searchResults.length;
         setCurrentSearchIndex(nextIndex);
-        // Sync with server
-        selectSongMutation.mutate(songs[searchResults[nextIndex]]);
+        // Solo scroll al risultato, senza selezionare/riprodurre
         scrollToSong(searchResults[nextIndex]);
     };
 
@@ -1067,15 +1075,17 @@ export const Players: React.FC = () => {
                                                     const val = parseInt((e.target as HTMLInputElement).value);
                                                     lastTransportActionTimeRef.current = Date.now();
                                                     lastKnownPlayheadRef.current = { time: val, timestamp: Date.now() };
+                                                    lastSeekTimeRef.current = Date.now();
                                                     seekMutation.mutate(val);
-                                                    setTimeout(() => setIsSeeking(false), 50);
+                                                    setTimeout(() => setIsSeeking(false), 2000);
                                                 }}
                                                 onTouchEnd={(e) => {
                                                     const val = parseInt((e.target as HTMLInputElement).value);
                                                     lastTransportActionTimeRef.current = Date.now();
                                                     lastKnownPlayheadRef.current = { time: val, timestamp: Date.now() };
+                                                    lastSeekTimeRef.current = Date.now();
                                                     seekMutation.mutate(val);
-                                                    setTimeout(() => setIsSeeking(false), 50);
+                                                    setTimeout(() => setIsSeeking(false), 2000);
                                                 }}
                                                 className="absolute inset-x-0 w-full h-20 -top-8 opacity-0 cursor-pointer z-30"
                                             />
