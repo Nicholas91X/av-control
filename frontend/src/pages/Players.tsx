@@ -86,8 +86,9 @@ export const Players: React.FC = () => {
     const [isSeeking, setIsSeeking] = useState(false);
     const [seekingTime, setSeekingTime] = useState(0);
     const lastKnownPlayheadRef = useRef<{ time: number; timestamp: number }>({ time: 0, timestamp: 0 });
-    const pendingSongRef = useRef<Song | null>(null);
-    const seekTargetRef = useRef<number | null>(null);
+    // Usiamo lo stato per pendingSong invece del Ref per assicurare il re-render immediato della UI
+    const [pendingSong, setPendingSong] = useState<Song | null>(null);
+    const seekTargetRef = useRef<{ time: number; timestamp: number } | null>(null);
 
     // Search State
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -302,17 +303,23 @@ export const Players: React.FC = () => {
             } else if (seekTargetRef.current !== null) {
                 // Dopo un seek, controlla se il server ha recepito la nuova posizione
                 const serverTime = data.current_time || 0;
-                const seekTarget = seekTargetRef.current;
-                const diff = Math.abs(serverTime - seekTarget);
+                const seekTarget = seekTargetRef.current.time;
+                const seekTimestamp = seekTargetRef.current.timestamp;
+                const now = Date.now();
 
-                if (diff <= 3) {
-                    // Il server ha recepito il seek, fine della protezione
+                const diff = Math.abs(serverTime - seekTarget);
+                const isTimeout = (now - seekTimestamp) > 10000; // 10s timeout di sicurezza
+
+                if (diff <= 3 || isTimeout) {
+                    // Il server ha recepito il seek O è passato troppo tempo -> sblocco
                     seekTargetRef.current = null;
-                    lastKnownPlayheadRef.current = { time: serverTime, timestamp: Date.now() };
+                    lastKnownPlayheadRef.current = { time: serverTime, timestamp: now };
                 } else {
                     // Il server non ha ancora recepito, proietta dalla posizione locale
+                    // Proietta dalla posizione del seek + tempo trascorso
                     const isPlaying = data.state === 'playing';
-                    const elapsed = isPlaying ? Math.floor((Date.now() - lastKnownPlayheadRef.current.timestamp) / 1000) : 0;
+                    // NOTA: Usiamo now invece di Date.now() per coerenza
+                    const elapsed = isPlaying ? Math.floor((now - seekTimestamp) / 1000) : 0;
                     const projectedTime = Math.min(seekTarget + elapsed, data.total_time || 999);
                     data = { ...data, current_time: projectedTime };
                 }
@@ -358,12 +365,12 @@ export const Players: React.FC = () => {
         },
     });
 
-    // Selezione locale: NON chiama nessuna API, salva solo il brano in pending
+    // Selezione locale: NON chiama nessuna API, salva solo il brano in pending e aggiorna UI
     const handleSelectSong = (song: Song) => {
-        pendingSongRef.current = song;
+        setPendingSong(song);
         setPlayingSourceContext({ type: selectedSourceType as any, id: selectedSource! });
 
-        // Per i mock, aggiorna lo status visivamente senza play
+        // Per i mock
         if (song.id >= 1000) {
             const newStatus: PlayerStatus = {
                 state: 'stopped',
@@ -385,13 +392,13 @@ export const Players: React.FC = () => {
                 return;
             }
             // Se c'è un brano in pending, lo selezioniamo prima di fare play
-            if (pendingSongRef.current && pendingSongRef.current.id < 1000) {
-                await api.post('/device/player/song', { id: pendingSongRef.current.id });
-                pendingSongRef.current = null;
+            if (pendingSong && pendingSong.id < 1000) {
+                await api.post('/device/player/song', { id: pendingSong.id });
+                setPendingSong(null);
                 // Il daemon avvia automaticamente la riproduzione con /song
                 return;
             }
-            pendingSongRef.current = null;
+            setPendingSong(null);
             await api.post('/device/player/play');
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
@@ -469,8 +476,8 @@ export const Players: React.FC = () => {
         mutationFn: async (time: number) => api.post('/device/player/seek', { time }),
         onMutate: async (time: number) => {
             setIsMutating(true);
-            // Salva il target del seek per la protezione nel polling
-            seekTargetRef.current = time;
+            // Salva il target del seek per la protezione nel polling, con timestamp per timeout
+            seekTargetRef.current = { time, timestamp: Date.now() };
             lastKnownPlayheadRef.current = { time, timestamp: Date.now() };
 
             await queryClient.cancelQueries({ queryKey: ['player', 'status'] });
@@ -889,7 +896,8 @@ export const Players: React.FC = () => {
                                     {processedSongs.map((song, index) => {
                                         const isPlaying = playerStatus?.song_title === song.name;
                                         const isSearchResult = searchResults.includes(index);
-                                        const isCurrentSelection = isSearchActive && searchResults[currentSearchIndex] === index;
+                                        // Modificato: consideriamo anche il pending song per l'highlight della selezione corrente
+                                        const isCurrentSelection = (isSearchActive && searchResults[currentSearchIndex] === index) || (pendingSong?.id === song.id);
 
                                         return (
                                             <button
@@ -3474,8 +3482,9 @@ export const Players: React.FC = () => {
                             {paginatedSongs.map((song: Song, index) => {
                                 const globalIndex = (currentPage - 1) * pageSize + index;
                                 const isCurrent = playerStatus?.song_title === song.name;
+                                const isSelected = isCurrent || pendingSong?.id === song.id;
                                 const isSearchResult = searchResults.includes(globalIndex);
-                                const isCurrentSelection = isSearchActive && searchResults[currentSearchIndex] === globalIndex;
+                                const isCurrentSelection = (isSearchActive && searchResults[currentSearchIndex] === globalIndex) || (pendingSong?.id === song.id);
 
                                 return (
                                     <button
@@ -3485,7 +3494,7 @@ export const Players: React.FC = () => {
                                             ? 'bg-blue-600/40 border-blue-400 shadow-[inset_0_0_20px_rgba(59,130,246,0.3)]'
                                             : isSearchResult
                                                 ? 'bg-blue-600/10 border-blue-400/30'
-                                                : isCurrent
+                                                : isSelected
                                                     ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20'
                                                     : 'hover:bg-blue-50 dark:hover:bg-blue-900/10 text-gray-700 dark:text-gray-300'
                                             }`}
