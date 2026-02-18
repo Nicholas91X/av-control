@@ -70,7 +70,7 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const Players: React.FC = () => {
     const isTablet = useIsTablet();
-    const { highlightColor, backgroundColor } = useSettings();
+    const { highlightColor, backgroundColor, defaultFade } = useSettings();
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
     const songListRef = useRef<HTMLDivElement>(null);
@@ -100,7 +100,7 @@ export const Players: React.FC = () => {
     const [isUppercase, setIsUppercase] = useState(false);
 
     // Fade State
-    const [fadeValue, setFadeValue] = useState(4);
+    const [fadeValue, setFadeValue] = useState(defaultFade);
     const [isFadeDropdownOpen, setIsFadeDropdownOpen] = useState(false);
     const fadeRef = useRef<HTMLDivElement>(null);
 

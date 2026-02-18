@@ -40,12 +40,12 @@ interface ControlValue {
 export const Controls: React.FC = () => {
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
-    const { highlightColor, backgroundColor } = useSettings();
+    const { highlightColor, backgroundColor, defaultVolStep, defaultControlsView } = useSettings();
     const [pendingValues, setPendingValues] = useState<Record<number, number>>({});
     const [controlValues, setControlValues] = useState<Record<number, ControlValue>>({});
-    const [viewMode, setViewMode] = useState<'mixer' | 'compact'>('mixer');
+    const [viewMode, setViewMode] = useState<'mixer' | 'compact'>(defaultControlsView);
     const [isMutating, setIsMutating] = useState(false);
-    const [volStep, setVolStep] = useState(0.1);
+    const [volStep, setVolStep] = useState(defaultVolStep);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [saveModalOpen, setSaveModalOpen] = useState(false);
     const [selectedPresetToSave, setSelectedPresetToSave] = useState<string | null>(null);
