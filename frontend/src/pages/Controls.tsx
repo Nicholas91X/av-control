@@ -107,37 +107,50 @@ export const Controls: React.FC = () => {
 
     const initialFetchDone = useRef(false);
 
+    const fetchControlValues = async () => {
+        const values: Record<number, ControlValue> = {};
+        for (const control of controls) {
+            try {
+                const volumeResponse = await api.get(`/device/controls/volume/${control.id}`);
+                values[control.id] = {
+                    id: control.id,
+                    volume: volumeResponse.data.volume
+                };
+
+                if (control.second_id) {
+                    const muteResponse = await api.get(`/device/controls/mute/${control.second_id}`);
+                    values[control.id] = {
+                        ...values[control.id],
+                        mute: muteResponse.data.mute,
+                    };
+                }
+            } catch (error) {
+                console.error(`Failed to fetch control ${control.id}:`, error);
+            }
+        }
+        setControlValues(values);
+    };
+
     // Fetch individual control values
     useEffect(() => {
-        const fetchControlValues = async () => {
-            const values: Record<number, ControlValue> = {};
-            for (const control of controls) {
-                try {
-                    const volumeResponse = await api.get(`/device/controls/volume/${control.id}`);
-                    values[control.id] = {
-                        id: control.id,
-                        volume: volumeResponse.data.volume
-                    };
-
-                    if (control.second_id) {
-                        const muteResponse = await api.get(`/device/controls/mute/${control.second_id}`);
-                        values[control.id] = {
-                            ...values[control.id],
-                            mute: muteResponse.data.mute,
-                        };
-                    }
-                } catch (error) {
-                    console.error(`Failed to fetch control ${control.id}:`, error);
-                }
-            }
-            setControlValues(values);
-        };
-
         if (controls.length > 0 && !initialFetchDone.current) {
             fetchControlValues();
             initialFetchDone.current = true;
         }
     }, [controls]);
+
+    // Load preset mutation (refresh from saved state)
+    const loadPresetMutation = useMutation({
+        mutationFn: async (presetId: string) => {
+            await api.post('/device/presets/load', { id: presetId });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['presets', 'current'] });
+            queryClient.invalidateQueries({ queryKey: ['controls'] });
+            // Re-trigger the manual fetch in the useEffect
+            initialFetchDone.current = false;
+        },
+    });
 
     const setControlMutation = useMutation({
         mutationFn: async ({ id, value }: { id: number; value: number | boolean }) => {
@@ -215,9 +228,14 @@ export const Controls: React.FC = () => {
     };
 
     const handleResetAll = () => {
-        controls.forEach(control => {
-            setControlMutation.mutate({ id: control.id, value: 0 });
-        });
+        if (currentPresetData?.id) {
+            loadPresetMutation.mutate(currentPresetData.id);
+        } else {
+            // Fallback to zeroing if no current preset (safeguard)
+            controls.forEach(control => {
+                setControlMutation.mutate({ id: control.id, value: 0 });
+            });
+        }
     };
 
     const handleMuteToggle = (control: Control) => {
@@ -244,7 +262,7 @@ export const Controls: React.FC = () => {
             <div key={control.id} className="flex flex-col items-center h-full w-40 shrink-0 select-none border-r border-white/5 relative last:border-r-0 pb-12">
                 {/* Channel Label */}
                 <div className="h-16 flex items-center justify-center w-full px-2 mt-4 shrink-0">
-                    <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] text-center line-clamp-2 leading-relaxed">
+                    <span className="text-sm font-black text-white uppercase tracking-[0.2em] text-center line-clamp-2 leading-relaxed">
                         {control.name}
                     </span>
                 </div>
@@ -347,7 +365,7 @@ export const Controls: React.FC = () => {
         return (
             <div key={control.id} className="bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-white/80 uppercase tracking-wider truncate mr-2">{control.name}</h3>
+                    <h3 className="text-lg font-black text-white uppercase tracking-widest truncate mr-2">{control.name}</h3>
                     <button
                         onClick={() => handleMuteToggle(control)}
                         className={`p-3 rounded-2xl border border-white/5 border-b-4 transition-all active:translate-y-1 active:border-b-0 ${isMuted
