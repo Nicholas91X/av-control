@@ -18,15 +18,13 @@ const HIGHLIGHT_PRESETS = [
     { label: 'Purple Rain', value: '#a855f7' },
 ];
 
-const FADE_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const FADE_OPTIONS = [0, 1, 2, 3, 4, 5];
 
 const VOL_STEP_OPTIONS = [
     { label: '0.1 dB', value: 0.1 },
+    { label: '0.2 dB', value: 0.2 },
     { label: '0.5 dB', value: 0.5 },
     { label: '1 dB', value: 1 },
-    { label: '2 dB', value: 2 },
-    { label: '3 dB', value: 3 },
-    { label: '6 dB', value: 6 },
 ];
 
 export const Settings: React.FC = () => {
