@@ -712,6 +712,8 @@ export const Players: React.FC = () => {
         if (isMutating) return;
         if (lastMessage?.type === 'command_executed' || lastMessage?.type === 'status_update') {
             queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+            queryClient.invalidateQueries({ queryKey: ['player', 'songs'] });
+            queryClient.invalidateQueries({ queryKey: ['controls'] });
         }
     }, [lastMessage, queryClient, isMutating]);
 
@@ -3145,31 +3147,24 @@ export const Players: React.FC = () => {
                                             )}
 
                                             <div className="relative z-20 flex flex-col items-center gap-10">
-                                                {/* Large Primary Toggle Area */}
+                                                {/* Large Primary Toggle Area - PLAY/STOP ONLY */}
                                                 <div className="flex items-center gap-8">
                                                     {playerStatus?.state === 'playing' ? (
                                                         <button
-                                                            onClick={() => pauseMutation.mutate()}
-                                                            className="w-40 h-40 rounded-full bg-clip-padding flex items-center justify-center shadow-2xl border border-white/10 border-b-8 border-b-black/50 active:translate-y-2 active:border-b-0 transition-all hover:brightness-110"
-                                                            style={{ backgroundColor: highlightColor, boxShadow: `0 10px 30px ${highlightColor}4d` }}
+                                                            onClick={() => stopMutation.mutate()}
+                                                            className="w-48 h-48 rounded-full bg-red-600 flex items-center justify-center shadow-2xl border border-white/10 border-b-8 border-b-red-950 active:translate-y-2 active:border-b-0 transition-all hover:brightness-110"
+                                                            style={{ boxShadow: `0 10px 40px rgba(220, 38, 38, 0.4)` }}
                                                         >
-                                                            <Pause className="w-20 h-20 text-white fill-white" />
+                                                            <Square className="w-24 h-24 text-white fill-white" />
                                                         </button>
                                                     ) : (
                                                         <button
                                                             onClick={() => playMutation.mutate()}
-                                                            className="w-40 h-40 rounded-full bg-[#1e1e20] flex items-center justify-center shadow-xl border border-white/10 border-b-8 border-white/10 active:translate-y-2 active:border-b-0 transition-all hover:bg-[#252528] group"
+                                                            className="w-48 h-48 rounded-full bg-[#1e1e20] flex items-center justify-center shadow-xl border border-white/10 border-b-8 border-white/10 active:translate-y-2 active:border-b-0 transition-all hover:bg-[#252528] group"
                                                         >
-                                                            <Play className="w-20 h-20 text-blue-400/80 fill-blue-400/5 ml-3 group-hover:text-blue-400 transition-colors" />
+                                                            <Play className="w-24 h-24 text-blue-400 group-hover:text-blue-300 transition-colors ml-4" />
                                                         </button>
                                                     )}
-
-                                                    <button
-                                                        onClick={() => stopMutation.mutate()}
-                                                        className="w-32 h-32 rounded-[2.5rem] bg-[#1e1e20] border border-white/10 border-b-8 border-white/10 active:translate-y-2 active:border-b-0 flex items-center justify-center shadow-xl hover:bg-[#252528] transition-all group"
-                                                    >
-                                                        <Square className="w-12 h-12 text-red-500 fill-red-500/10 group-hover:text-red-400 group-hover:scale-110 transition-transform" />
-                                                    </button>
                                                 </div>
 
                                                 {/* Status Bar */}
