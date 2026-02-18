@@ -117,6 +117,15 @@ if [ -f "scripts/README.md" ]; then
     cp scripts/README.md deploy-package/scripts/
 fi
 
+# Copy install script
+if [ -f "install.sh" ]; then
+    cp install.sh deploy-package/
+    chmod +x deploy-package/install.sh
+    echo "✅ Install script included"
+else
+    echo -e "${YELLOW}⚠️  Warning: install.sh not found${NC}"
+fi
+
 # Create example env file
 cat > deploy-package/.env.example << 'EOF'
 # AV Control - Production Environment
