@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
@@ -110,8 +110,11 @@ export const Players: React.FC = () => {
             await api.post('/device/player/fade', { fade });
         },
     });
+    const [displayedTime, setDisplayedTime] = useState(0);
+
     const [isOTPDashboardOpen, setIsOTPDashboardOpen] = useState(false);
     const [isManagementModalOpen, setIsManagementModalOpen] = useState(false);
+
 
     // Group Management State
     const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
@@ -144,7 +147,6 @@ export const Players: React.FC = () => {
     const [selectedSongForRename, setSelectedSongForRename] = useState<Song | null>(null);
     const [renamingName, setRenamingName] = useState('');
     const [renamedSongs, setRenamedSongs] = useState<Record<string, { newName: string, originalName: string }>>({}); // Key: "source/group:id:songId"
-    const [playingSourceContext, setPlayingSourceContext] = useState<{ type: 'source' | 'group', id: number } | null>(null);
 
     // Change Tempo Flow State
     const [isChangeTempoModalOpen, setIsChangeTempoModalOpen] = useState(false);
@@ -160,7 +162,7 @@ export const Players: React.FC = () => {
     const [mockPlayerStatus, setMockPlayerStatus] = useState<PlayerStatus | null>(null);
     const [isSearchNavigating, setIsSearchNavigating] = useState(false);
 
-    // Fetch controls to find Volume 1 and Volume 2
+    // Fetch controls to find PL L and PL R
     const { data: controlsData } = useQuery<{ controls: any[] }>({
         queryKey: ['controls'],
         queryFn: async () => {
@@ -169,11 +171,84 @@ export const Players: React.FC = () => {
         },
     });
     const allControls = controlsData?.controls || [];
-    const volumeControls = allControls
-        .filter(c => c.type === 'volume_mute' || c.name.toLowerCase().includes('volume'))
-        .slice(0, 2);
 
-    // Fetch values for our volume controls
+    // Cerchiamo esplicitamente PL L e PL R
+    const volumeControls = useMemo(() => {
+        const plL = allControls.find(c => c.name.toUpperCase() === 'PL L');
+        const plR = allControls.find(c => c.name.toUpperCase() === 'PL R');
+        
+        if (plL && plR) return [plL, plR];
+        
+        // Fallback se non trovati esattamente per nome
+        return allControls
+            .filter(c => c.type === 'volume_mute' || c.name.toLowerCase().includes('volume'))
+            .slice(0, 2);
+    }, [allControls]);
+
+    // playerStatus Query
+    const { data: playerStatus } = useQuery<PlayerStatus>({
+        queryKey: ['player', 'status'],
+        queryFn: async () => {
+            const response = await api.get('/device/player/status');
+            let data = response.data;
+
+            if (isSeeking) {
+                data = { ...data, current_time: seekingTime };
+            } else if (seekTargetRef.current !== null) {
+                const serverTime = data.current_time || 0;
+                const seekTarget = seekTargetRef.current.time;
+                const seekTimestamp = seekTargetRef.current.timestamp;
+                const now = Date.now();
+
+                const diff = Math.abs(serverTime - seekTarget);
+                const isTimeout = (now - seekTimestamp) > 10000;
+
+                if (diff <= 3 || isTimeout) {
+                    seekTargetRef.current = null;
+                    lastKnownPlayheadRef.current = { time: serverTime, timestamp: now };
+                } else {
+                    const elapsed = (now - seekTimestamp) / 1000;
+                    data = { ...data, current_time: seekTarget + elapsed };
+                }
+            } else if (data.state === 'playing') {
+                const serverTime = data.current_time || 0;
+                const now = Date.now();
+                const diff = Math.abs(serverTime - lastKnownPlayheadRef.current.time);
+
+                if (diff < 2) {
+                    const elapsedSinceLastUpdate = (now - lastKnownPlayheadRef.current.timestamp) / 1000;
+                    data = { ...data, current_time: lastKnownPlayheadRef.current.time + elapsedSinceLastUpdate };
+                } else {
+                    lastKnownPlayheadRef.current = { time: serverTime, timestamp: now };
+                }
+            }
+            return data;
+        },
+        refetchInterval: isSeeking ? false : 1000,
+    });
+
+    // Local Timer Effect (placed after playerStatus is defined)
+    useEffect(() => {
+        let interval: any = null;
+        if (playerStatus?.state === 'playing' && !isSeeking) {
+            interval = setInterval(() => {
+                setDisplayedTime(prev => prev + 1);
+            }, 1000);
+        }
+        return () => { if (interval) clearInterval(interval); };
+    }, [playerStatus?.state, isSeeking]);
+
+    // Sync displayedTime with backend status to correct drift
+    useEffect(() => {
+        if (playerStatus?.current_time !== undefined && !isSeeking) {
+            const serverTime = playerStatus.current_time;
+            if (Math.abs(displayedTime - serverTime) > 2) {
+                setDisplayedTime(serverTime);
+            }
+        }
+    }, [playerStatus?.current_time, isSeeking]);
+
+    // Volume controls fetch
     useEffect(() => {
         const fetchValues = async () => {
             const values: Record<number, any> = {};
@@ -289,62 +364,6 @@ export const Players: React.FC = () => {
         };
     });
 
-    // Fetch player status (Polling)
-    const { data: playerStatus } = useQuery<PlayerStatus>({
-        queryKey: ['player', 'status'],
-        queryFn: async () => {
-            if (mockPlayerStatus) return mockPlayerStatus;
-            const response = await api.get('/device/player/status');
-            let data = response.data;
-
-            // Se stiamo attivamente seeking, usa il valore locale
-            if (isSeeking) {
-                data = { ...data, current_time: seekingTime };
-            } else if (seekTargetRef.current !== null) {
-                // Dopo un seek, controlla se il server ha recepito la nuova posizione
-                const serverTime = data.current_time || 0;
-                const seekTarget = seekTargetRef.current.time;
-                const seekTimestamp = seekTargetRef.current.timestamp;
-                const now = Date.now();
-
-                const diff = Math.abs(serverTime - seekTarget);
-                const isTimeout = (now - seekTimestamp) > 10000; // 10s timeout di sicurezza
-
-                if (diff <= 3 || isTimeout) {
-                    // Il server ha recepito il seek O è passato troppo tempo -> sblocco
-                    seekTargetRef.current = null;
-                    lastKnownPlayheadRef.current = { time: serverTime, timestamp: now };
-                } else {
-                    // Il server non ha ancora recepito, proietta dalla posizione locale
-                    // Proietta dalla posizione del seek + tempo trascorso
-                    const isPlaying = data.state === 'playing';
-                    // NOTA: Usiamo now invece di Date.now() per coerenza
-                    const elapsed = isPlaying ? Math.floor((now - seekTimestamp) / 1000) : 0;
-                    const projectedTime = Math.min(seekTarget + elapsed, data.total_time || 999);
-                    data = { ...data, current_time: projectedTime };
-                }
-            } else {
-                // Nessun seek attivo, usa il valore del server
-                lastKnownPlayheadRef.current = { time: data.current_time || 0, timestamp: Date.now() };
-            }
-
-            if (data.song_title && playingSourceContext) {
-                const contextPrefix = `${playingSourceContext.type}:${playingSourceContext.id}:`;
-
-                // Nota: Invece di basarci sull'ID (che non abbiamo dallo status), 
-                // facciamo una ricerca per valore nella mappa delle rinominate per quel contesto.
-                const matchPreciso = Object.entries(renamedSongs).find(([k, entry]) =>
-                    k.startsWith(contextPrefix) && entry.originalName === data.song_title
-                );
-
-                if (matchPreciso) {
-                    return { ...data, song_title: matchPreciso[1].newName };
-                }
-            }
-            return data;
-        },
-        refetchInterval: isMutating || mockPlayerStatus ? false : 1000,
-    });
 
     // ============================================
     // MUTATIONS
@@ -352,7 +371,6 @@ export const Players: React.FC = () => {
     const selectSourceMutation = useMutation({
         mutationFn: async (sourceId: number) => {
             setMockPlayerStatus(null); // Clear mock status on source change
-            setPlayingSourceContext({ type: 'source', id: sourceId });
             queryClient.setQueryData(['player', 'songs', sourceId], []);
             await api.post('/device/player/source', { id: sourceId });
         },
@@ -368,7 +386,6 @@ export const Players: React.FC = () => {
     // Selezione locale: NON chiama nessuna API, salva solo il brano in pending e aggiorna UI
     const handleSelectSong = (song: Song) => {
         setPendingSong(null); // Non più necessario come pending locale
-        setPlayingSourceContext({ type: selectedSourceType as any, id: selectedSource! });
 
         // Per i mock
         if (song.id >= 1000) {

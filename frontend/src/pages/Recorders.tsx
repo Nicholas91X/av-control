@@ -56,8 +56,10 @@ export const Recorders: React.FC = () => {
 
     // Mutation to save source selection
     const setSourceMutation = useMutation({
-        mutationFn: async ({ left, right }: { left: number; right: number }) => {
-            await api.post('/device/recorder/source', { left, right });
+        mutationFn: async ({ left, right, isAsLeft }: { left: number; right: number; isAsLeft?: boolean }) => {
+            // Se è "Come a sinistra", mandiamo lo stesso valore del sinistro
+            const finalRight = isAsLeft ? left : right;
+            await api.post('/device/recorder/source', { left, right: finalRight });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recorder', 'sources'] });
@@ -65,11 +67,22 @@ export const Recorders: React.FC = () => {
     });
 
     const handleSourceChange = (side: 'left' | 'right', value: number) => {
-        const newLeft = side === 'left' ? value : leftSource;
-        const newRight = side === 'right' ? value : rightSource;
-        if (side === 'left') setLeftSource(value);
-        else setRightSource(value);
-        setSourceMutation.mutate({ left: newLeft, right: newRight });
+        if (side === 'left') {
+            setLeftSource(value);
+            // Se il destro è in modalità "Come a sinistra", aggiorniamo entrambi
+            if (rightSource === -1) {
+                setSourceMutation.mutate({ left: value, right: value, isAsLeft: true });
+            } else {
+                setSourceMutation.mutate({ left: value, right: rightSource });
+            }
+        } else {
+            setRightSource(value);
+            if (value === -1) {
+                setSourceMutation.mutate({ left: leftSource, right: leftSource, isAsLeft: true });
+            } else {
+                setSourceMutation.mutate({ left: leftSource, right: value });
+            }
+        }
     };
 
 
@@ -182,6 +195,7 @@ export const Recorders: React.FC = () => {
                                         className="bg-transparent border-none text-white font-black text-base outline-none cursor-pointer w-full appearance-none uppercase tracking-widest"
                                     >
                                         {availableSources.map(src => <option key={src.index} value={src.index} className="bg-[#1a1a1c]">{src.name}</option>)}
+                                        <option value="-1" className="bg-[#1a1a1c]">Come a sinistra</option>
                                     </select>
                                 </div>
                             </div>

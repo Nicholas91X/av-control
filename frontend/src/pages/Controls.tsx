@@ -230,11 +230,14 @@ export const Controls: React.FC = () => {
     const handleResetAll = () => {
         if (currentPresetData?.id) {
             loadPresetMutation.mutate(currentPresetData.id);
+            // Clear pending values so they don't override the fresh fetch
+            setPendingValues({});
         } else {
             // Fallback to zeroing if no current preset (safeguard)
             controls.forEach(control => {
                 setControlMutation.mutate({ id: control.id, value: 0 });
             });
+            setPendingValues({});
         }
     };
 
