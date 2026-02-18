@@ -173,20 +173,23 @@ export const Players: React.FC = () => {
     const allControls = controlsData?.controls || [];
 
     // Cerchiamo esplicitamente PL L e PL R
-    // Cerchiamo esplicitamente PL L e PL R
+    const hasPlR = useMemo(() => !!allControls.find(c => c.name.toUpperCase() === 'PL R'), [allControls]);
+
     const volumeControls = useMemo(() => {
         const plL = allControls.find(c => c.name.toUpperCase() === 'PL L');
         const plR = allControls.find(c => c.name.toUpperCase() === 'PL R');
         
-        // Return explicit array with potential null/undefined if not found
-        // Use filtered fallback ONLY if both explicit ones are missing
-        if (!plL && !plR) {
+        // Only return valid (non-undefined) controls to avoid crashes in .map/.find
+        const result = [plL, plR].filter(Boolean) as typeof allControls;
+        
+        // Fallback if neither PL L nor PL R found
+        if (result.length === 0) {
              return allControls
                 .filter(c => c.type === 'volume_mute' || c.name.toLowerCase().includes('volume'))
                 .slice(0, 2);
         }
 
-        return [plL, plR];
+        return result;
     }, [allControls]);
 
     // playerStatus Query
@@ -257,7 +260,6 @@ export const Players: React.FC = () => {
         const fetchValues = async () => {
             const values: Record<number, any> = {};
             for (const ctrl of volumeControls) {
-                if (!ctrl) continue; // Skip if control is missing (e.g. PL R)
                 try {
                     const volRes = await api.get(`/device/controls/volume/${ctrl.id}`);
                     let mute = false;
@@ -1176,20 +1178,6 @@ export const Players: React.FC = () => {
                             <div className="relative h-full flex flex-col gap-6 bg-[#0a0a0c]/80 rounded-[3.4rem] p-6 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.02)]">
                                 <div className="flex-1 flex flex-row justify-center gap-5 relative z-10">
                                     {volumeControls.map((ctrl, index) => {
-                                        if (!ctrl) {
-                                            // Render disabled placeholder for missing control (e.g. PL R)
-                                            return (
-                                                <div key={`channel-disabled-${index}`} className="flex flex-col items-center gap-8 h-full opacity-30 pointer-events-none grayscale">
-                                                    <span className="text-[10px] font-black text-white/30 tracking-widest uppercase -mb-4">
-                                                        {index === 0 ? 'PL L' : 'PL R'}
-                                                    </span>
-                                                     <div className="w-14 h-14 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl" />
-                                                     <div className="flex-1 w-12 bg-black/50 rounded-full border border-white/5" />
-                                                     <div className="w-14 h-14 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl" />
-                                                     <div className="w-14 h-12 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl" />
-                                                </div>
-                                            );
-                                        }
 
                                         const val = ctrl.id in pendingVolumes ? pendingVolumes[ctrl.id] : (controlValues[ctrl.id]?.volume ?? 0);
                                         const isMuted = controlValues[ctrl.id]?.mute;
@@ -1286,6 +1274,18 @@ export const Players: React.FC = () => {
                                             </div>
                                         );
                                     })}
+                                    {/* Disabled PL R placeholder when right channel is not available */}
+                                    {!hasPlR && (
+                                        <div className="flex flex-col items-center gap-8 h-full opacity-30 pointer-events-none grayscale">
+                                            <span className="text-[10px] font-black text-white/30 tracking-widest uppercase -mb-4">
+                                                PL R
+                                            </span>
+                                             <div className="w-14 h-14 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl" />
+                                             <div className="flex-1 w-12 bg-black/50 rounded-full border border-white/5" />
+                                             <div className="w-14 h-14 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl" />
+                                             <div className="w-14 h-12 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl" />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Recall Preset Button */}

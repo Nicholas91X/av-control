@@ -105,7 +105,7 @@ export const Controls: React.FC = () => {
         }));
     }, [controlsData.controls, volStep]);
 
-    const initialFetchDone = useRef(false);
+
 
     const fetchControlValues = async () => {
         const values: Record<number, ControlValue> = {};
@@ -131,11 +131,10 @@ export const Controls: React.FC = () => {
         setControlValues(values);
     };
 
-    // Fetch individual control values
+    // Fetch control values on mount AND every time controls change
     useEffect(() => {
-        if (controls.length > 0 && !initialFetchDone.current) {
+        if (controls.length > 0) {
             fetchControlValues();
-            initialFetchDone.current = true;
         }
     }, [controls]);
 
@@ -147,8 +146,8 @@ export const Controls: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['presets', 'current'] });
             queryClient.invalidateQueries({ queryKey: ['controls'] });
-            // Re-trigger the manual fetch explicitly to ensure UI updates
-            fetchControlValues();
+            // Wait for hardware to settle before re-reading values
+            setTimeout(() => fetchControlValues(), 600);
         },
     });
 
@@ -233,11 +232,9 @@ export const Controls: React.FC = () => {
             // Clear pending values so they don't override the fresh fetch
             setPendingValues({});
         } else {
-            // Fallback to zeroing if no current preset (safeguard)
-            controls.forEach(control => {
-                setControlMutation.mutate({ id: control.id, value: 0 });
-            });
+            // No preset loaded — just re-read current hardware state
             setPendingValues({});
+            fetchControlValues();
         }
     };
 
