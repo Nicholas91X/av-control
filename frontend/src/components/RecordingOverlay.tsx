@@ -24,9 +24,6 @@ export const RecordingOverlay: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Don't render if not logged in
-    if (!user) return null;
-
     const { data: recorderStatus } = useQuery<RecorderStatus>({
         queryKey: ['recorder', 'status'],
         queryFn: async () => {
@@ -34,7 +31,11 @@ export const RecordingOverlay: React.FC = () => {
             return response.data;
         },
         refetchInterval: 1000,
+        enabled: !!user,
     });
+
+    // Don't render if not logged in
+    if (!user) return null;
 
     const isRecording = recorderStatus?.state === 'recording';
     const isOnRecordersPage = location.pathname === '/recorders';
