@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
-import { Check, User, Music, Save, Loader2, LayoutGrid } from 'lucide-react';
+import { Check, User, Music, Save, Loader2, LayoutGrid, Undo2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface Preset {
     id: string;
@@ -38,6 +39,13 @@ export const Scenario: React.FC = () => {
     ];
     const [selectedMemory, setSelectedMemory] = useState<string>('');
 
+    // === PRESET UNDO STATE ===
+    const [previousPresetId, setPreviousPresetId] = useState<string | null>(null);
+    const [previousPresetName, setPreviousPresetName] = useState<string | null>(null);
+    const [showUndo, setShowUndo] = useState(false);
+    const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const UNDO_TIMEOUT = 10000; // 10 seconds
+
     // Fetch real Presets (Celebrations)
     const { data: presetsData, isLoading: isLoadingPresets } = useQuery<{ presets: Preset[] }>({
         queryKey: ['presets'],
@@ -60,6 +68,13 @@ export const Scenario: React.FC = () => {
 
     const loadPresetMutation = useMutation({
         mutationFn: async (presetId: string) => {
+            // Save current preset as "previous" before loading new one
+            if (activePresetId && activePresetId !== presetId) {
+                const prevPreset = presets.find(p => p.id === activePresetId);
+                setPreviousPresetId(activePresetId);
+                setPreviousPresetName(prevPreset?.name || activePresetId);
+            }
+
             const preset = presets.find(p => p.id === presetId);
             await api.post('/device/presets/load', { id: presetId });
 
@@ -74,10 +89,47 @@ export const Scenario: React.FC = () => {
                 }
             });
         },
-        onSuccess: () => {
+        onSuccess: (_data, presetId) => {
             queryClient.invalidateQueries({ queryKey: ['presets', 'current'] });
+
+            // Show undo pill (only if we changed from a different preset)
+            if (previousPresetId && previousPresetId !== presetId) {
+                setShowUndo(true);
+
+                // Clear any existing timer
+                if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+
+                // Auto-hide after 10 seconds
+                undoTimerRef.current = setTimeout(() => {
+                    setShowUndo(false);
+                    setPreviousPresetId(null);
+                    setPreviousPresetName(null);
+                }, UNDO_TIMEOUT);
+            }
         },
     });
+
+    // Cleanup timer on unmount
+    useEffect(() => {
+        return () => {
+            if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        };
+    }, []);
+
+    const handleUndo = () => {
+        if (previousPresetId) {
+            // Clear undo state first
+            setShowUndo(false);
+            if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+
+            const restoreId = previousPresetId;
+            setPreviousPresetId(null);
+            setPreviousPresetName(null);
+
+            // Load the previous preset
+            loadPresetMutation.mutate(restoreId);
+        }
+    };
 
     const handleCelebrantClick = (c: SelectionItem) => {
         setSelectedCelebrant(c.id);
@@ -247,6 +299,42 @@ export const Scenario: React.FC = () => {
 
             {/* Footer Style Decoration */}
             <div className="absolute top-0 bottom-0 right-0 w-1 bg-gradient-to-b from-transparent via-white/5 to-transparent" />
+
+            {/* === UNDO PRESET FLOATING PILL === */}
+            <AnimatePresence>
+                {showUndo && previousPresetName && (
+                    <motion.div
+                        initial={{ y: 100, opacity: 0, scale: 0.8 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: 100, opacity: 0, scale: 0.8 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]"
+                    >
+                        <button
+                            onClick={handleUndo}
+                            disabled={loadPresetMutation.isPending}
+                            className="relative flex items-center gap-3 px-6 py-4 bg-white/10 backdrop-blur-2xl rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.5)] hover:bg-white/15 active:scale-95 transition-all group overflow-hidden"
+                        >
+                            {/* Progress bar that shrinks over 10s */}
+                            <motion.div
+                                initial={{ scaleX: 1 }}
+                                animate={{ scaleX: 0 }}
+                                transition={{ duration: UNDO_TIMEOUT / 1000, ease: 'linear' }}
+                                className="absolute bottom-0 left-0 right-0 h-[3px] bg-amber-400/60 origin-left rounded-full"
+                            />
+
+                            <Undo2 className="w-5 h-5 text-amber-400 group-hover:text-amber-300 transition-colors" />
+                            <span className="text-white/90 font-bold text-sm uppercase tracking-wider">
+                                Annulla
+                            </span>
+                            <span className="text-white/40 text-sm">·</span>
+                            <span className="text-white/60 font-medium text-sm">
+                                {previousPresetName}
+                            </span>
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

@@ -7,6 +7,7 @@ import { WebSocketProvider } from './context/WebSocketContext';
 import { Login } from './pages/Login';
 import { Layout } from './components/layout/Layout';
 import { RealtimeNotifications } from './components/RealtimeNotifications';
+import { RecordingOverlay } from './components/RecordingOverlay';
 import { Dashboard } from './pages/Dashboard';
 import { Players } from './pages/Players';
 import { Recorders } from './pages/Recorders';
@@ -150,6 +151,7 @@ function App() {
             <WebSocketProvider>
               <AppContent />
               <RealtimeNotifications />
+              <RecordingOverlay />
             </WebSocketProvider>
           </AuthProvider>
         </BrowserRouter>
