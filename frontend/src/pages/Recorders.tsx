@@ -194,8 +194,8 @@ export const Recorders: React.FC = () => {
                                         onChange={(e) => handleSourceChange('right', parseInt(e.target.value))}
                                         className="bg-transparent border-none text-white font-black text-base outline-none cursor-pointer w-full appearance-none uppercase tracking-widest"
                                     >
-                                        {availableSources.map(src => <option key={src.index} value={src.index} className="bg-[#1a1a1c]">{src.name}</option>)}
                                         <option value="-1" className="bg-[#1a1a1c]">Come a sinistra</option>
+                                        {availableSources.map(src => <option key={src.index} value={src.index} className="bg-[#1a1a1c]">{src.name}</option>)}
                                     </select>
                                 </div>
                             </div>

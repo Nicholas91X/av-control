@@ -147,8 +147,8 @@ export const Controls: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['presets', 'current'] });
             queryClient.invalidateQueries({ queryKey: ['controls'] });
-            // Re-trigger the manual fetch in the useEffect
-            initialFetchDone.current = false;
+            // Re-trigger the manual fetch explicitly to ensure UI updates
+            fetchControlValues();
         },
     });
 
