@@ -117,12 +117,16 @@ export const Controls: React.FC = () => {
                     volume: volumeResponse.data.volume
                 };
 
-                if (control.second_id) {
-                    const muteResponse = await api.get(`/device/controls/mute/${control.second_id}`);
+                // Always fetch mute state: use second_id if available, otherwise use control.id
+                const muteId = control.second_id || control.id;
+                try {
+                    const muteResponse = await api.get(`/device/controls/mute/${muteId}`);
                     values[control.id] = {
                         ...values[control.id],
                         mute: muteResponse.data.mute,
                     };
+                } catch {
+                    // Mute endpoint not available for this control — leave mute undefined
                 }
             } catch (error) {
                 console.error(`Failed to fetch control ${control.id}:`, error);
@@ -184,9 +188,12 @@ export const Controls: React.FC = () => {
                     const res = await api.get(`/device/controls/volume/${control.id}`);
                     setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], volume: res.data.volume } }));
 
-                    if (control.second_id) {
-                        const muteRes = await api.get(`/device/controls/mute/${control.second_id}`);
+                    const muteId = control.second_id || control.id;
+                    try {
+                        const muteRes = await api.get(`/device/controls/mute/${muteId}`);
                         setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], mute: muteRes.data.mute } }));
+                    } catch {
+                        // Mute not available for this control
                     }
                 } catch (e) {
                     console.error("Error refreshing control state:", e);

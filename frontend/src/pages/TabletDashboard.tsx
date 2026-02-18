@@ -310,52 +310,52 @@ export const TabletDashboard: React.FC = () => {
             )}
 
             {infoModal.isRendered && (
-                <div className={`fixed inset-0 z-50 flex items-center justify-center p-8 transition-opacity duration-500 ease-in-out ${infoModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
+                <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-500 ease-in-out ${infoModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-xl transition-opacity duration-500" onClick={infoModal.close} />
                     <div className={`
-                        relative bg-[#1a1a1a] border border-white/10 p-12 rounded-[2.5rem] max-w-lg w-full shadow-2xl transition-all duration-500 ease-out
+                        relative bg-[#1a1a1a] border border-white/10 p-6 rounded-[2rem] max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl transition-all duration-500 ease-out
                         ${infoModal.isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-90 translate-y-4 opacity-0'}
                     `}>
                         <button
                             onClick={infoModal.close}
-                            className="absolute top-8 right-8 text-white/30 hover:text-white transition-colors"
+                            className="absolute top-5 right-5 text-white/30 hover:text-white transition-colors"
                         >
-                            <X size={32} />
+                            <X size={28} />
                         </button>
-                        <h2 className="text-3xl font-bold mb-8 tracking-tight">Hardware & Software</h2>
-                        <div className="space-y-4">
-                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
-                                <span className="text-white/40 font-medium">Versione SW</span>
-                                <span className="font-mono text-blue-400 font-bold">{versionData?.version || 'Unknown'}</span>
+                        <h2 className="text-2xl font-bold mb-5 tracking-tight">Hardware & Software</h2>
+                        <div className="space-y-2.5">
+                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
+                                <span className="text-white/40 font-medium text-sm">Versione SW</span>
+                                <span className="font-mono text-blue-400 font-bold text-sm">{versionData?.version || 'Unknown'}</span>
                             </div>
-                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
-                                <span className="text-white/40 font-medium">Build Date</span>
-                                <span className="font-mono text-white/80">{versionData?.build_date || 'Unknown'}</span>
+                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
+                                <span className="text-white/40 font-medium text-sm">Build Date</span>
+                                <span className="font-mono text-white/80 text-sm">{versionData?.build_date || 'Unknown'}</span>
                             </div>
-                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
-                                <span className="text-white/40 font-medium">Architettura</span>
-                                <span className="font-mono uppercase text-white/60">{versionData?.arch || 'ARMv7'}</span>
+                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
+                                <span className="text-white/40 font-medium text-sm">Architettura</span>
+                                <span className="font-mono uppercase text-white/60 text-sm">{versionData?.arch || 'ARMv7'}</span>
                             </div>
 
                             {/* Daemon Info Section */}
-                            <div className="mt-6 pt-4 border-t border-white/5">
-                                <h3 className="text-sm font-bold text-white/30 uppercase tracking-widest mb-4">Daemon Hardware</h3>
+                            <div className="mt-4 pt-3 border-t border-white/5">
+                                <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest mb-3">Daemon Hardware</h3>
                             </div>
-                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
-                                <span className="text-white/40 font-medium">Nome</span>
-                                <span className="font-mono text-white/80">{systemInfo?.name || '—'}</span>
+                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
+                                <span className="text-white/40 font-medium text-sm">Nome</span>
+                                <span className="font-mono text-white/80 text-sm">{systemInfo?.name || '—'}</span>
                             </div>
-                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
-                                <span className="text-white/40 font-medium">Versione Daemon</span>
-                                <span className="font-mono text-blue-400 font-bold">{systemInfo?.version || '—'}</span>
+                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
+                                <span className="text-white/40 font-medium text-sm">Versione Daemon</span>
+                                <span className="font-mono text-blue-400 font-bold text-sm">{systemInfo?.version || '—'}</span>
                             </div>
-                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
-                                <span className="text-white/40 font-medium">Indirizzo IP</span>
-                                <span className="font-mono text-white/80">{systemInfo?.ip || '—'}</span>
+                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
+                                <span className="text-white/40 font-medium text-sm">Indirizzo IP</span>
+                                <span className="font-mono text-white/80 text-sm">{systemInfo?.ip || '—'}</span>
                             </div>
-                            <div className="p-5 bg-white/5 rounded-3xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-colors">
-                                <span className="text-white/40 font-medium">Seriale</span>
-                                <span className="font-mono text-white/60 text-sm">{systemInfo?.serial || '—'}</span>
+                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
+                                <span className="text-white/40 font-medium text-sm">Seriale</span>
+                                <span className="font-mono text-white/60 text-xs">{systemInfo?.serial || '—'}</span>
                             </div>
                         </div>
                     </div>
