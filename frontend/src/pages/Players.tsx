@@ -367,13 +367,13 @@ export const Players: React.FC = () => {
 
     // Selezione locale: NON chiama nessuna API, salva solo il brano in pending e aggiorna UI
     const handleSelectSong = (song: Song) => {
-        setPendingSong(song);
+        setPendingSong(null); // Non più necessario come pending locale
         setPlayingSourceContext({ type: selectedSourceType as any, id: selectedSource! });
 
         // Per i mock
         if (song.id >= 1000) {
             const newStatus: PlayerStatus = {
-                state: 'stopped',
+                state: 'playing', // Cambiato in playing per immediatezza
                 song_title: song.name,
                 current_source: 'Group',
                 current_time: 0,
@@ -382,6 +382,12 @@ export const Players: React.FC = () => {
             };
             setMockPlayerStatus(newStatus);
             queryClient.setQueryData(['player', 'status'], newStatus);
+        } else {
+            // Trigger immediato al backend
+            api.post('/device/player/song', { id: song.id })
+                .then(() => {
+                    queryClient.invalidateQueries({ queryKey: ['player', 'status'] });
+                });
         }
     };
 
@@ -1083,11 +1089,11 @@ export const Players: React.FC = () => {
                                                 value={effectiveTime}
                                                 onMouseDown={() => {
                                                     setIsSeeking(true);
-                                                    setSeekingTime(effectiveTime);
+                                                    setSeekingTime(playerStatus?.current_time || 0); // Usa il tempo reale alla pressione
                                                 }}
                                                 onTouchStart={() => {
                                                     setIsSeeking(true);
-                                                    setSeekingTime(effectiveTime);
+                                                    setSeekingTime(playerStatus?.current_time || 0);
                                                 }}
                                                 onInput={(e) => {
                                                     setSeekingTime(parseInt((e.target as HTMLInputElement).value));
@@ -1099,12 +1105,12 @@ export const Players: React.FC = () => {
                                                 onMouseUp={(e) => {
                                                     const val = parseInt((e.target as HTMLInputElement).value);
                                                     seekMutation.mutate(val);
-                                                    setTimeout(() => setIsSeeking(false), 3000);
+                                                    setIsSeeking(false); // Sblocco immediato dello slider locale, la protezione passa a seekTargetRef
                                                 }}
                                                 onTouchEnd={(e) => {
                                                     const val = parseInt((e.target as HTMLInputElement).value);
                                                     seekMutation.mutate(val);
-                                                    setTimeout(() => setIsSeeking(false), 3000);
+                                                    setIsSeeking(false);
                                                 }}
                                                 className="absolute inset-x-0 w-full h-20 -top-8 opacity-0 cursor-pointer z-30"
                                             />
@@ -1141,7 +1147,7 @@ export const Players: React.FC = () => {
                             {/* Recessed Audio Control Panel */}
                             <div className="relative h-full flex flex-col gap-6 bg-[#0a0a0c]/80 rounded-[3.4rem] p-6 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.02)]">
                                 <div className="flex-1 flex flex-row justify-center gap-5 relative z-10">
-                                    {volumeControls.map(ctrl => {
+                                    {volumeControls.map((ctrl, index) => {
                                         const val = ctrl.id in pendingVolumes ? pendingVolumes[ctrl.id] : (controlValues[ctrl.id]?.volume ?? 0);
                                         const isMuted = controlValues[ctrl.id]?.mute;
                                         const min = ctrl.min ?? -96;
@@ -1151,6 +1157,9 @@ export const Players: React.FC = () => {
 
                                         return (
                                             <div key={`channel-${ctrl.id}`} className="flex flex-col items-center gap-8 h-full">
+                                                <span className="text-[10px] font-black text-white/30 tracking-widest uppercase -mb-4">
+                                                    {index === 0 ? 'PL' : 'PR'}
+                                                </span>
                                                 {/* Plus Button */}
                                                 <button
                                                     onClick={() => handleStepVolume(ctrl, 'up')}
@@ -3171,9 +3180,8 @@ export const Players: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* RIGHT SIDE: EXACT DASHBOARD FADERS (REPLICATED STYLE) */}
-                                    <div className="flex-1 bg-white/[0.02] border border-white/10 rounded-[3rem] px-8 py-8 backdrop-blur-3xl shadow-2xl flex justify-around gap-12">
-                                        {volumeControls.map((ctrl) => {
+                                        <div className="flex-1 bg-white/[0.02] border border-white/10 rounded-[3rem] px-8 py-8 backdrop-blur-3xl shadow-2xl flex justify-around gap-12">
+                                            {volumeControls.map((ctrl, index) => {
                                             const val = pendingVolumes[ctrl.id] ?? controlValues[ctrl.id]?.volume ?? 0;
                                             const isMuted = controlValues[ctrl.id]?.mute;
                                             const min = ctrl.min || -96;
@@ -3183,6 +3191,9 @@ export const Players: React.FC = () => {
 
                                             return (
                                                 <div key={`otp-fader-${ctrl.id}`} className="flex flex-col items-center gap-1 h-full">
+                                                    <span className="text-[10px] font-black text-white/30 tracking-widest uppercase mb-1">
+                                                        {index === 0 ? 'PL' : 'PR'}
+                                                    </span>
                                                     {/* Plus Button */}
                                                     <button
                                                         onClick={() => handleStepVolume(ctrl, 'up')}
