@@ -342,12 +342,16 @@ export const Players: React.FC = () => {
     });
     const sources = sourcesData?.sources || [];
 
-    // Sync source selection
+    // Sync source selection — only mutate if not currently playing to avoid interrupting playback on page re-entry
     useEffect(() => {
         if (sources.length > 0 && selectedSource === null) {
             const defaultSource = sources[0].id;
             setSelectedSource(defaultSource);
-            selectSourceMutation.mutate(defaultSource);
+            // Don't send select-source command if a track is already playing/paused
+            const currentState = queryClient.getQueryData<PlayerStatus>(['player', 'status']);
+            if (!currentState || (currentState.state !== 'playing' && currentState.state !== 'paused')) {
+                selectSourceMutation.mutate(defaultSource);
+            }
         }
     }, [sources]);
 
@@ -1105,17 +1109,17 @@ export const Players: React.FC = () => {
                                     <div className="flex flex-col gap-2 bg-white/5 border border-white/10 p-6 rounded-2xl">
                                         <div className="relative h-4 flex items-center">
                                             {/* Track Background */}
-                                            <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full" />
-
-                                            {/* Active Progress Track */}
-                                            <div
-                                                className={`absolute left-0 h-1.5 rounded-full ${!isSeeking ? 'transition-all duration-500' : ''}`}
-                                                style={{
-                                                    width: `${progressPercent}%`,
-                                                    backgroundColor: highlightColor,
-                                                    boxShadow: `0 0 15px ${highlightColor}99`
-                                                }}
-                                            />
+                                            <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                {/* Active Progress Track — no transition to avoid jarring resize on drift correction */}
+                                                <div
+                                                    className="absolute left-0 top-0 h-full rounded-full"
+                                                    style={{
+                                                        width: `${Math.min(100, Math.max(0, progressPercent))}%`,
+                                                        backgroundColor: highlightColor,
+                                                        boxShadow: `0 0 15px ${highlightColor}99`
+                                                    }}
+                                                />
+                                            </div>
 
                                             {/* Interactive Slider - LARGE TOUCH AREA */}
                                             <input
@@ -1125,7 +1129,7 @@ export const Players: React.FC = () => {
                                                 value={effectiveTime}
                                                 onMouseDown={() => {
                                                     setIsSeeking(true);
-                                                    setSeekingTime(playerStatus?.current_time || 0); // Usa il tempo reale alla pressione
+                                                    setSeekingTime(playerStatus?.current_time || 0);
                                                 }}
                                                 onTouchStart={() => {
                                                     setIsSeeking(true);
@@ -1141,7 +1145,7 @@ export const Players: React.FC = () => {
                                                 onMouseUp={(e) => {
                                                     const val = parseInt((e.target as HTMLInputElement).value);
                                                     seekMutation.mutate(val);
-                                                    setIsSeeking(false); // Sblocco immediato dello slider locale, la protezione passa a seekTargetRef
+                                                    setIsSeeking(false);
                                                 }}
                                                 onTouchEnd={(e) => {
                                                     const val = parseInt((e.target as HTMLInputElement).value);
@@ -1151,11 +1155,11 @@ export const Players: React.FC = () => {
                                                 className="absolute inset-x-0 w-full h-20 -top-8 opacity-0 cursor-pointer z-30"
                                             />
 
-                                            {/* Elegant Handle */}
+                                            {/* Elegant Handle — clamped so it never overflows */}
                                             <div
-                                                className={`absolute w-6 h-6 bg-white rounded-full pointer-events-none z-10 border-2 ${!isSeeking ? 'transition-all duration-500' : 'transition-transform'}`}
+                                                className={`absolute w-6 h-6 bg-white rounded-full pointer-events-none z-10 border-2 ${isSeeking ? 'transition-transform' : ''}`}
                                                 style={{
-                                                    left: `calc(${progressPercent}% - 12px)`,
+                                                    left: `clamp(0px, calc(${Math.min(100, Math.max(0, progressPercent))}% - 12px), calc(100% - 12px))`,
                                                     transform: isSeeking ? 'scale(1.2)' : 'scale(1)',
                                                     borderColor: highlightColor,
                                                     boxShadow: `0 0 20px ${highlightColor}99`
