@@ -110,6 +110,12 @@ export const Players: React.FC = () => {
             await api.post('/device/player/fade', { fade });
         },
     });
+
+    // Sync default fade to daemon when the page loads
+    useEffect(() => {
+        fadeMutation.mutate(defaultFade);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const [displayedTime, setDisplayedTime] = useState(0);
 
     const [isOTPDashboardOpen, setIsOTPDashboardOpen] = useState(false);

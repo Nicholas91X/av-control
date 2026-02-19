@@ -8,6 +8,7 @@ import { Login } from './pages/Login';
 import { Layout } from './components/layout/Layout';
 import { RealtimeNotifications } from './components/RealtimeNotifications';
 import { RecordingOverlay } from './components/RecordingOverlay';
+import { PlayerOverlay } from './components/PlayerOverlay';
 import { Dashboard } from './pages/Dashboard';
 import { Players } from './pages/Players';
 import { Recorders } from './pages/Recorders';
@@ -152,6 +153,7 @@ function App() {
               <AppContent />
               <RealtimeNotifications />
               <RecordingOverlay />
+              <PlayerOverlay />
             </WebSocketProvider>
           </AuthProvider>
         </BrowserRouter>
