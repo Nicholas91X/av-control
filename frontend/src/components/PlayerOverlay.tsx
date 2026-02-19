@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,6 +40,13 @@ export const PlayerOverlay: React.FC = () => {
         enabled: !!user && !isOnPlayersPage,
     });
 
+    // Re-show pill when track or playback state changes
+    const currentSongKey = `${playerStatus?.song_title}-${playerStatus?.state}`;
+    useEffect(() => {
+        setDismissed(false);
+    }, [currentSongKey]);
+
+    // ALL hooks are above — safe to return early now
     if (!user) return null;
 
     const isActive = playerStatus?.state === 'playing' || playerStatus?.state === 'paused';
@@ -50,13 +57,6 @@ export const PlayerOverlay: React.FC = () => {
     const progress = (playerStatus?.current_time && playerStatus?.total_time)
         ? (playerStatus.current_time / playerStatus.total_time) * 100
         : 0;
-
-    // Re-show pill when a NEW track starts or playback state changes
-    // (dismissed resets when song changes or state changes)
-    const currentSongKey = `${playerStatus?.song_title}-${playerStatus?.state}`;
-    React.useEffect(() => {
-        setDismissed(false);
-    }, [currentSongKey]);
 
     return (
         <AnimatePresence>
