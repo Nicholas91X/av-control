@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Pause } from 'lucide-react';
+import { Pause, X } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -26,10 +26,8 @@ export const PlayerOverlay: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const [dismissed, setDismissed] = useState(false);
 
-    // Same query key as Players.tsx so React Query deduplicates.
-    // 5s interval to minimize load on the A13 board.
-    // Only enabled when user is logged in AND not on the players page.
     const isOnPlayersPage = location.pathname === '/players';
 
     const { data: playerStatus } = useQuery<PlayerStatus>({
@@ -47,55 +45,72 @@ export const PlayerOverlay: React.FC = () => {
     const isActive = playerStatus?.state === 'playing' || playerStatus?.state === 'paused';
     const isPlaying = playerStatus?.state === 'playing';
     const songTitle = playerStatus?.song_title || 'Unknown';
-
-    // Truncate long titles
     const displayTitle = songTitle.length > 28 ? songTitle.substring(0, 28) + '…' : songTitle;
 
-    // Progress percentage
     const progress = (playerStatus?.current_time && playerStatus?.total_time)
         ? (playerStatus.current_time / playerStatus.total_time) * 100
         : 0;
 
+    // Re-show pill when a NEW track starts or playback state changes
+    // (dismissed resets when song changes or state changes)
+    const currentSongKey = `${playerStatus?.song_title}-${playerStatus?.state}`;
+    React.useEffect(() => {
+        setDismissed(false);
+    }, [currentSongKey]);
+
     return (
         <AnimatePresence>
-            {isActive && !isOnPlayersPage && (
-                <motion.button
+            {isActive && !isOnPlayersPage && !dismissed && (
+                <motion.div
                     initial={{ y: 80, opacity: 0, scale: 0.8 }}
                     animate={{ y: 0, opacity: 1, scale: 1 }}
                     exit={{ y: 80, opacity: 0, scale: 0.8 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    onClick={() => navigate('/players')}
-                    className="fixed bottom-8 left-8 z-[9990] flex items-center gap-3 pl-4 pr-5 py-3 bg-blue-600/80 backdrop-blur-xl rounded-full border border-blue-400/30 shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:bg-blue-500/80 active:scale-95 transition-all cursor-pointer group overflow-hidden"
+                    className="fixed bottom-8 left-8 z-[9990] flex items-center gap-1"
                 >
-                    {/* Progress bar along the bottom */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/10 rounded-full">
-                        <div
-                            className="h-full bg-white/50 rounded-full transition-all duration-[5s] ease-linear"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
+                    {/* Main pill - navigates to Players */}
+                    <button
+                        onClick={() => navigate('/players')}
+                        className="flex items-center gap-3 pl-4 pr-5 py-3 bg-blue-600/80 backdrop-blur-xl rounded-l-full border border-blue-400/30 border-r-0 shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:bg-blue-500/80 active:scale-95 transition-all cursor-pointer group overflow-hidden relative"
+                    >
+                        {/* Progress bar */}
+                        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/10 rounded-full">
+                            <div
+                                className="h-full bg-white/50 rounded-full transition-all duration-[5s] ease-linear"
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
 
-                    {/* Icon */}
-                    {isPlaying ? (
-                        <span className="flex items-end gap-[2px] h-4">
-                            <span className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '12px', animationDelay: '0ms', animationDuration: '0.8s' }} />
-                            <span className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '8px', animationDelay: '200ms', animationDuration: '0.8s' }} />
-                            <span className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '14px', animationDelay: '400ms', animationDuration: '0.8s' }} />
-                        </span>
-                    ) : (
-                        <Pause className="w-5 h-5 text-white/80" />
-                    )}
+                        {/* Icon */}
+                        {isPlaying ? (
+                            <span className="flex items-end gap-[2px] h-4">
+                                <span className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '12px', animationDelay: '0ms', animationDuration: '0.8s' }} />
+                                <span className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '8px', animationDelay: '200ms', animationDuration: '0.8s' }} />
+                                <span className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '14px', animationDelay: '400ms', animationDuration: '0.8s' }} />
+                            </span>
+                        ) : (
+                            <Pause className="w-5 h-5 text-white/80" />
+                        )}
 
-                    {/* Track info */}
-                    <div className="flex flex-col items-start leading-tight">
-                        <span className="text-white font-bold text-xs uppercase tracking-wider truncate max-w-[180px]">
-                            {displayTitle}
-                        </span>
-                        <span className="text-white/50 font-mono text-[10px] tracking-wider">
-                            {formatTime(playerStatus?.current_time)} / {formatTime(playerStatus?.total_time)}
-                        </span>
-                    </div>
-                </motion.button>
+                        {/* Track info */}
+                        <div className="flex flex-col items-start leading-tight">
+                            <span className="text-white font-bold text-xs uppercase tracking-wider truncate max-w-[180px]">
+                                {displayTitle}
+                            </span>
+                            <span className="text-white/50 font-mono text-[10px] tracking-wider">
+                                {formatTime(playerStatus?.current_time)} / {formatTime(playerStatus?.total_time)}
+                            </span>
+                        </div>
+                    </button>
+
+                    {/* Dismiss button */}
+                    <button
+                        onClick={() => setDismissed(true)}
+                        className="flex items-center justify-center w-10 h-full py-3 bg-blue-600/60 backdrop-blur-xl rounded-r-full border border-blue-400/30 border-l-0 hover:bg-red-500/60 active:scale-95 transition-all"
+                    >
+                        <X className="w-3.5 h-3.5 text-white/50 hover:text-white transition-colors" />
+                    </button>
+                </motion.div>
             )}
         </AnimatePresence>
     );
