@@ -42,24 +42,18 @@ export const Recorders: React.FC = () => {
         if (!sourcesData) return [];
         return Object.entries(sourcesData)
             .filter(([key]) => key !== 'left' && key !== 'right')
-            .map(([key, value]) => ({ index: parseInt(key) + 1, name: value as string }))
+            .map(([key, value]) => ({ index: parseInt(key), name: value as string }))
             .sort((a, b) => a.index - b.index);
     }, [sourcesData]);
 
     // Init selections from API response
     useEffect(() => {
         if (sourcesData) {
-            const hwLeft = sourcesData.left as number;
-            const hwRight = sourcesData.right as number;
-            if (typeof hwLeft === 'number') {
-                setLeftSource(hwLeft + 1);
+            if (typeof sourcesData.left === 'number') {
+                setLeftSource(sourcesData.left);
             }
-            if (typeof hwRight === 'number' && typeof hwLeft === 'number') {
-                if (hwRight === hwLeft) {
-                    setRightSource(0); // "Come a sinistra"
-                } else {
-                    setRightSource(hwRight + 1);
-                }
+            if (typeof sourcesData.right === 'number') {
+                setRightSource(sourcesData.right);
             }
         }
     }, [sourcesData]);
@@ -67,9 +61,7 @@ export const Recorders: React.FC = () => {
     // Mutation to save source selection
     const setSourceMutation = useMutation({
         mutationFn: async ({ left, right }: { left: number; right: number }) => {
-            const hwLeft = left - 1;
-            const hwRight = right === 0 ? hwLeft : right - 1;
-            await api.post('/device/recorder/source', { left: hwLeft, right: hwRight });
+            await api.post('/device/recorder/source', { left, right });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recorder', 'sources'] });
@@ -196,7 +188,7 @@ export const Recorders: React.FC = () => {
                                         className="bg-transparent border-none text-white font-black text-base outline-none cursor-pointer w-full appearance-none uppercase tracking-widest"
                                     >
                                         <option value={0} className="bg-[#1a1a1c]">Come a sinistra</option>
-                                        {availableSources.map(src => <option key={src.index} value={src.index} className="bg-[#1a1a1c]">{src.name}</option>)}
+                                        {availableSources.map(src => <option key={src.index + 1} value={src.index + 1} className="bg-[#1a1a1c]">{src.name}</option>)}
                                     </select>
                                 </div>
                             </div>
