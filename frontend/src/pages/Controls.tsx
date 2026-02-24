@@ -189,7 +189,7 @@ export const Controls: React.FC = () => {
                 // Find control that owns this ID (could be volume or mute)
                 const controlId = Object.keys(next).find(cid => {
                     const c = controls.find(ctrl => ctrl.id === Number(cid));
-                    return c?.id === id || c?.second_id === id;
+                    return c?.id === id;
                 }) || id;
 
                 if (next[Number(controlId)]) {
