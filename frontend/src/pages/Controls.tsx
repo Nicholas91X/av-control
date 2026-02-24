@@ -98,39 +98,34 @@ export const Controls: React.FC = () => {
 
     // Use real controls from the API
     const controls = useMemo(() => {
-        const baseControls = controlsData.controls || [];
+        const baseControls = controlsData?.controls || [];
         const result: Control[] = [];
 
         baseControls.forEach((control: Control) => {
-            // Push the Left channel control
-            result.push({
-                ...control,
-                step: volStep
-            });
+            result.push({ ...control, step: volStep });
 
-            // If it has a second_id, synthesize the Right channel control
             if (control.second_id) {
                 let rName = control.name;
-                if (rName.endsWith(' L') || rName.endsWith(' R')) {
+                if (rName.endsWith(' L')) {
                     rName = rName.substring(0, rName.length - 2) + ' R';
-                } else if (rName.endsWith(' l') || rName.endsWith(' r')) {
+                } else if (rName.endsWith(' l')) {
                     rName = rName.substring(0, rName.length - 2) + ' r';
                 } else {
-                    rName += ' R'; // fallback
+                    rName += ' R';
                 }
 
                 result.push({
                     ...control,
                     id: control.second_id,
                     name: rName,
-                    second_id: undefined, // Right channel doesn't have a second_id
+                    second_id: undefined, // Clear second_id for the synthesized control
                     step: volStep
                 });
             }
         });
 
         return result;
-    }, [controlsData.controls, volStep]);
+    }, [controlsData?.controls, volStep]);
 
 
 
@@ -144,10 +139,9 @@ export const Controls: React.FC = () => {
                     volume: volumeResponse.data.volume
                 };
 
-                // Fetch mute state using control.id
-                const muteId = control.id;
+                // Always fetch mute state: use control.id
                 try {
-                    const muteResponse = await api.get(`/device/controls/mute/${muteId}`);
+                    const muteResponse = await api.get(`/device/controls/mute/${control.id}`);
                     values[control.id] = {
                         ...values[control.id],
                         mute: muteResponse.data.mute,
@@ -215,9 +209,8 @@ export const Controls: React.FC = () => {
                     const res = await api.get(`/device/controls/volume/${control.id}`);
                     setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], volume: res.data.volume } }));
 
-                    const muteId = control.id;
                     try {
-                        const muteRes = await api.get(`/device/controls/mute/${muteId}`);
+                        const muteRes = await api.get(`/device/controls/mute/${control.id}`);
                         setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], mute: muteRes.data.mute } }));
                     } catch {
                         // Mute not available for this control

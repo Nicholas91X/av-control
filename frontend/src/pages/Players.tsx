@@ -183,11 +183,13 @@ export const Players: React.FC = () => {
         baseControls.forEach((control: any) => {
             result.push({ ...control, step: control.step || 1 });
 
+            // S-Mix hardware specifies stereo pairs by giving the Left channel a 'second_id'
+            // indicating the Right channel ID. We synthesize the Right channel here.
             if (control.second_id) {
                 let rName = control.name;
-                if (rName.endsWith(' L') || rName.endsWith(' R')) {
+                if (rName.endsWith(' L')) {
                     rName = rName.substring(0, rName.length - 2) + ' R';
-                } else if (rName.endsWith(' l') || rName.endsWith(' r')) {
+                } else if (rName.endsWith(' l')) {
                     rName = rName.substring(0, rName.length - 2) + ' r';
                 } else {
                     rName += ' R';
@@ -197,7 +199,7 @@ export const Players: React.FC = () => {
                     ...control,
                     id: control.second_id,
                     name: rName,
-                    second_id: undefined,
+                    second_id: undefined, // The synthesized right channel has no second_id itself
                     step: control.step || 1
                 });
             }
