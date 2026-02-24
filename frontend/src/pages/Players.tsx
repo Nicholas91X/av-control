@@ -176,7 +176,35 @@ export const Players: React.FC = () => {
             return response.data;
         },
     });
-    const allControls = controlsData?.controls || [];
+    const allControls = useMemo(() => {
+        const baseControls = controlsData?.controls || [];
+        const result: any[] = [];
+
+        baseControls.forEach((control: any) => {
+            result.push({ ...control, step: control.step || 1 });
+
+            if (control.second_id) {
+                let rName = control.name;
+                if (rName.endsWith(' L') || rName.endsWith(' R')) {
+                    rName = rName.substring(0, rName.length - 2) + ' R';
+                } else if (rName.endsWith(' l') || rName.endsWith(' r')) {
+                    rName = rName.substring(0, rName.length - 2) + ' r';
+                } else {
+                    rName += ' R';
+                }
+
+                result.push({
+                    ...control,
+                    id: control.second_id,
+                    name: rName,
+                    second_id: undefined,
+                    step: control.step || 1
+                });
+            }
+        });
+
+        return result;
+    }, [controlsData?.controls]);
 
     // Cerchiamo esplicitamente PL L e PL R
     const hasPlR = useMemo(() => !!allControls.find(c => c.name.toUpperCase() === 'PL R'), [allControls]);
@@ -306,7 +334,9 @@ export const Players: React.FC = () => {
         const step = control.step || 1;
         const next = direction === 'up' ? current + step : current - step;
         const clamped = Math.max(control.min || -96, Math.min(control.max || 12, next));
+        
         setControlMutation.mutate({ id: control.id, value: clamped });
+        
         setControlValues(prev => ({
             ...prev,
             [control.id]: { ...prev[control.id], volume: clamped }

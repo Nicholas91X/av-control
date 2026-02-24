@@ -99,10 +99,37 @@ export const Controls: React.FC = () => {
     // Use real controls from the API
     const controls = useMemo(() => {
         const baseControls = controlsData.controls || [];
-        return baseControls.map(control => ({
-            ...control,
-            step: volStep
-        }));
+        const result: Control[] = [];
+
+        baseControls.forEach((control: Control) => {
+            // Push the Left channel control
+            result.push({
+                ...control,
+                step: volStep
+            });
+
+            // If it has a second_id, synthesize the Right channel control
+            if (control.second_id) {
+                let rName = control.name;
+                if (rName.endsWith(' L') || rName.endsWith(' R')) {
+                    rName = rName.substring(0, rName.length - 2) + ' R';
+                } else if (rName.endsWith(' l') || rName.endsWith(' r')) {
+                    rName = rName.substring(0, rName.length - 2) + ' r';
+                } else {
+                    rName += ' R'; // fallback
+                }
+
+                result.push({
+                    ...control,
+                    id: control.second_id,
+                    name: rName,
+                    second_id: undefined, // Right channel doesn't have a second_id
+                    step: volStep
+                });
+            }
+        });
+
+        return result;
     }, [controlsData.controls, volStep]);
 
 
@@ -220,8 +247,8 @@ export const Controls: React.FC = () => {
         setPendingValues((prev) => ({ ...prev, [controlId]: value }));
     };
 
-    const handleVolumeRelease = (controlId: number, value: number) => {
-        setControlMutation.mutate({ id: controlId, value });
+    const handleVolumeRelease = (control: Control, value: number) => {
+        setControlMutation.mutate({ id: control.id, value });
     };
 
     const handleStepVolume = (control: Control, direction: 'up' | 'down') => {
@@ -230,6 +257,7 @@ export const Controls: React.FC = () => {
         const next = direction === 'up' ? current + step : current - step;
         const max = control.max ?? 12;
         const clamped = Math.max(control.min || -96, Math.min(max, next));
+        
         setControlMutation.mutate({ id: control.id, value: clamped });
     };
 
@@ -318,8 +346,8 @@ export const Controls: React.FC = () => {
                         value={val}
                         onInput={(e) => handleVolumeChange(control.id, parseFloat((e.target as HTMLInputElement).value))}
                         onChange={(e) => handleVolumeChange(control.id, parseFloat((e.target as HTMLInputElement).value))}
-                        onMouseUp={(e) => handleVolumeRelease(control.id, parseFloat((e.target as HTMLInputElement).value))}
-                        onTouchEnd={(e) => handleVolumeRelease(control.id, parseFloat((e.target as HTMLInputElement).value))}
+                        onMouseUp={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
+                        onTouchEnd={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
                         className="absolute inset-y-0 inset-x-0 opacity-0 cursor-pointer w-full z-30"
                         style={{
                             appearance: 'slider-vertical' as any,
@@ -392,8 +420,8 @@ export const Controls: React.FC = () => {
                         step={control.step || 0.1}
                         value={val}
                         onChange={(e) => handleVolumeChange(control.id, parseFloat(e.target.value))}
-                        onMouseUp={(e) => handleVolumeRelease(control.id, parseFloat((e.target as HTMLInputElement).value))}
-                        onTouchEnd={(e) => handleVolumeRelease(control.id, parseFloat((e.target as HTMLInputElement).value))}
+                        onMouseUp={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
+                        onTouchEnd={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
                         className="flex-1 h-2 bg-black rounded-full appearance-none cursor-pointer"
                         style={{ accentColor: highlightColor }}
                     />
