@@ -144,8 +144,8 @@ export const Controls: React.FC = () => {
                     volume: volumeResponse.data.volume
                 };
 
-                // Always fetch mute state: use second_id if available, otherwise use control.id
-                const muteId = control.second_id || control.id;
+                // Fetch mute state using control.id
+                const muteId = control.id;
                 try {
                     const muteResponse = await api.get(`/device/controls/mute/${muteId}`);
                     values[control.id] = {
@@ -209,13 +209,13 @@ export const Controls: React.FC = () => {
             });
         },
         onSettled: async (_data, _error, variables) => {
-            const control = controls.find(c => c.id === variables.id || c.second_id === variables.id);
+            const control = controls.find(c => c.id === variables.id);
             if (control) {
                 try {
                     const res = await api.get(`/device/controls/volume/${control.id}`);
                     setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], volume: res.data.volume } }));
 
-                    const muteId = control.second_id || control.id;
+                    const muteId = control.id;
                     try {
                         const muteRes = await api.get(`/device/controls/mute/${muteId}`);
                         setControlValues(p => ({ ...p, [control.id]: { ...p[control.id], mute: muteRes.data.mute } }));
@@ -274,7 +274,7 @@ export const Controls: React.FC = () => {
     };
 
     const handleMuteToggle = (control: Control) => {
-        const muteId = control.second_id || control.id;
+        const muteId = control.id;
         const currentMute = controlValues[control.id]?.mute ?? false;
         setControlMutation.mutate({ id: muteId, value: !currentMute });
     };

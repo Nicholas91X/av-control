@@ -297,13 +297,11 @@ export const Players: React.FC = () => {
                 try {
                     const volRes = await api.get(`/device/controls/volume/${ctrl.id}`);
                     let mute = false;
-                    if (ctrl.second_id) {
-                        try {
-                            const muteRes = await api.get(`/device/controls/mute/${ctrl.second_id}`);
-                            mute = muteRes.data.mute;
-                        } catch (e) {
-                             console.warn(`Failed to fetch mute for control ${ctrl.id}`, e);
-                        }
+                    try {
+                        const muteRes = await api.get(`/device/controls/mute/${ctrl.id}`);
+                        mute = muteRes.data.mute;
+                    } catch (e) {
+                         console.warn(`Failed to fetch mute for control ${ctrl.id}`, e);
                     }
                     values[ctrl.id] = { volume: volRes.data.volume, mute };
                 } catch (e) { console.error(e); }
@@ -322,7 +320,7 @@ export const Players: React.FC = () => {
         onSuccess: (_data, variables) => {
             // Se è un'azione sul volume, non invalidiamo tutto per evitare glitch visivi
             // Ma aggiorniamo solo se non è un volume
-            const control = volumeControls.find(c => c.id === variables.id || c.second_id === variables.id);
+            const control = volumeControls.find(c => c.id === variables.id);
             if (!control) {
                 queryClient.invalidateQueries({ queryKey: ['controls'] });
             }
@@ -1297,7 +1295,7 @@ export const Players: React.FC = () => {
                                                 {/* Mute Button */}
                                                 <button
                                                     onClick={() => {
-                                                        const muteId = ctrl.second_id || ctrl.id;
+                                                        const muteId = ctrl.id;
                                                         setControlMutation.mutate({ id: muteId, value: !isMuted });
                                                         setControlValues(prev => ({
                                                             ...prev,
