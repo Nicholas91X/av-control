@@ -24,9 +24,10 @@ export const CircleTile: React.FC<CircleTileProps> = ({
     hideLabel = false,
 }) => {
     // The sizes here will determine the diameter of the circular button
+    // Stepping down slightly from max bounds for breathing room
     const sizeClasses = {
-        small: 'w-[clamp(4.5rem,15vw,6rem)] h-[clamp(4.5rem,15vw,6rem)]', // For the surrounding buttons
-        large: 'w-[clamp(7rem,25vw,10rem)] h-[clamp(7rem,25vw,10rem)]', // For the central button
+        small: 'w-[clamp(5rem,22vmin,7.5rem)] h-[clamp(5rem,22vmin,7.5rem)]', // Balanced outer taps
+        large: 'w-[clamp(7.5rem,30vmin,11rem)] h-[clamp(7.5rem,30vmin,11rem)]', // Balanced central tap
     };
 
     return (
@@ -63,7 +64,7 @@ export const CircleTile: React.FC<CircleTileProps> = ({
                 ${iconClassName}
             `}>
                 <Icon
-                    size={size === 'small' ? 'clamp(1.5rem, 5vw, 2rem)' : 'clamp(2.5rem, 8vw, 3.5rem)'}
+                    size={size === 'small' ? 'clamp(1.5rem, 6vmin, 2.5rem)' : 'clamp(2.5rem, 9vmin, 3.5rem)'}
                     style={{ color: glowColor || 'white' }}
                     className="drop-shadow-lg"
                 />
@@ -71,8 +72,8 @@ export const CircleTile: React.FC<CircleTileProps> = ({
 
             {!hideLabel && (
                 <span className={`
-                    uppercase font-bold text-center tracking-widest text-white/80 transition-colors duration-300 group-hover:text-white
-                    ${size === 'small' ? 'text-[clamp(8px,2.5vw,10px)]' : 'text-[clamp(10px,3vw,12px)]'}
+                    uppercase font-semibold text-center tracking-widest text-white/90 transition-colors duration-300 group-hover:text-white
+                    ${size === 'small' ? 'text-[clamp(10px,3.2vmin,12px)]' : 'text-[clamp(12px,4vmin,15px)]'}
                 `}>
                     {label}
                 </span>

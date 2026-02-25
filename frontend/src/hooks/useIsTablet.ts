@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 
 export const useIsTablet = () => {
+    const mediaQueryString = '(min-width: 700px) and (min-height: 600px)';
+    
     const [isTablet, setIsTablet] = useState(() =>
-        typeof window !== 'undefined' ? window.matchMedia('(min-width: 700px)').matches : false
+        typeof window !== 'undefined' ? window.matchMedia(mediaQueryString).matches : false
     );
 
     useEffect(() => {
-        const mediaQuery = window.matchMedia('(min-width: 700px)');
+        const mediaQuery = window.matchMedia(mediaQueryString);
 
         const handleResize = (e: MediaQueryListEvent | MediaQueryList) => {
             setIsTablet(e.matches);

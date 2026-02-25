@@ -102,8 +102,8 @@ export const MobileDashboard: React.FC = () => {
 
     // Calculations for the circular layout
     const numItems = 7;
-    // Responsive radius: 38vw maxes out nicely on smaller screens without hitting the edges.
-    const circleRadius = "35vw"; 
+    // Responsive radius: tuning it to prevent top/bottom edge collisions
+    const circleRadius = "32vmin"; 
 
     // The items to place around the circle
     const surroundingItems = [
@@ -139,67 +139,73 @@ export const MobileDashboard: React.FC = () => {
             {/* Background Light Effect */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
 
-            <div className="h-full w-full mx-auto px-4 py-8 flex flex-col items-center justify-between">
+            <div className="h-full w-full mx-auto px-4 py-8 landscape:py-2 flex flex-col items-center justify-between">
 
-                {/* Header: Actions and Title */}
-                <div className="w-full relative flex items-center justify-between min-h-[48px]">
-                    {/* Left Actions */}
-                    <div className="flex items-center space-x-2 z-10">
-                        <div
-                            className={`p-2 rounded-xl border border-b-2 shadow-lg ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 text-green-500' :
-                                status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500 animate-pulse' :
-                                    'bg-red-500/10 border-red-500/20 text-red-500'
-                                }`}
-                        >
-                            {status === 'connected' ? <Wifi size={18} /> : <WifiOff size={18} />}
+                {/* Layout Wrapper for Landscape Support */}
+                <div className="flex-1 w-full flex flex-col landscape:flex-row items-center landscape:items-stretch justify-between landscape:justify-center">
+                    
+                    {/* Top Section: Header Actions + Title */}
+                    <div className="w-full landscape:w-[35%] landscape:h-full landscape:flex landscape:flex-col landscape:justify-center">
+                    {/* Header: Actions */}
+                    <div className="w-full flex items-center justify-between min-h-[48px] z-10 mb-6">
+                        {/* Left Actions */}
+                        <div className="flex items-center space-x-2">
+                            <div
+                                className={`p-2 rounded-xl border border-b-2 shadow-lg ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 text-green-500' :
+                                    status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500 animate-pulse' :
+                                        'bg-red-500/10 border-red-500/20 text-red-500'
+                                    }`}
+                            >
+                                {status === 'connected' ? <Wifi size={18} /> : <WifiOff size={18} />}
+                            </div>
+                            <div
+                                className={`p-2 rounded-xl border border-b-2 shadow-lg ${isHardwareConnected
+                                    ? 'bg-green-500/10 border-green-500/20 text-green-500'
+                                    : 'bg-red-500/10 border-red-500/20 text-red-500'
+                                    }`}
+                            >
+                                <Cpu size={18} />
+                            </div>
                         </div>
-                        <div
-                            className={`p-2 rounded-xl border border-b-2 shadow-lg ${isHardwareConnected
-                                ? 'bg-green-500/10 border-green-500/20 text-green-500'
-                                : 'bg-red-500/10 border-red-500/20 text-red-500'
-                                }`}
-                        >
-                            <Cpu size={18} />
-                        </div>
-                    </div>
 
-                    {/* Centered Title */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] pointer-events-auto">
-                            Parrocchia
-                        </h1>
-                    </div>
-
-                    {/* Right Actions */}
-                    <div className="flex items-center space-x-2 z-10">
-                         {user?.role === 'admin' && (
+                        {/* Right Actions */}
+                        <div className="flex items-center space-x-2">
+                            {user?.role === 'admin' && (
+                                <button
+                                    onClick={() => navigate('/users')}
+                                    className="p-2 text-white/40 bg-[#2a2a2e] rounded-xl border-t border-t-white/10 border-x border-x-white/5 border-b-2 border-b-white/10 shadow-lg"
+                                >
+                                    <Users size={18} />
+                                </button>
+                            )}
                             <button
-                                onClick={() => navigate('/users')}
+                                onClick={infoModal.open}
                                 className="p-2 text-white/40 bg-[#2a2a2e] rounded-xl border-t border-t-white/10 border-x border-x-white/5 border-b-2 border-b-white/10 shadow-lg"
                             >
-                                <Users size={18} />
+                                <Info size={18} />
                             </button>
-                        )}
-                        <button
-                            onClick={infoModal.open}
-                            className="p-2 text-white/40 bg-[#2a2a2e] rounded-xl border-t border-t-white/10 border-x border-x-white/5 border-b-2 border-b-white/10 shadow-lg"
-                        >
-                            <Info size={18} />
-                        </button>
-                        <button
-                            onClick={logoutModal.open}
-                            className="p-2 text-red-500/40 bg-[#2a2a2e] rounded-xl border-t border-t-red-400/20 border-x border-x-red-400/10 border-b-2 border-b-red-950 shadow-lg"
-                            style={{marginLeft:"0.5rem"}}
-                        >
-                            <LogOut size={18} />
-                        </button>
+                            <button
+                                onClick={logoutModal.open}
+                                className="p-2 text-red-500/40 bg-[#2a2a2e] rounded-xl border-t border-t-red-400/20 border-x border-x-red-400/10 border-b-2 border-b-red-950 shadow-lg"
+                                style={{marginLeft:"0.5rem"}}
+                            >
+                                <LogOut size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Main Title Row */}
+                    <div className="w-full text-center">
+                        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                            Parrocchia
+                        </h1>
                     </div>
                 </div>
 
                 {/* Main Content Area - Circular Layout */}
-                <div className="flex-1 w-full relative flex items-center justify-center overflow-hidden">
+                <div className="flex-1 w-full landscape:w-[65%] landscape:h-full relative flex items-center justify-center">
                     {/* The Central Button */}
-                    <div className="z-10 absolute pointer-events-auto flex items-center justify-center">
+                    <div className="z-10 absolute pointer-events-auto flex items-center justify-center pt-8 landscape:pt-0">
                         <CircleTile
                             icon={Home}
                             label="HOME"
@@ -219,7 +225,7 @@ export const MobileDashboard: React.FC = () => {
                         return (
                             <div 
                                 key={index} 
-                                className="absolute flex items-center justify-center pointer-events-auto"
+                                className="absolute flex items-center justify-center pointer-events-auto pt-8 landscape:pt-0"
                                 style={{
                                     transform: `translate(calc(cos(${angle}rad) * ${circleRadius}), calc(sin(${angle}rad) * ${circleRadius}))`
                                 }}
@@ -237,10 +243,19 @@ export const MobileDashboard: React.FC = () => {
                         );
                     })}
                 </div>
+                </div>
 
-                {/* Footer Decor */}
-                <div className="w-full flex justify-center items-center opacity-20 text-[9px] tracking-widest uppercase py-2">
+                {/* Footer Decor - Hidden in landscape, shown in portrait */}
+                <div className="w-full landscape:hidden flex justify-center items-center opacity-20 text-[9px] tracking-widest uppercase py-2">
                     <div className="flex space-x-2">
+                        <span>AV Control System</span>
+                        {versionData && <span>v{versionData.version}</span>}
+                    </div>
+                </div>
+
+                {/* Footer Decor - Absolute positioned for landscape */}
+                <div className="hidden landscape:flex absolute bottom-4 left-4 opacity-20 text-[9px] tracking-widest uppercase">
+                    <div className="flex flex-col space-y-1">
                         <span>AV Control System</span>
                         {versionData && <span>v{versionData.version}</span>}
                     </div>
