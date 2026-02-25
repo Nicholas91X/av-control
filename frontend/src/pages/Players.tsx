@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
+import { MobilePlayer } from './MobilePlayer';
 import {
     Play,
     Pause,
     Square,
     SkipForward,
     SkipBack,
-    Repeat,
     Repeat1,
     Music,
     ListMusic,
@@ -320,8 +320,8 @@ export const Players: React.FC = () => {
         onMutate: () => setIsMutating(true),
         onSettled: () => setIsMutating(false),
         onSuccess: (_data, variables) => {
-            // Se è un'azione sul volume, non invalidiamo tutto per evitare glitch visivi
-            // Ma aggiorniamo solo se non è un volume
+            // Se Ã¨ un'azione sul volume, non invalidiamo tutto per evitare glitch visivi
+            // Ma aggiorniamo solo se non Ã¨ un volume
             const control = volumeControls.find(c => c.id === variables.id);
             if (!control) {
                 queryClient.invalidateQueries({ queryKey: ['controls'] });
@@ -372,7 +372,7 @@ export const Players: React.FC = () => {
     });
     const sources = sourcesData?.sources || [];
 
-    // Sync source selection — only mutate if not currently playing to avoid interrupting playback on page re-entry
+    // Sync source selection â€” only mutate if not currently playing to avoid interrupting playback on page re-entry
     useEffect(() => {
         if (sources.length > 0 && selectedSource === null) {
             const defaultSource = sources[0].id;
@@ -436,7 +436,7 @@ export const Players: React.FC = () => {
 
     // Selezione locale: NON chiama nessuna API, salva solo il brano in pending e aggiorna UI
     const handleSelectSong = (song: Song) => {
-        setPendingSong(null); // Non più necessario come pending locale
+        setPendingSong(null); // Non piÃ¹ necessario come pending locale
 
         // Per i mock
         if (song.id >= 1000) {
@@ -465,7 +465,7 @@ export const Players: React.FC = () => {
                 setMockPlayerStatus({ ...mockPlayerStatus, state: 'playing' });
                 return;
             }
-            // Se c'è un brano in pending, lo selezioniamo prima di fare play
+            // Se c'Ã¨ un brano in pending, lo selezioniamo prima di fare play
             if (pendingSong && pendingSong.id < 1000) {
                  await api.post('/device/player/song', { id: pendingSong.id });
                  setPendingSong(null);
@@ -1043,7 +1043,7 @@ export const Players: React.FC = () => {
                             if (isSeeking) {
                                 effectiveTime = seekingTime;
                             } else {
-                                // Il queryFn già gestisce la proiezione locale dopo un seek
+                                // Il queryFn giÃ  gestisce la proiezione locale dopo un seek
                                 // Qui usiamo semplicemente il valore dal polling
                                 effectiveTime = playerStatus?.current_time || 0;
                             }
@@ -1140,7 +1140,7 @@ export const Players: React.FC = () => {
                                         <div className="relative h-4 flex items-center">
                                             {/* Track Background */}
                                             <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                                {/* Active Progress Track — no transition to avoid jarring resize on drift correction */}
+                                                {/* Active Progress Track â€” no transition to avoid jarring resize on drift correction */}
                                                 <div
                                                     className="absolute left-0 top-0 h-full rounded-full"
                                                     style={{
@@ -1185,7 +1185,7 @@ export const Players: React.FC = () => {
                                                 className="absolute inset-x-0 w-full h-20 -top-8 opacity-0 cursor-pointer z-30"
                                             />
 
-                                            {/* Elegant Handle — clamped so it never overflows */}
+                                            {/* Elegant Handle â€” clamped so it never overflows */}
                                             <div
                                                 className={`absolute w-6 h-6 bg-white rounded-full pointer-events-none z-10 border-2 ${isSeeking ? 'transition-transform' : ''}`}
                                                 style={{
@@ -1535,8 +1535,8 @@ export const Players: React.FC = () => {
                                             : [
                                                 ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
                                                 ['_', '+', '=', '{', '}', '[', ']', ':', ';', '|'],
-                                                ['<', '>', '?', '/', '\\', '`', '~', '\'', '"', '°'],
-                                                ['¿', '¡', '«', '»', '—', '·', '…', '§', '¶', '©']
+                                                ['<', '>', '?', '/', '\\', '`', '~', '\'', '"', 'Â°'],
+                                                ['Â¿', 'Â¡', 'Â«', 'Â»', 'â€”', 'Â·', 'â€¦', 'Â§', 'Â¶', 'Â©']
                                             ];
 
                                         return (
@@ -1850,7 +1850,7 @@ export const Players: React.FC = () => {
                                                 : [
                                                     ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
                                                     ['plus', '=', '{', '}', '[', ']', ':', ';', '|', '\\'],
-                                                    ['<', '>', '?', '/', '`', '~', '\'', '"', '°', '€'],
+                                                    ['<', '>', '?', '/', '`', '~', '\'', '"', 'Â°', 'â‚¬'],
                                                 ];
 
                                             return (
@@ -2238,8 +2238,8 @@ export const Players: React.FC = () => {
                                                             : [
                                                                 ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
                                                                 ['_', '+', '=', '{', '}', '[', ']', ':', ';', '|'],
-                                                                ['<', '>', '?', '/', '\\', '`', '~', '\'', '"', '°'],
-                                                                ['¿', '¡', '«', '»', '—', '·', '…', '§', '¶', '©']
+                                                                ['<', '>', '?', '/', '\\', '`', '~', '\'', '"', 'Â°'],
+                                                                ['Â¿', 'Â¡', 'Â«', 'Â»', 'â€”', 'Â·', 'â€¦', 'Â§', 'Â¶', 'Â©']
                                                             ];
                                                         return (
                                                             <>
@@ -2251,7 +2251,7 @@ export const Players: React.FC = () => {
                                                                                 onClick={() => setRenamingName(p => p + k)}
                                                                                 className="flex-1 h-14 bg-white/5 hover:bg-white/10 border-white/5 border-b-4 border-black/40 rounded-xl text-xl font-bold flex items-center justify-center transition-all active:translate-y-1 active:border-b-0"
                                                                             >
-                                                                                {k === ' ' ? '␣' : k}
+                                                                                {k === ' ' ? 'â£' : k}
                                                                             </button>
                                                                         ))}
                                                                     </div>
@@ -2484,7 +2484,7 @@ export const Players: React.FC = () => {
                                                     <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Sei assolutamente sicuro?</h3>
                                                     <p className="text-white/40 max-w-md mx-auto">
                                                         Stai per eliminare definitivamente <span className="text-white font-bold">{selectedSongsForDelete.length}</span> brani.
-                                                        Questa azione non può essere annullata.
+                                                        Questa azione non puÃ² essere annullata.
                                                     </p>
                                                     <div className="max-h-48 overflow-y-auto bg-black/40 rounded-2xl p-4 border border-white/5 mt-6">
                                                         {selectedSongsForDelete.map(s => (
@@ -2581,7 +2581,7 @@ export const Players: React.FC = () => {
                                                 </div>
                                                 <div className="space-y-4">
                                                     <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Eliminare definitivamente?</h3>
-                                                    <p className="text-white/40 max-w-sm mx-auto">Il gruppo <span className="text-white font-bold">{selectedGroupForAction.name}</span> verrà rimosso per sempre insieme a tutte le sue impostazioni.</p>
+                                                    <p className="text-white/40 max-w-sm mx-auto">Il gruppo <span className="text-white font-bold">{selectedGroupForAction.name}</span> verrÃ  rimosso per sempre insieme a tutte le sue impostazioni.</p>
                                                 </div>
                                                 <button
                                                     onClick={() => deleteGroupMutation.mutate(selectedGroupForAction.id)}
@@ -3400,257 +3400,6 @@ export const Players: React.FC = () => {
     }
 
     // ============================================
-    // RENDER STANDARD VIEW
-    // ============================================
-    const [currentPage, setCurrentPage] = useState(1);
-    const pageSize = 10;
-    const paginatedSongs = processedSongs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-    const totalPages = Math.ceil(processedSongs.length / pageSize);
-
-    return (
-        <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-8">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Players</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Control audio/video playback and sources</p>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Source Selection */}
-                <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-1">Source</h3>
-                    <div className="grid gap-3">
-                        {sources.map((source: Source) => (
-                            <button
-                                key={source.id}
-                                onClick={() => {
-                                    setSelectedSource(source.id);
-                                    selectSourceMutation.mutate(source.id);
-                                }}
-                                disabled={selectSourceMutation.isPending}
-                                className={`w-full px-6 py-5 rounded-2xl text-left transition-all relative overflow-hidden group ${selectedSource === source.id
-                                    ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20'
-                                    : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-800 hover:border-blue-400 dark:hover:border-blue-600'
-                                    } disabled:opacity-50 font-bold flex items-center justify-between`}
-                            >
-                                <div className="flex items-center space-x-4">
-                                    <div className={`p-2 rounded-lg ${selectedSource === source.id ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                                        <Music className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-lg">{source.name}</span>
-                                </div>
-                                {selectedSource === source.id ? (
-                                    <Check className="w-5 h-5 animate-in zoom-in duration-300" />
-                                ) : (
-                                    <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Player Status & Info */}
-                <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-1">Playback</h3>
-                    <div className="bg-white dark:bg-dark-surface rounded-[2rem] p-8 border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
-                        {/* Status Backdrop Glow */}
-                        <div className={`absolute -top-24 -right-24 w-48 h-48 blur-[80px] rounded-full opacity-20 transition-colors duration-1000 ${playerStatus?.state === 'playing' ? 'bg-green-500' : 'bg-blue-500'}`} />
-
-                        <div className="relative z-10 space-y-8">
-                            <div className="flex items-center justify-between">
-                                <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${playerStatus?.state === 'playing' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
-                                    {playerStatus?.state || 'Idle'}
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-mono text-3xl font-black text-gray-900 dark:text-white tabular-nums">
-                                        {formatTime(playerStatus?.current_time)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Now Playing</p>
-                                <p className="text-2xl font-black text-gray-900 dark:text-white leading-tight min-h-[4rem]">
-                                    {playerStatus?.song_title || 'Ready to play'}
-                                </p>
-                            </div>
-
-                            <div className="space-y-3">
-                                <div className="h-2 bg-gray-100 dark:bg-gray-800/50 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full transition-all duration-700 ease-out"
-                                        style={{
-                                            width: `${((playerStatus?.current_time || 0) / (playerStatus?.total_time || 1)) * 100}%`,
-                                            backgroundColor: highlightColor,
-                                            boxShadow: `0 0 15px ${highlightColor}66`
-                                        }}
-                                    />
-                                </div>
-                                <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                                    <span>{formatTime(playerStatus?.current_time)}</span>
-                                    <span>{formatTime(playerStatus?.total_time)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Main Controls Panel */}
-                <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-1">Controls</h3>
-                    <div className="bg-white dark:bg-dark-surface rounded-[2rem] p-8 border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
-                        <div className="flex items-center justify-center gap-4">
-                            <button onClick={() => previousMutation.mutate()} className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 transition-all active:scale-95 border border-transparent">
-                                <SkipBack className="w-8 h-8" />
-                            </button>
-
-                            {playerStatus?.state === 'playing' ? (
-                                <button onClick={() => pauseMutation.mutate()} className="w-24 h-24 rounded-[2rem] bg-blue-600 text-white flex items-center justify-center shadow-2xl shadow-blue-500/40 hover:bg-blue-700 transition-all active:scale-90 ring-4 ring-blue-500/10">
-                                    <Pause className="w-10 h-10 fill-current" />
-                                </button>
-                            ) : (
-                                <button onClick={() => playMutation.mutate()} className="w-24 h-24 rounded-[2rem] bg-blue-600 text-white flex items-center justify-center shadow-2xl shadow-blue-500/40 hover:bg-blue-700 transition-all active:scale-90 ring-4 ring-blue-500/10">
-                                    <Play className="w-10 h-10 fill-current ml-1" />
-                                </button>
-                            )}
-
-                            <button onClick={() => nextMutation.mutate()} className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 transition-all active:scale-95 border border-transparent">
-                                <SkipForward className="w-8 h-8" />
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <button onClick={() => stopMutation.mutate()} className="group flex items-center justify-center gap-3 py-4 rounded-xl font-black uppercase tracking-widest text-xs border-2 border-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-98">
-                                <Square className="w-4 h-4 fill-current group-hover:scale-110" /> Stop
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const modes = ['off', 'one', 'all'];
-                                    const current = playerStatus?.repeat_mode === 'song' ? 'one' : playerStatus?.repeat_mode === 'group' ? 'all' : 'off';
-                                    const next = modes[(modes.indexOf(current) + 1) % modes.length];
-                                    repeatMutation.mutate(next);
-                                }}
-                                className={`flex items-center justify-center gap-3 py-4 rounded-xl font-black uppercase tracking-widest text-xs border-2 transition-all active:scale-98 ${playerStatus?.repeat_mode !== 'none'
-                                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
-                                    : 'border-blue-500/10 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                                    }`}
-                            >
-                                <Repeat className="w-4 h-4" />
-                                {playerStatus?.repeat_mode === 'song' ? 'One' : playerStatus?.repeat_mode === 'group' ? 'All' : 'Off'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Song Library */}
-            <div className="space-y-4 pt-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-1">Media Library</h3>
-                    {songs.length > 0 && (
-                        <span className="text-[10px] font-black text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full uppercase tracking-tighter">
-                            {songs.length} Tracks available
-                        </span>
-                    )}
-                </div>
-
-                <div className="bg-white dark:bg-dark-surface rounded-[2.5rem] p-6 border border-gray-100 dark:border-gray-800 shadow-sm">
-                    {songs.length === 0 ? (
-                        <div className="text-center py-24 flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mb-6">
-                                <Music className="w-10 h-10 text-gray-300 dark:text-gray-600" />
-                            </div>
-                            <h4 className="text-xl font-bold text-gray-900 dark:text-white">Empty Archive</h4>
-                            <p className="text-gray-500 dark:text-gray-400 mt-2">Select a different source or upload media to begin.</p>
-                        </div>
-                    ) : (
-                        <div className="grid gap-2">
-                            {paginatedSongs.map((song: Song, index) => {
-                                const globalIndex = (currentPage - 1) * pageSize + index;
-                                const isCurrent = playerStatus?.song_title === song.name;
-                                const isSelected = isCurrent || pendingSong?.id === song.id;
-                                const isSearchResult = searchResults.includes(globalIndex);
-                                const isCurrentSelection = (isSearchActive && searchResults[currentSearchIndex] === globalIndex) || (pendingSong?.id === song.id);
-
-                                return (
-                                    <button
-                                        key={song.id}
-                                        onClick={() => handleSelectSong(song)}
-                                        className={`w-full group px-6 py-5 text-left transition-all flex items-center justify-between rounded-2xl ${isCurrentSelection
-                                            ? 'bg-blue-600/40 border-blue-400 shadow-[inset_0_0_20px_rgba(59,130,246,0.3)]'
-                                            : isSearchResult
-                                                ? 'bg-blue-600/10 border-blue-400/30'
-                                                : isSelected
-                                                    ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20'
-                                                    : 'hover:bg-blue-50 dark:hover:bg-blue-900/10 text-gray-700 dark:text-gray-300'
-                                            }`}
-                                    >
-                                        <div className="flex items-center space-x-6 flex-1 min-w-0">
-                                            <span className={`font-mono text-sm font-bold w-6 transition-colors ${isCurrent || isCurrentSelection ? 'text-blue-200' : 'text-gray-400'}`}>
-                                                {(globalIndex + 1).toString().padStart(2, '0')}
-                                            </span>
-                                            <div className="flex-1 min-w-0 pr-8">
-                                                <span className="truncate text-lg font-bold block tracking-tight uppercase">{song.name}</span>
-                                                <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isCurrent || isCurrentSelection ? 'text-blue-100/60' : 'text-gray-400/80 group-hover:text-blue-400'}`}>
-                                                    Audio Track • PCM 44.1kHz
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {(isCurrent || isCurrentSelection) && (
-                                            <div className="flex items-center space-x-2 animate-in slide-in-from-right-4 duration-500">
-                                                <div className="flex items-end gap-1 h-4 px-2">
-                                                    <div className="w-1 bg-white animate-pulse" style={{ height: '60%' }} />
-                                                    <div className="w-1 bg-white animate-pulse delay-75" style={{ height: '100%' }} />
-                                                    <div className="w-1 bg-white animate-pulse delay-150" style={{ height: '40%' }} />
-                                                </div>
-                                                <Check className="w-6 h-6" />
-                                            </div>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
-
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-between pt-8 mt-4 border-t border-gray-50 dark:border-gray-800">
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                    className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-white/5 border-b-4 border-b-black text-gray-600 dark:text-gray-400 font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all active:translate-y-1 active:border-b-0 disabled:opacity-30 disabled:pointer-events-none"
-                                >
-                                    Previous
-                                </button>
-                                <button
-                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-white/5 border-b-4 border-b-black text-gray-600 dark:text-gray-400 font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all active:translate-y-1 active:border-b-0 disabled:opacity-30 disabled:pointer-events-none"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Page Information</span>
-                                <span className="text-xl font-black text-gray-900 dark:text-white mt-1">
-                                    {currentPage} <span className="text-gray-300 dark:text-gray-700 mx-2">/</span> {totalPages}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <style>{`
-                .custom-scrollbar-hidden::-webkit-scrollbar {
-                    display: none;
-                }
-                .custom-scrollbar-hidden {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                }
-            `}</style>
-        </div>
-    );
+    return <MobilePlayer />;
 };
+
