@@ -1081,7 +1081,7 @@ export const Players: React.FC = () => {
                                         {/* 2) Traccia indietro di 5 secondi */}
                                         <button
                                             onClick={() => {
-                                                const newTime = Math.max(0, effectiveTime - 5);
+                                                const newTime = Math.round(Math.max(0, effectiveTime - 5));
                                                 seekMutation.mutate(newTime);
                                             }}
                                             className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
@@ -1118,7 +1118,7 @@ export const Players: React.FC = () => {
                                         {/* 5) Traccia avanti di 5 secondi */}
                                         <button
                                             onClick={() => {
-                                                const newTime = Math.min(playerStatus?.total_time || 999, effectiveTime + 5);
+                                                const newTime = Math.round(Math.min(playerStatus?.total_time || 999, effectiveTime + 5));
                                                 seekMutation.mutate(newTime);
                                             }}
                                             className="flex-1 h-20 flex items-center justify-center bg-[#1e1e20] hover:bg-[#252528] border border-white/10 border-b-4 border-white/10 rounded-[2.5rem] shadow-xl transition-all active:translate-y-1 active:border-b-0 group"
