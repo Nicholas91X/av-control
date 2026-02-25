@@ -39,8 +39,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         { name: 'Controls', href: '/controls', icon: Video },
     ];
 
-    if (user?.role === 'admin') {
-        navigation.push({ name: 'User Management', href: '/users', icon: Users });
+    if (user?.role === 'admin' || user?.role === 'installatore') {
+        navigation.push({ name: 'Gestione Utenti', href: '/users', icon: Users });
+    } else if (user?.role === 'prete') {
+        navigation.push({ name: 'Il Mio Account', href: '/users', icon: Users });
     }
 
     const isActive = (path: string) => location.pathname === path;

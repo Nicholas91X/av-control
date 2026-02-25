@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ChangeCredentialsModal } from './components/ChangeCredentialsModal';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { Login } from './pages/Login';
 import { Layout } from './components/layout/Layout';
@@ -59,6 +60,7 @@ const ScenarioSwitcher: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const isLoginPage = location.pathname === '/login';
 
@@ -75,6 +77,7 @@ const AppContent: React.FC = () => {
 
   return (
     <ProtectedRoute>
+      {user?.must_change_password && <ChangeCredentialsModal />}
       <Layout>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
