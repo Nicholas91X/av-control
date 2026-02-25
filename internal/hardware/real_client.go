@@ -151,7 +151,7 @@ func (r *RealHardwareClient) Previous() error {
 }
 
 func (r *RealHardwareClient) Seek(time int) error {
-	payload := map[string]int{"time": time}
+	payload := map[string]int{"pos": time}
 	return r.post("/api/device/player/seek", payload, nil)
 }
 
