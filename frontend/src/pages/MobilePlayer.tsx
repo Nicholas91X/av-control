@@ -10,7 +10,10 @@ import {
     VolumeX,
     Music,
     ChevronDown,
-    Folder
+    ListMusic,
+    Folder,
+    Repeat1,
+    Layers
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
@@ -144,6 +147,11 @@ export const MobilePlayer: React.FC = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
     });
 
+    const repeatMutation = useMutation({
+        mutationFn: async (mode: string) => api.post(`/device/player/repeat/${mode}`),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
+    });
+
     const previousMutation = useMutation({
         mutationFn: async () => api.post('/device/player/previous'),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['player', 'status'] }),
@@ -187,14 +195,15 @@ export const MobilePlayer: React.FC = () => {
 
     return (
         <div 
-            className="h-full flex flex-col p-4 gap-4 overflow-y-auto custom-scrollbar-hidden select-none"
+            className="flex flex-col p-4 pt-20 gap-4 select-none pb-24"
             style={{ backgroundColor: backgroundColor }}
         >
             {/* 1. TOP CONTROL BAR */}
-            <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1 gap-2 relative">
+            <div className="flex bg-white/5 border border-white/10 rounded-2xl p-2 gap-2 relative shadow-lg">
                 <button 
                     onClick={() => { setIsSourceDropdownOpen(!isSourceDropdownOpen); setIsGroupDropdownOpen(false); }}
                     className={`flex-1 flex items-center justify-between px-4 py-3 rounded-xl transition-all ${selectedSourceType === 'source' ? 'bg-white/10 text-white shadow-md' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
+                    style={selectedSourceType === 'source' ? { borderColor: highlightColor, color: highlightColor, backgroundColor: `${highlightColor}33`, boxShadow: `0 0 15px ${highlightColor}22` } : {}}
                 >
                     <div className="flex items-center gap-2">
                         <Music className="w-4 h-4" color={selectedSourceType === 'source' ? highlightColor : undefined}/>
@@ -208,6 +217,7 @@ export const MobilePlayer: React.FC = () => {
                 <button 
                     onClick={() => { setIsGroupDropdownOpen(!isGroupDropdownOpen); setIsSourceDropdownOpen(false); }}
                     className={`flex-1 flex items-center justify-between px-4 py-3 rounded-xl transition-all ${selectedSourceType === 'group' ? 'bg-white/10 text-white shadow-md' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
+                    style={selectedSourceType === 'group' ? { borderColor: highlightColor, color: highlightColor, backgroundColor: `${highlightColor}33`, boxShadow: `0 0 15px ${highlightColor}22` } : {}}
                 >
                     <div className="flex items-center gap-2">
                         <Folder className="w-4 h-4" color={selectedSourceType === 'group' ? highlightColor : undefined}/>
@@ -249,6 +259,39 @@ export const MobilePlayer: React.FC = () => {
                         )}
                     </div>
                 )}
+            </div>
+
+            {/* NEW MISSING BUTTONS ROW */}
+            <div className="flex items-center justify-between gap-3">
+                <button
+                    onClick={() => {
+                        api.post('/device/player/playall');
+                    }}
+                    className="flex-1 h-12 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-xl transition-all active:translate-y-1 active:border-b-0 active:bg-white/20"
+                >
+                    <ListMusic className="w-4 h-4 text-white/60" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Play All</span>
+                </button>
+                <button
+                    onClick={() => {
+                        const isSong = playerStatus?.repeat_mode === 'song';
+                        repeatMutation.mutate(isSong ? 'off' : 'song');
+                    }}
+                    className={`flex-1 h-12 flex items-center justify-center gap-2 border border-white/10 border-b-4 border-black/40 rounded-xl transition-all active:translate-y-1 active:border-b-0 ${playerStatus?.repeat_mode === 'song' ? 'bg-white/10 text-white shadow-md' : 'bg-white/5 hover:bg-white/10 text-white/60'}`}
+                    style={playerStatus?.repeat_mode === 'song' ? { borderColor: highlightColor, color: highlightColor, backgroundColor: `${highlightColor}33` } : {}}
+                >
+                    <Repeat1 className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Rpt Song</span>
+                </button>
+                <button
+                    onClick={() => {
+                        api.post('/device/player/otp');
+                    }}
+                    className="flex-1 h-12 flex items-center justify-center gap-2 bg-white/5 border border-white/10 border-b-4 border-black/40 hover:bg-white/10 rounded-xl transition-all text-white/60 active:translate-y-1 active:border-b-0 active:bg-white/20"
+                >
+                    <Layers className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">OTP</span>
+                </button>
             </div>
 
             {/* 2. STATUS INDICATOR */}
@@ -368,10 +411,10 @@ export const MobilePlayer: React.FC = () => {
             </div>
 
             {/* 7. BOTTOM CONTROLS: FADE, VOL L, VOL R */}
-            <div className="grid grid-cols-3 gap-4 mt-4 pb-10">
+            <div className="flex flex-col gap-4">
                 {/* Fade Control */}
-                <div className="bg-[#1a1a1c] border border-white/5 rounded-3xl p-4 flex flex-col items-center gap-4 shadow-xl">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Fade</span>
+                <div className="bg-[#1a1a1c] border border-white/5 rounded-3xl p-4 flex items-center justify-between shadow-xl">
+                    <span className="text-xs font-black uppercase tracking-widest text-white/40">Fade Out</span>
                     
                     <div className="flex-1 flex items-center justify-center relative my-2">
                         <select
@@ -393,92 +436,111 @@ export const MobilePlayer: React.FC = () => {
                 </div>
 
                 {/* PL L Control */}
-                <div className="bg-[#1a1a1c] border border-white/5 rounded-3xl p-4 flex flex-col items-center gap-3 shadow-xl">
-                    <div className="flex items-center justify-between w-full px-1">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">PL L</span>
+                <div className="bg-[#1a1a1c] border border-white/5 rounded-3xl p-5 flex flex-col gap-4 shadow-xl">
+                    <div className="flex items-center justify-between w-full">
+                        <span className="text-xs font-black uppercase tracking-widest text-white/40">Vol L</span>
                         <span className="text-xs font-black" style={{ color: highlightColor }}>
                             {controlValues['pl_l']?.mute ? 'MUTE' : `${controlValues['pl_l']?.volume?.toFixed(1) || '0.0'} dB`}
                         </span>
                     </div>
-                    <div className="w-full flex-1 flex flex-col items-center justify-center h-48 py-2 relative">
-                        <input
-                            type="range"
-                            min="-96"
-                            max="12"
-                            step="0.5"
-                            value={controlValues['pl_l']?.volume || 0}
-                            onChange={(e) => setControlValues(p => ({ ...p, pl_l: { ...p.pl_l, volume: Number(e.target.value) } }))}
-                            onMouseUp={(e) => volumeMutation.mutate({ id: 'pl_l', volume: Number(e.currentTarget.value) })}
-                            onTouchEnd={(e) => volumeMutation.mutate({ id: 'pl_l', volume: Number(e.currentTarget.value) })}
-                            className="w-40 h-8 -rotate-90 appearance-none bg-transparent origin-center absolute"
-                            style={{
-                                WebkitAppearance: 'none',
-                            }}
-                        />
-                        {/* Custom visual track for SLIDER */}
-                        <div className="w-3 h-full bg-black/50 rounded-full border border-white/5 relative overflow-hidden pointer-events-none">
+                    
+                    <div className="flex items-center gap-4 w-full">
+                        <button
+                            onClick={() => muteMutation.mutate({ id: 'pl_l', mute: !controlValues['pl_l']?.mute })}
+                            className={`w-14 h-14 rounded-2xl shrink-0 border flex items-center justify-center transition-all shadow-lg ${
+                                controlValues['pl_l']?.mute 
+                                ? 'bg-red-500 border-red-400 text-white' 
+                                : 'bg-white/5 hover:bg-white/10 border-white/10 border-b-4 border-b-black/40 active:border-b-0 active:translate-y-1 text-white/40 hover:text-white'
+                            }`}
+                        >
+                            <VolumeX className="w-5 h-5 fill-current" />
+                        </button>
+
+                        <div className="flex-1 h-12 py-2 relative flex items-center touch-none">
+                            <input
+                                type="range"
+                                min="-96"
+                                max="12"
+                                step="0.5"
+                                value={controlValues['pl_l']?.volume || 0}
+                                onChange={(e) => setControlValues(p => ({ ...p, pl_l: { ...p.pl_l, volume: Number(e.target.value) } }))}
+                                onMouseUp={(e) => volumeMutation.mutate({ id: 'pl_l', volume: Number(e.currentTarget.value) })}
+                                onTouchEnd={(e) => volumeMutation.mutate({ id: 'pl_l', volume: Number(e.currentTarget.value) })}
+                                className="w-full h-full absolute inset-0 opacity-0 cursor-pointer z-10 touch-none"
+                            />
+                            {/* Custom visual track for HORIZONTAL SLIDER */}
+                            <div className="w-full h-2 bg-black/60 rounded-full border border-white/5 relative overflow-hidden pointer-events-none">
+                                <div 
+                                    className="absolute left-0 top-0 bottom-0 transition-all rounded-full"
+                                    style={{
+                                        width: `${Math.max(0, Math.min(100, (( (controlValues['pl_l']?.volume || -96) + 96 ) / 108) * 100))}%`,
+                                        backgroundColor: highlightColor
+                                    }}
+                                />
+                            </div>
+                            {/* Thumb indicator */}
                             <div 
-                                className="absolute bottom-0 w-full transition-all"
+                                className="absolute w-5 h-5 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] border-2 border-black -ml-2.5 transition-all pointer-events-none"
                                 style={{
-                                    height: `${(( (controlValues['pl_l']?.volume || -96) + 96 ) / 108) * 100}%`,
-                                    backgroundColor: highlightColor
+                                    left: `${Math.max(0, Math.min(100, (( (controlValues['pl_l']?.volume || -96) + 96 ) / 108) * 100))}%`,
                                 }}
                             />
                         </div>
                     </div>
-                    <button
-                        onClick={() => muteMutation.mutate({ id: 'pl_l', mute: !controlValues['pl_l']?.mute })}
-                        className={`w-full h-10 mt-2 rounded-xl border flex items-center justify-center transition-all ${
-                            controlValues['pl_l']?.mute 
-                            ? 'bg-red-500/20 border-red-500/50 text-red-400' 
-                            : 'bg-white/5 hover:bg-white/10 border-white/10 border-b-4 border-b-black/40 active:border-b-0 active:translate-y-1 text-white/40 hover:text-white'
-                        }`}
-                    >
-                        <VolumeX className="w-4 h-4" />
-                    </button>
                 </div>
 
                 {/* PL R Control */}
-                <div className="bg-[#1a1a1c] border border-white/5 rounded-3xl p-4 flex flex-col items-center gap-3 shadow-xl">
-                    <div className="flex items-center justify-between w-full px-1">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">PL R</span>
+                <div className="bg-[#1a1a1c] border border-white/5 rounded-3xl p-5 flex flex-col gap-4 shadow-xl">
+                    <div className="flex items-center justify-between w-full">
+                        <span className="text-xs font-black uppercase tracking-widest text-white/40">Vol R</span>
                         <span className="text-xs font-black" style={{ color: highlightColor }}>
                             {controlValues['pl_r']?.mute ? 'MUTE' : `${controlValues['pl_r']?.volume?.toFixed(1) || '0.0'} dB`}
                         </span>
                     </div>
-                    <div className="w-full flex-1 flex flex-col items-center justify-center h-48 py-2 relative">
-                        <input
-                            type="range"
-                            min="-96"
-                            max="12"
-                            step="0.5"
-                            value={controlValues['pl_r']?.volume || 0}
-                            onChange={(e) => setControlValues(p => ({ ...p, pl_r: { ...p.pl_r, volume: Number(e.target.value) } }))}
-                            onMouseUp={(e) => volumeMutation.mutate({ id: 'pl_r', volume: Number(e.currentTarget.value) })}
-                            onTouchEnd={(e) => volumeMutation.mutate({ id: 'pl_r', volume: Number(e.currentTarget.value) })}
-                            className="w-40 h-8 -rotate-90 appearance-none bg-transparent origin-center absolute"
-                        />
-                        {/* Custom visual track for SLIDER */}
-                        <div className="w-3 h-full bg-black/50 rounded-full border border-white/5 relative overflow-hidden pointer-events-none">
+
+                    <div className="flex items-center gap-4 w-full">
+                        <button
+                            onClick={() => muteMutation.mutate({ id: 'pl_r', mute: !controlValues['pl_r']?.mute })}
+                            className={`w-14 h-14 rounded-2xl shrink-0 border flex items-center justify-center transition-all shadow-lg ${
+                                controlValues['pl_r']?.mute 
+                                ? 'bg-red-500 border-red-400 text-white' 
+                                : 'bg-white/5 hover:bg-white/10 border-white/10 border-b-4 border-b-black/40 active:border-b-0 active:translate-y-1 text-white/40 hover:text-white'
+                            }`}
+                        >
+                            <VolumeX className="w-5 h-5 fill-current" />
+                        </button>
+
+                        <div className="flex-1 h-12 py-2 relative flex items-center touch-none">
+                            <input
+                                type="range"
+                                min="-96"
+                                max="12"
+                                step="0.5"
+                                value={controlValues['pl_r']?.volume || 0}
+                                onChange={(e) => setControlValues(p => ({ ...p, pl_r: { ...p.pl_r, volume: Number(e.target.value) } }))}
+                                onMouseUp={(e) => volumeMutation.mutate({ id: 'pl_r', volume: Number(e.currentTarget.value) })}
+                                onTouchEnd={(e) => volumeMutation.mutate({ id: 'pl_r', volume: Number(e.currentTarget.value) })}
+                                className="w-full h-full absolute inset-0 opacity-0 cursor-pointer z-10 touch-none"
+                            />
+                            {/* Custom visual track for HORIZONTAL SLIDER */}
+                            <div className="w-full h-2 bg-black/60 rounded-full border border-white/5 relative overflow-hidden pointer-events-none">
+                                <div 
+                                    className="absolute left-0 top-0 bottom-0 transition-all rounded-full"
+                                    style={{
+                                        width: `${Math.max(0, Math.min(100, (( (controlValues['pl_r']?.volume || -96) + 96 ) / 108) * 100))}%`,
+                                        backgroundColor: highlightColor
+                                    }}
+                                />
+                            </div>
+                            {/* Thumb indicator */}
                             <div 
-                                className="absolute bottom-0 w-full transition-all"
+                                className="absolute w-5 h-5 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] border-2 border-black -ml-2.5 transition-all pointer-events-none"
                                 style={{
-                                    height: `${(( (controlValues['pl_r']?.volume || -96) + 96 ) / 108) * 100}%`,
-                                    backgroundColor: highlightColor
+                                    left: `${Math.max(0, Math.min(100, (( (controlValues['pl_r']?.volume || -96) + 96 ) / 108) * 100))}%`,
                                 }}
                             />
                         </div>
                     </div>
-                    <button
-                        onClick={() => muteMutation.mutate({ id: 'pl_r', mute: !controlValues['pl_r']?.mute })}
-                        className={`w-full h-10 mt-2 rounded-xl border flex items-center justify-center transition-all ${
-                            controlValues['pl_r']?.mute 
-                            ? 'bg-red-500/20 border-red-500/50 text-red-400' 
-                            : 'bg-white/5 hover:bg-white/10 border-white/10 border-b-4 border-b-black/40 active:border-b-0 active:translate-y-1 text-white/40 hover:text-white'
-                        }`}
-                    >
-                        <VolumeX className="w-4 h-4" />
-                    </button>
                 </div>
 
             </div>

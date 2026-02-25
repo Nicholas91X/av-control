@@ -45,14 +45,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     const isActive = (path: string) => location.pathname === path;
     const isDashboard = location.pathname === '/';
+    const isPlayer = location.pathname === '/players';
 
     return (
         <div
             className={`min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors duration-500 ${isTablet ? 'flex flex-col' : ''}`}
             style={{ backgroundColor: backgroundColor }}
         >
-            {/* Mobile Header - Hidden if tablet or on MobileDashboard */}
-            {!isTablet && !isDashboard && (
+            {/* Mobile Header - Hidden if tablet, MobileDashboard, or MobilePlayer */}
+            {!isTablet && !isDashboard && !isPlayer && (
                 <div className="lg:hidden bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between sticky top-0 z-40">
                     <Link to="/" className="flex items-center space-x-2">
                         <img
@@ -143,16 +144,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
                 {/* Main Content */}
                 <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-bg focus:outline-none scroll-smooth">
-                    <main className={`flex-1 relative ${isTablet ? 'py-0 px-0' : 'py-8 px-6 lg:px-12'}`}>
-                        {/* Tablet Back Button */}
-                        {isTablet && !isDashboard && (
-                            <div className="fixed top-8 left-8 z-50">
+                    <main className={`flex-1 relative ${(isTablet || isPlayer) ? 'py-0 px-0' : 'py-8 px-6 lg:px-12'}`}>
+                        {/* Tablet/Mobile Player Back Button */}
+                        {((isTablet && !isDashboard) || (!isTablet && isPlayer)) && (
+                            <div className="absolute top-4 left-4 z-50">
                                 <button
                                     onClick={() => navigate('/')}
-                                    className="flex items-center space-x-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white px-5 py-3 rounded-2xl border border-white/10 border-b-4 border-black/40 transition-all active:translate-y-1 active:border-b-0 group shadow-2xl backdrop-blur-md"
+                                    className="flex items-center space-x-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white px-4 py-3 rounded-2xl border border-white/10 border-b-4 border-black/40 transition-all active:translate-y-1 active:border-b-0 group shadow-lg backdrop-blur-md"
                                 >
-                                    <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
-                                    <span className="font-bold tracking-widest uppercase text-xs">Dashboard</span>
+                                    <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                                    <span className="font-bold tracking-wider uppercase text-[10px]">Dashboard</span>
                                 </button>
                             </div>
                         )}
