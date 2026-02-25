@@ -9,7 +9,7 @@ import { Layout } from './components/layout/Layout';
 import { RealtimeNotifications } from './components/RealtimeNotifications';
 import { RecordingOverlay } from './components/RecordingOverlay';
 import { PlayerOverlay } from './components/PlayerOverlay';
-import { Dashboard } from './pages/Dashboard';
+import { MobileDashboard } from './pages/MobileDashboard';
 import { Players } from './pages/Players';
 import { Recorders } from './pages/Recorders';
 import { Controls } from './pages/Controls';
@@ -50,7 +50,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const DashboardSwitcher: React.FC = () => {
   const isTablet = useIsTablet();
-  return isTablet ? <TabletDashboard /> : <Dashboard />;
+  return isTablet ? <TabletDashboard /> : <MobileDashboard />;
 };
 
 const ScenarioSwitcher: React.FC = () => {
