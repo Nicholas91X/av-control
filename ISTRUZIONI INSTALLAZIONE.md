@@ -16,7 +16,7 @@
 Dal tuo PC:
 
 ```bash
-scp av-control-deployment.tar.gz root@192.168.1.100:/tmp/
+scp -l 8000 av-control-deployment.tar.gz root@192.168.1.100:/tmp/
 ```
 
 ### 2. Esegui installazione
