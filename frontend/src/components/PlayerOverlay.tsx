@@ -17,8 +17,9 @@ interface PlayerStatus {
 
 const formatTime = (seconds?: number): string => {
     if (!seconds || seconds <= 0) return '0:00';
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+    const total = Math.floor(seconds);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
 };
 

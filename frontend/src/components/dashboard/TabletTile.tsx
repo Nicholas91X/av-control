@@ -23,19 +23,19 @@ export const TabletTile: React.FC<TabletTileProps> = ({
     iconClassName = '',
     hideLabel = false,
 }) => {
-    // Sizes use `vmin` so tiles scale with the SHORT side of the viewport in both
-    // portrait (vmin = vw) and landscape (vmin = vh). This keeps tiles proportional
-    // to the orbit radius which uses min(35vw, 26vh) — the same short-side logic.
+    // Sizes use `vh` so that portrait mode (tall viewport → large vh) gets bigger tiles
+    // than landscape mode (short viewport → small vh). In landscape vh = vmin, so
+    // landscape behaviour is unchanged. Portrait tiles grow proportionally with height.
     const sizeClasses = {
-        small: 'w-[clamp(7rem,15vmin,10.5rem)] h-[clamp(7rem,15vmin,10.5rem)]',
-        large: 'w-[clamp(9rem,20vmin,13.5rem)] h-[clamp(9rem,20vmin,13.5rem)]',
-        xl:    'w-[clamp(12rem,26vmin,17rem)] h-[clamp(12rem,26vmin,17rem)]',
+        small: 'w-[clamp(7rem,15vh,11rem)] h-[clamp(7rem,15vh,11rem)]',
+        large: 'w-[clamp(9rem,20vh,14rem)] h-[clamp(9rem,20vh,14rem)]',
+        xl:    'w-[clamp(12rem,26vh,18rem)] h-[clamp(12rem,26vh,18rem)]',
     };
 
     const iconSize = {
-        small: 'clamp(2rem,   7vmin, 3.2rem)',
-        large: 'clamp(2.8rem, 10vmin, 5rem)',
-        xl:    'clamp(3.5rem, 13vmin, 6.5rem)',
+        small: 'clamp(1.8rem, 6vh,   3.5rem)',
+        large: 'clamp(2.2rem, 8.5vh, 5rem)',
+        xl:    'clamp(3rem,   11vh,  6.5rem)',
     };
 
     return (
@@ -75,32 +75,26 @@ export const TabletTile: React.FC<TabletTileProps> = ({
                     style={{ background: `radial-gradient(circle at 50% 35%, ${glowColor || '#ffffff'}55, transparent 65%)` }}
                 />
 
-                {/* Icon — centred inside circle */}
-                <div className={`
-                    absolute inset-0 flex items-center justify-center
-                    group-hover:scale-110 transition-transform duration-300
-                    ${iconClassName}
-                `}>
+                {/* Icon + Label as a single centred unit — placed LAST so it renders
+                    above the absolute overlay divs (tap flash, sheen, glow). */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2
+                    group-hover:scale-110 transition-transform duration-300">
                     <Icon
                         size={iconSize[size as keyof typeof iconSize]}
                         style={{ color: glowColor || 'white' }}
-                        className="drop-shadow-lg"
+                        className={`drop-shadow-lg ${iconClassName}`}
                     />
+                    {!hideLabel && (
+                        <span className={`
+                            whitespace-nowrap uppercase font-bold tracking-widest text-center
+                            text-white/60 group-hover:text-white/90 transition-colors duration-300
+                            ${size === 'small' ? 'text-[clamp(9px,1.4vh,13px)]' : 'text-[clamp(10px,1.6vh,15px)]'}
+                        `}>
+                            {label}
+                        </span>
+                    )}
                 </div>
             </div>
-
-            {/* Label — absolute, below the circle, NOT in layout flow.
-                Clicking the label still fires the button via event bubbling. */}
-            {!hideLabel && (
-                <span className={`
-                    absolute top-[calc(100%+0.75rem)] left-1/2 -translate-x-1/2
-                    whitespace-nowrap uppercase font-bold tracking-widest
-                    text-white/60 group-hover:text-white/90 transition-colors duration-300
-                    ${size === 'small' ? 'text-[clamp(10px,2vmin,15px)]' : 'text-[clamp(11px,2.2vmin,16px)]'}
-                `}>
-                    {label}
-                </span>
-            )}
         </button>
     );
 };

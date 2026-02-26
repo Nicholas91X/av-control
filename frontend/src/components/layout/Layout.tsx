@@ -144,7 +144,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 )}
 
                 {/* Main Content */}
-                <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-bg focus:outline-none scroll-smooth">
+                <div className={`flex-1 overflow-y-auto focus:outline-none scroll-smooth ${isTablet ? 'bg-transparent' : 'bg-gray-50 dark:bg-dark-bg'}`}>
                     <main className={`flex-1 relative ${isTablet ? 'py-0 px-0' : 'py-8 px-6 lg:px-12'}`}>
                         {/* Tablet Back Button */}
                         {isTablet && !isDashboard && (

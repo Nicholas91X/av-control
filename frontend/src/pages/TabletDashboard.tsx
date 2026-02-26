@@ -154,12 +154,12 @@ export const TabletDashboard: React.FC = () => {
 
             <div className="h-full w-full max-w-[1400px] mx-auto px-4 md:px-8 py-3 md:py-6 flex flex-col items-center justify-between">
 
-                {/* Header: Row 1 (actions) + Row 2 (title) */}
+                {/* Header: Row 1 (actions + landscape title) + Row 2 (portrait title only) */}
                 <div className="w-full flex flex-col items-center gap-2">
-                    {/* Row 1: Left and Right action buttons */}
-                    <div className="w-full flex items-center justify-between">
+                    {/* Row 1: Left buttons | [landscape: centered title] | Right buttons */}
+                    <div className="w-full relative flex items-center justify-between">
                         {/* Left Actions Group */}
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 z-10">
                             {/* WebSocket Connection Status Icon */}
                             <div
                                 className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500' :
@@ -203,8 +203,15 @@ export const TabletDashboard: React.FC = () => {
                             </button>
                         </div>
 
+                        {/* Title — landscape only: absolutely centered between the two button groups */}
+                        <div className="hidden landscape:flex absolute inset-0 items-center justify-center pointer-events-none">
+                            <h1 className="text-4xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                                Parrocchia
+                            </h1>
+                        </div>
+
                         {/* Right Actions Group */}
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 z-10">
                             {/* Info Button */}
                             <button
                                 onClick={infoModal.open}
@@ -216,8 +223,8 @@ export const TabletDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Row 2: Title */}
-                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                    {/* Row 2: Title — portrait only (hidden in landscape) */}
+                    <h1 className="landscape:hidden text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
                         Parrocchia
                     </h1>
                 </div>
@@ -230,8 +237,8 @@ export const TabletDashboard: React.FC = () => {
                         className="absolute rounded-full border border-white/[0.04] pointer-events-none"
                         style={{
                             top: '50%', left: '50%',
-                            width: 'calc(2 * min(35vw, 26vh) + clamp(7rem, 15vmin, 10.5rem))',
-                            height: 'calc(2 * min(35vw, 26vh) + clamp(7rem, 15vmin, 10.5rem))',
+                            width: 'calc(2 * min(35vw, 26vh) + clamp(7rem, 15vh, 11rem))',
+                            height: 'calc(2 * min(35vw, 26vh) + clamp(7rem, 15vh, 11rem))',
                             transform: 'translate(-50%, -50%)',
                         }}
                     />
