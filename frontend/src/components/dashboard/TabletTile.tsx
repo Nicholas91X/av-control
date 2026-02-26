@@ -23,64 +23,84 @@ export const TabletTile: React.FC<TabletTileProps> = ({
     iconClassName = '',
     hideLabel = false,
 }) => {
+    // Sizes use `vmin` so tiles scale with the SHORT side of the viewport in both
+    // portrait (vmin = vw) and landscape (vmin = vh). This keeps tiles proportional
+    // to the orbit radius which uses min(35vw, 26vh) — the same short-side logic.
     const sizeClasses = {
-        small: 'w-[clamp(8rem,15vw,10rem)] h-[clamp(8rem,15vw,10rem)]',
-        large: 'w-[clamp(12rem,22vw,16rem)] h-[clamp(12rem,22vw,16rem)]',
-        xl: 'w-[clamp(16rem,30vw,20rem)] h-[clamp(16rem,30vw,20rem)]',
+        small: 'w-[clamp(7rem,15vmin,10.5rem)] h-[clamp(7rem,15vmin,10.5rem)]',
+        large: 'w-[clamp(9rem,20vmin,13.5rem)] h-[clamp(9rem,20vmin,13.5rem)]',
+        xl:    'w-[clamp(12rem,26vmin,17rem)] h-[clamp(12rem,26vmin,17rem)]',
+    };
+
+    const iconSize = {
+        small: 'clamp(2rem,   7vmin, 3.2rem)',
+        large: 'clamp(2.8rem, 10vmin, 5rem)',
+        xl:    'clamp(3.5rem, 13vmin, 6.5rem)',
     };
 
     return (
+        // The button's bounding box = circle only (no label in flow).
+        // This ensures translate(-50%,-50%) on the orbit wrapper centers
+        // the CIRCLE — not circle+label — on the orbit point.
         <button
             onClick={onClick}
             className={`
-                relative flex flex-col items-center justify-center rounded-[2.5rem] transition-all duration-200 ease-out
-                bg-[#2a2a2e] border-t-2 border-t-white/20 border-x border-x-white/10 border-b-[14px] border-b-[#111114] shadow-[0_25px_60px_rgba(0,0,0,1)]
-                active:translate-y-2 active:border-b-[4px]
-                group overflow-hidden
+                relative group flex-shrink-0 active:translate-y-2 transition-transform duration-200
                 ${sizeClasses[size as keyof typeof sizeClasses]}
                 ${className}
             `}
-            style={{
-                boxShadow: glowColor ? `0 0 30px ${glowColor}22, inset 0 0 10px rgba(181, 64, 64, 0.05)` : 'inset 0 0 10px rgba(255,255,255,0.05)',
-                backgroundColor: undefined // Will be overridden by tailwind or hover if needed
-            }}
         >
-            {/* Tap Background Overlay */}
+            {/* Circle — fills the button's square bounding box */}
             <div
-                className="absolute inset-0 opacity-0 active:opacity-20 transition-opacity duration-300 pointer-events-none"
-                style={{ backgroundColor: glowColor || '#3b82f6' }}
-            />
-            {/* Background Grain/Texture (Simulated) */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-repeat"
-                style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/dark-matter.png")' }} />
-
-            {/* Glossy Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-
-            <div className={`
-                flex items-center justify-center rounded-xl mb-2 md:mb-3 
-                ${size === 'small' ? 'p-2 md:p-3' : 'p-4 md:p-6'}
-                group-hover:scale-110 transition-transform duration-300
-                ${iconClassName}
-            `}>
-                <Icon
-                    size={size === 'small' ? 'clamp(2rem, 6vw, 2.5rem)' : size === 'large' ? 'clamp(3rem, 10vw, 5rem)' : 'clamp(4rem, 15vw, 6rem)'}
-                    style={{ color: glowColor || 'white' }}
-                    className="drop-shadow-lg"
+                className="absolute inset-0 rounded-full overflow-hidden
+                    bg-[#2a2a2e] border-t-2 border-t-white/20 border-x border-x-white/10
+                    border-b-[14px] border-b-[#111114] group-active:border-b-[4px]
+                    transition-[border] duration-200"
+                style={{
+                    boxShadow: glowColor
+                        ? `0 0 40px ${glowColor}33, 0 20px 50px rgba(0,0,0,0.9)`
+                        : '0 20px 50px rgba(0,0,0,0.9)',
+                }}
+            >
+                {/* Tap colour flash */}
+                <div
+                    className="absolute inset-0 opacity-0 group-active:opacity-20 transition-opacity duration-300 pointer-events-none"
+                    style={{ backgroundColor: glowColor || '#3b82f6' }}
                 />
+                {/* Glossy top-half sheen */}
+                <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+                {/* Radial colour glow */}
+                <div
+                    className="absolute inset-0 pointer-events-none opacity-25"
+                    style={{ background: `radial-gradient(circle at 50% 35%, ${glowColor || '#ffffff'}55, transparent 65%)` }}
+                />
+
+                {/* Icon — centred inside circle */}
+                <div className={`
+                    absolute inset-0 flex items-center justify-center
+                    group-hover:scale-110 transition-transform duration-300
+                    ${iconClassName}
+                `}>
+                    <Icon
+                        size={iconSize[size as keyof typeof iconSize]}
+                        style={{ color: glowColor || 'white' }}
+                        className="drop-shadow-lg"
+                    />
+                </div>
             </div>
 
+            {/* Label — absolute, below the circle, NOT in layout flow.
+                Clicking the label still fires the button via event bubbling. */}
             {!hideLabel && (
                 <span className={`
-                    uppercase font-bold tracking-widest text-white/80 transition-colors duration-300 group-hover:text-white
-                    ${size === 'small' ? 'text-[clamp(8px,1.5vw,10px)]' : 'text-[clamp(10px,2vw,12px)]'}
+                    absolute top-[calc(100%+0.75rem)] left-1/2 -translate-x-1/2
+                    whitespace-nowrap uppercase font-bold tracking-widest
+                    text-white/60 group-hover:text-white/90 transition-colors duration-300
+                    ${size === 'small' ? 'text-[clamp(10px,2vmin,15px)]' : 'text-[clamp(11px,2.2vmin,16px)]'}
                 `}>
                     {label}
                 </span>
             )}
-
-            {/* Subtle bottom border highlight */}
-            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
     );
 };

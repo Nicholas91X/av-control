@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,6 +27,8 @@ export const PlayerOverlay: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [dismissed, setDismissed] = useState(false);
+    const [noTransition, setNoTransition] = useState(false);
+    const prevProgressRef = useRef(0);
 
     const isOnPlayersPage = location.pathname === '/players';
 
@@ -46,6 +48,21 @@ export const PlayerOverlay: React.FC = () => {
         setDismissed(false);
     }, [currentSongKey]);
 
+    // Skip CSS transition when progress jumps backward (repeat/new song) to avoid
+    // the bar visually sliding from 100% back to 0% over 5 seconds.
+    const progress = (playerStatus?.current_time && playerStatus?.total_time)
+        ? Math.min(100, Math.max(0, (playerStatus.current_time / playerStatus.total_time) * 100))
+        : 0;
+    useEffect(() => {
+        if (progress < prevProgressRef.current - 10) {
+            setNoTransition(true);
+            const t = setTimeout(() => setNoTransition(false), 100);
+            prevProgressRef.current = progress;
+            return () => clearTimeout(t);
+        }
+        prevProgressRef.current = progress;
+    }, [progress]);
+
     // ALL hooks are above — safe to return early now
     if (!user) return null;
 
@@ -53,10 +70,6 @@ export const PlayerOverlay: React.FC = () => {
     const isPlaying = playerStatus?.state === 'playing';
     const songTitle = playerStatus?.song_title || 'Unknown';
     const displayTitle = songTitle.length > 28 ? songTitle.substring(0, 28) + '…' : songTitle;
-
-    const progress = (playerStatus?.current_time && playerStatus?.total_time)
-        ? (playerStatus.current_time / playerStatus.total_time) * 100
-        : 0;
 
     return (
         <AnimatePresence>
@@ -76,7 +89,7 @@ export const PlayerOverlay: React.FC = () => {
                         {/* Progress bar */}
                         <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/10 rounded-full">
                             <div
-                                className="h-full bg-white/50 rounded-full transition-all duration-[5s] ease-linear"
+                                className={`h-full bg-white/50 rounded-full ${noTransition ? '' : 'transition-all duration-[5s] ease-linear'}`}
                                 style={{ width: `${progress}%` }}
                             />
                         </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { Card } from '../components/ui/Card';
-import { Palette, Sun, Check, Settings as SettingsIcon, Sliders, Music, LayoutGrid } from 'lucide-react';
+import { Palette, Sun, Check, Settings as SettingsIcon, Sliders, Music, LayoutGrid, Power } from 'lucide-react';
 
 const BG_PRESETS = [
     { label: 'OLED Black', value: '#000000' },
@@ -20,6 +20,14 @@ const HIGHLIGHT_PRESETS = [
 
 const FADE_OPTIONS = [0, 1, 2, 3, 4, 5];
 
+const STANDBY_TIMEOUT_OPTIONS = [
+    { label: 'Disabilitato', value: 0 },
+    { label: '5 min', value: 5 },
+    { label: '10 min', value: 10 },
+    { label: '15 min', value: 15 },
+    { label: '30 min', value: 30 },
+];
+
 const VOL_STEP_OPTIONS = [
     { label: '0.1 dB', value: 0.1 },
     { label: '0.2 dB', value: 0.2 },
@@ -35,6 +43,7 @@ export const Settings: React.FC = () => {
         defaultFade, setDefaultFade,
         defaultVolStep, setDefaultVolStep,
         defaultControlsView, setDefaultControlsView,
+        standbyTimeout, setStandbyTimeout,
     } = useSettings();
 
     return (
@@ -236,6 +245,40 @@ export const Settings: React.FC = () => {
                                 >
                                     <span className="font-black text-sm uppercase tracking-wider">{opt.label}</span>
                                     {defaultVolStep === opt.value && <Check className="w-4 h-4" />}
+                                </button>
+                            ))}
+                        </div>
+                    </Card>
+
+                    {/* Auto-Standby */}
+                    <Card className="p-8 space-y-6">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="p-3 bg-white/5 rounded-2xl border border-white/10 shadow-xl text-white">
+                                <Power className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black uppercase tracking-tight text-white/90">Auto-Standby</h2>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Schermo si spegne dopo inattività</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2">
+                            {STANDBY_TIMEOUT_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => setStandbyTimeout(opt.value)}
+                                    className={`
+                                        relative p-4 rounded-2xl transition-all duration-200 border-t border-x border-b-4
+                                        active:translate-y-0.5 active:border-b-0
+                                        flex items-center justify-between
+                                        ${standbyTimeout === opt.value
+                                            ? 'border-t-white/20 border-x-white/10 border-b-black text-white'
+                                            : 'border-t-white/5 border-x-white/2 border-b-black bg-white/5 hover:bg-white/10 text-white/40'}
+                                    `}
+                                    style={standbyTimeout === opt.value ? { backgroundColor: highlightColor } : {}}
+                                >
+                                    <span className="font-black text-sm uppercase tracking-wider">{opt.label}</span>
+                                    {standbyTimeout === opt.value && <Check className="w-4 h-4" />}
                                 </button>
                             ))}
                         </div>

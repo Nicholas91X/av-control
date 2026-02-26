@@ -8,12 +8,14 @@ interface SettingsContextType {
     defaultFade: number;
     defaultVolStep: number;
     defaultControlsView: 'mixer' | 'compact';
+    standbyTimeout: number; // minutes, 0 = disabled
     setBackgroundColor: (color: string) => void;
     setHighlightColor: (color: string) => void;
     setBacklightLevel: (level: number) => void;
     setDefaultFade: (fade: number) => void;
     setDefaultVolStep: (step: number) => void;
     setDefaultControlsView: (view: 'mixer' | 'compact') => void;
+    setStandbyTimeout: (minutes: number) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -39,6 +41,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const stored = localStorage.getItem('default_controls_view');
         return (stored === 'compact' ? 'compact' : 'mixer');
     });
+    const [standbyTimeout, setStandbyTimeout] = useState<number>(() => {
+        const stored = localStorage.getItem('standby_timeout');
+        return stored ? Number(stored) : 10;
+    });
 
     const isDark = React.useMemo(() => {
         const hex = backgroundColor.replace('#', '');
@@ -56,6 +62,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         localStorage.setItem('default_fade', defaultFade.toString());
         localStorage.setItem('default_vol_step', defaultVolStep.toString());
         localStorage.setItem('default_controls_view', defaultControlsView);
+        localStorage.setItem('standby_timeout', standbyTimeout.toString());
 
         // Update CSS variables
         document.documentElement.style.setProperty('--app-bg', backgroundColor);
@@ -75,7 +82,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (overlay) {
             overlay.style.opacity = (1 - backlightLevel / 100).toString();
         }
-    }, [backgroundColor, highlightColor, backlightLevel, isDark, defaultFade, defaultVolStep, defaultControlsView]);
+    }, [backgroundColor, highlightColor, backlightLevel, isDark, defaultFade, defaultVolStep, defaultControlsView, standbyTimeout]);
 
     return (
         <SettingsContext.Provider value={{
@@ -86,12 +93,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             defaultFade,
             defaultVolStep,
             defaultControlsView,
+            standbyTimeout,
             setBackgroundColor,
             setHighlightColor,
             setBacklightLevel,
             setDefaultFade,
             setDefaultVolStep,
-            setDefaultControlsView
+            setDefaultControlsView,
+            setStandbyTimeout,
         }}>
             {children}
             {/* Fake Backlight Overlay */}

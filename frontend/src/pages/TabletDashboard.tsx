@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
@@ -28,8 +28,29 @@ export const TabletDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
     const { status } = useWebSocket();
-    const { backgroundColor } = useSettings();
+    const { backgroundColor, standbyTimeout } = useSettings();
     const [isStandby, setIsStandby] = useState(false);
+    const lastActivityRef = useRef(Date.now());
+
+    // Auto-standby: monitor inactivity and trigger standby after configured timeout
+    useEffect(() => {
+        if (standbyTimeout === 0) return; // disabled
+
+        const resetActivity = () => { lastActivityRef.current = Date.now(); };
+        const events = ['mousemove', 'touchstart', 'click', 'keydown'];
+        events.forEach(e => window.addEventListener(e, resetActivity));
+
+        const check = setInterval(() => {
+            if (!isStandby && Date.now() - lastActivityRef.current > standbyTimeout * 60 * 1000) {
+                setIsStandby(true);
+            }
+        }, 15000); // check every 15 s
+
+        return () => {
+            events.forEach(e => window.removeEventListener(e, resetActivity));
+            clearInterval(check);
+        };
+    }, [standbyTimeout, isStandby]);
 
     // Hardware daemon connection status
     interface SystemStatus {
@@ -109,7 +130,7 @@ export const TabletDashboard: React.FC = () => {
         return (
             <div
                 className="fixed inset-0 bg-black z-[100] flex items-center justify-center cursor-pointer"
-                onClick={() => setIsStandby(false)}
+                onClick={() => { setIsStandby(false); lastActivityRef.current = Date.now(); }}
             >
                 <div className="text-white/20 animate-pulse flex flex-col items-center space-y-4">
                     <Power size={120} />
@@ -131,139 +152,128 @@ export const TabletDashboard: React.FC = () => {
             {/* Background Light Effect */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
 
-            <div className="h-full w-full max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col items-center justify-between">
+            <div className="h-full w-full max-w-[1400px] mx-auto px-4 md:px-8 py-3 md:py-6 flex flex-col items-center justify-between">
 
-                {/* Header: Actions and Title */}
-                <div className="w-full relative flex items-center justify-between min-h-[64px]">
-                    {/* Left Actions Group */}
-                    <div className="flex items-center space-x-3 z-10">
-                        {/* WebSocket Connection Status Icon */}
-                        <div
-                            className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500' :
-                                status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 border-b-yellow-900/60 text-yellow-500 animate-pulse' :
-                                    'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
-                                }`}
-                            title={`WebSocket: ${status}`}
-                        >
-                            {status === 'connected' ? <Wifi size={24} /> : <WifiOff size={24} />}
-                        </div>
-
-                        {/* Hardware Daemon Connection Status Icon */}
-                        <div
-                            className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${isHardwareConnected
-                                ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500'
-                                : 'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
-                                }`}
-                            title={`Hardware Daemon: ${isHardwareConnected ? 'Connected' : 'Disconnected'}`}
-                        >
-                            <Cpu size={24} />
-                        </div>
-
-                        {/* Admin-only User Management */}
-                        {user?.role === 'admin' && (
-                            <button
-                                onClick={() => navigate('/users')}
-                                className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-white/10 hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
-                                title="Gestione Utenti"
+                {/* Header: Row 1 (actions) + Row 2 (title) */}
+                <div className="w-full flex flex-col items-center gap-2">
+                    {/* Row 1: Left and Right action buttons */}
+                    <div className="w-full flex items-center justify-between">
+                        {/* Left Actions Group */}
+                        <div className="flex items-center space-x-3">
+                            {/* WebSocket Connection Status Icon */}
+                            <div
+                                className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500' :
+                                    status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 border-b-yellow-900/60 text-yellow-500 animate-pulse' :
+                                        'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
+                                    }`}
+                                title={`WebSocket: ${status}`}
                             >
-                                <Users size={24} />
+                                {status === 'connected' ? <Wifi size={24} /> : <WifiOff size={24} />}
+                            </div>
+
+                            {/* Hardware Daemon Connection Status Icon */}
+                            <div
+                                className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${isHardwareConnected
+                                    ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500'
+                                    : 'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
+                                    }`}
+                                title={`Hardware Daemon: ${isHardwareConnected ? 'Connected' : 'Disconnected'}`}
+                            >
+                                <Cpu size={24} />
+                            </div>
+
+                            {/* Admin-only User Management */}
+                            {user?.role === 'admin' && (
+                                <button
+                                    onClick={() => navigate('/users')}
+                                    className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-white/10 hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
+                                    title="Gestione Utenti"
+                                >
+                                    <Users size={24} />
+                                </button>
+                            )}
+
+                            {/* Logout Button */}
+                            <button
+                                onClick={logoutModal.open}
+                                className="p-3 text-red-500/40 hover:text-red-500 transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-red-400/20 border-x border-x-red-400/10 border-b-[6px] border-b-red-950 active:translate-y-1 active:border-b-0 shadow-lg hover:bg-red-500/5"
+                                title="Logout"
+                            >
+                                <LogOut size={24} />
                             </button>
-                        )}
+                        </div>
 
-                        {/* Logout Button */}
-                        <button
-                            onClick={logoutModal.open}
-                            className="p-3 text-red-500/40 hover:text-red-500 transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-red-400/20 border-x border-x-red-400/10 border-b-[6px] border-b-red-950 active:translate-y-1 active:border-b-0 shadow-lg hover:bg-red-500/5"
-                            title="Logout"
-                        >
-                            <LogOut size={24} />
-                        </button>
+                        {/* Right Actions Group */}
+                        <div className="flex items-center space-x-3">
+                            {/* Info Button */}
+                            <button
+                                onClick={infoModal.open}
+                                className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-white/10 hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
+                                title="Informazioni"
+                            >
+                                <Info size={24} />
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Centered Title */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] pointer-events-auto">
-                            Parrocchia
-                        </h1>
-                    </div>
-
-                    {/* Right Actions Group */}
-                    <div className="flex items-center space-x-3 z-10">
-                        {/* Info Button */}
-                        <button
-                            onClick={infoModal.open}
-                            className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-white/10 hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
-                            title="Informazioni"
-                        >
-                            <Info size={24} />
-                        </button>
-                    </div>
+                    {/* Row 2: Title */}
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                        Parrocchia
+                    </h1>
                 </div>
 
-                {/* Main Content Area */}
-                <div className="flex-1 w-full flex flex-col items-center justify-center gap-y-6 md:gap-y-12">
+                {/* Main Content Area — Circular Layout */}
+                <div className="flex-1 w-full relative">
 
-                    {/* Top Row: Main Large Tiles */}
-                    <div className="flex items-center justify-center gap-4 md:gap-8 lg:gap-12">
-                        <TabletTile
-                            icon={Power}
-                            label="STANDBY"
-                            size="small"
-                            glowColor="#f97316"
-                            onClick={() => setIsStandby(true)}
-                        />
+                    {/* Decorative orbit ring — diameter = 2 × orbit-radius + one tile width */}
+                    <div
+                        className="absolute rounded-full border border-white/[0.04] pointer-events-none"
+                        style={{
+                            top: '50%', left: '50%',
+                            width: 'calc(2 * min(35vw, 26vh) + clamp(7rem, 15vmin, 10.5rem))',
+                            height: 'calc(2 * min(35vw, 26vh) + clamp(7rem, 15vmin, 10.5rem))',
+                            transform: 'translate(-50%, -50%)',
+                        }}
+                    />
+
+                    {/* Center: Home */}
+                    <div className="absolute" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
                         <TabletTile
                             icon={Home}
                             label="HOME"
                             size="large"
                             glowColor="#3b82f6"
-                            className="border-white/10"
                             onClick={homeModal.open}
-                        />
-                        <TabletTile
-                            icon={Wrench}
-                            label="IMPOSTAZIONI"
-                            size="small"
-                            glowColor="#64748b"
-                            onClick={() => navigate('/settings')}
                         />
                     </div>
 
-                    {/* Bottom Row: Secondary Action Tiles */}
-                    <div className="flex items-center justify-center gap-2 md:gap-4 lg:gap-6">
-                        <TabletTile
-                            icon={Mic2}
-                            label="SCENARIO"
-                            glowColor="#f59e0b"
-                            onClick={() => navigate('/presets')}
-                        />
-                        <TabletTile
-                            icon={Disc}
-                            label="MEDIA PLAYER"
-                            glowColor="#3b82f6"
-                            onClick={() => navigate('/players')}
-                        />
-                        <TabletTile
-                            icon={Circle}
-                            label="REGISTRATORE"
-                            glowColor="#ef4444"
-                            iconClassName="text-red-500 fill-red-500/20"
-                            onClick={() => navigate('/recorders')}
-                        />
-                        <TabletTile
-                            icon={Sliders}
-                            label="CONTROLLI"
-                            glowColor="#10b981"
-                            onClick={() => navigate('/controls')}
-                        />
-                        <TabletTile
-                            icon={Globe}
-                            label="STREAMING"
-                            glowColor="#6366f1"
-                            className="opacity-40 grayscale"
-                            onClick={() => { }}
-                        />
-                    </div>
+                    {/* Satellite tiles — orbit radius min(35vw, 26vh) */}
+                    {([
+                        { angle: -90,  icon: Mic2,    label: 'SCENARIO',     color: '#f59e0b', onClick: () => navigate('/presets'),   cls: '',                        iconCls: '' },
+                        { angle: -30,  icon: Disc,    label: 'MEDIA PLAYER', color: '#3b82f6', onClick: () => navigate('/players'),   cls: '',                        iconCls: '' },
+                        { angle:  30,  icon: Circle,  label: 'REGISTRATORE', color: '#ef4444', onClick: () => navigate('/recorders'), cls: '',                        iconCls: 'text-red-500 fill-red-500/20' },
+                        { angle:  90,  icon: Sliders, label: 'CONTROLLI',    color: '#10b981', onClick: () => navigate('/controls'),  cls: '',                        iconCls: '' },
+                        { angle:  150, icon: Globe,   label: 'STREAMING',    color: '#6366f1', onClick: () => {},                    cls: 'opacity-40 grayscale',    iconCls: '' },
+                        { angle:  210, icon: Wrench,  label: 'IMPOSTAZIONI', color: '#64748b', onClick: () => navigate('/settings'),  cls: '',                        iconCls: '' },
+                    ] as const).map(({ angle, icon, label, color, onClick, cls, iconCls }) => (
+                        <div
+                            key={label}
+                            className="absolute"
+                            style={{
+                                top: '50%', left: '50%',
+                                transform: `translate(-50%,-50%) rotate(${angle}deg) translateX(min(35vw, 26vh)) rotate(${-angle}deg)`,
+                            }}
+                        >
+                            <TabletTile
+                                icon={icon}
+                                label={label}
+                                glowColor={color}
+                                onClick={onClick}
+                                className={cls}
+                                iconClassName={iconCls}
+                            />
+                        </div>
+                    ))}
                 </div>
 
                 {/* Footer Decor */}

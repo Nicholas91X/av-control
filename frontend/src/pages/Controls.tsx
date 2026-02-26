@@ -473,7 +473,7 @@ export const Controls: React.FC = () => {
                             <option value="0.1" className="bg-[#1a1a1c]">0.1 dB</option>
                             <option value="0.2" className="bg-[#1a1a1c]">0.2 dB</option>
                             <option value="0.5" className="bg-[#1a1a1c]">0.5 dB</option>
-                            <option value="1.0" className="bg-[#1a1a1c]">1.0 dB</option>
+                            <option value="1" className="bg-[#1a1a1c]">1.0 dB</option>
                         </select>
                     </div>
                 </div>
