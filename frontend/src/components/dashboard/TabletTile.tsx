@@ -53,13 +53,13 @@ export const TabletTile: React.FC<TabletTileProps> = ({
             {/* Circle — fills the button's square bounding box */}
             <div
                 className="absolute inset-0 rounded-full overflow-hidden
-                    bg-[#2a2a2e] border-t-2 border-t-white/20 border-x border-x-white/10
-                    border-b-[14px] border-b-[#111114] group-active:border-b-[4px]
+                    bg-[#2a2a2e] border-t-[3px] border-t-white/30 border-x border-x-white/10
+                    border-b-[14px] border-b-[#111114] group-active:border-t-2 group-active:border-t-white/20 group-active:border-b-[4px]
                     transition-[border] duration-200"
                 style={{
                     boxShadow: glowColor
-                        ? `0 0 40px ${glowColor}33, 0 20px 50px rgba(0,0,0,0.9)`
-                        : '0 20px 50px rgba(0,0,0,0.9)',
+                        ? `inset 0 4px 6px rgba(255,255,255,0.1), 0 0 40px ${glowColor}33, 0 20px 50px rgba(0,0,0,0.9)`
+                        : 'inset 0 4px 6px rgba(255,255,255,0.1), 0 20px 50px rgba(0,0,0,0.9)',
                 }}
             >
                 {/* Tap colour flash */}
@@ -81,19 +81,59 @@ export const TabletTile: React.FC<TabletTileProps> = ({
                     group-hover:scale-110 transition-transform duration-300">
                     <Icon
                         size={iconSize[size as keyof typeof iconSize]}
-                        style={{ color: glowColor || 'white' }}
-                        className={`drop-shadow-lg ${iconClassName}`}
+                        style={{ 
+                            color: glowColor || 'white',
+                            filter: `
+                                drop-shadow(1px 1px 0px rgba(255,255,255,0.4)) 
+                                drop-shadow(-1px -1px 0px rgba(0,0,0,0.8))
+                                drop-shadow(2px 5px 6px rgba(0,0,0,0.6))
+                            `
+                        }}
+                        className={`drop-shadow-lg ${iconClassName} ${hideLabel ? '' : 'mb-3'}`}
                     />
-                    {!hideLabel && (
-                        <span className={`
-                            whitespace-nowrap uppercase font-bold tracking-widest text-center
-                            text-white/60 group-hover:text-white/90 transition-colors duration-300
-                            ${size === 'small' ? 'text-[clamp(9px,1.4vh,13px)]' : 'text-[clamp(10px,1.6vh,15px)]'}
-                        `}>
-                            {label}
-                        </span>
-                    )}
                 </div>
+
+                {/* Curved Label — SVG overlay matching the dimensions of the button */}
+                {!hideLabel && (
+                    <svg 
+                        viewBox="0 0 100 100" 
+                        className="absolute inset-0 w-full h-full pointer-events-none group-hover:scale-110 transition-transform duration-300"
+                    >
+                        <defs>
+                            {/* Path with slightly more curvature, while remaining close to the icon */}
+                            <path 
+                                id={`curved-text-path-${label.replace(/\s+/g, '-')}`} 
+                                d="M 5 71 A 60 60 0 0 0 95 71"
+                                fill="transparent"
+                            />
+                        </defs>
+                        <text 
+                            className={`
+                                font-bold tracking-[0.2em] transition-colors duration-300 uppercase
+                                ${size === 'small' ? 'text-[8.5px]' : 'text-[11px]'}
+                            `}
+                            fill="rgba(255, 255, 255, 0.6)"
+                            style={{ 
+                                textShadow: '0px 2px 4px rgba(0,0,0,0.8)' 
+                            }}
+                        >
+                            <textPath 
+                                href={`#curved-text-path-${label.replace(/\s+/g, '-')}`} 
+                                startOffset="50%" 
+                                textAnchor="middle"
+                            >
+                                {label}
+                            </textPath>
+                        </text>
+
+                        {/* Hover color transition for SVG text */}
+                        <style>{`
+                            .group:hover text {
+                                fill: rgba(255, 255, 255, 0.9);
+                            }
+                        `}</style>
+                    </svg>
+                )}
             </div>
         </button>
     );
