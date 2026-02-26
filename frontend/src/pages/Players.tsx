@@ -89,6 +89,7 @@ export const Players: React.FC = () => {
     // Usiamo lo stato per pendingSong invece del Ref per assicurare il re-render immediato della UI
     const [pendingSong, setPendingSong] = useState<Song | null>(null);
     const seekTargetRef = useRef<{ time: number; timestamp: number } | null>(null);
+    const prevSongTitleRef = useRef<string | undefined>(undefined);
 
     // Search State
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -235,6 +236,12 @@ export const Players: React.FC = () => {
             const response = await api.get('/device/player/status');
             let data = response.data;
 
+            // Clamp current_time to [0, total_time] to absorb hardware glitches
+            // that briefly report nonsensical values on song load/source change.
+            if (data.total_time > 0 && data.current_time !== undefined) {
+                data = { ...data, current_time: Math.max(0, Math.min(data.current_time, data.total_time)) };
+            }
+
             if (isSeeking) {
                 data = { ...data, current_time: seekingTime };
             } else if (seekTargetRef.current !== null) {
@@ -290,6 +297,21 @@ export const Players: React.FC = () => {
             }
         }
     }, [playerStatus?.current_time, isSeeking]);
+
+    // Reset playhead state immediately when the song title changes so the
+    // previous song's position doesn't flash during the new song's first poll.
+    useEffect(() => {
+        const title = playerStatus?.song_title;
+        if (title !== prevSongTitleRef.current) {
+            prevSongTitleRef.current = title;
+            if (title) {
+                const t = playerStatus?.current_time ?? 0;
+                setDisplayedTime(t);
+                lastKnownPlayheadRef.current = { time: t, timestamp: Date.now() };
+                seekTargetRef.current = null;
+            }
+        }
+    }, [playerStatus?.song_title]);
 
     // Volume controls fetch
     useEffect(() => {

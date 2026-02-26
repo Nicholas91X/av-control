@@ -213,14 +213,19 @@ func main() {
 			auth.POST("/refresh", authHandler.RefreshToken)
 		}
 
-		// USER MANAGEMENT (Admin Only)
+		// USER MANAGEMENT
+		// Fine-grained permission checks are handled inside each handler.
+		// - GET list:   admin, installatore, prete (each sees a filtered subset)
+		// - POST create: admin, installatore (installatore can only create prete)
+		// - PUT update:  admin, installatore, prete (each restricted to allowed targets)
+		// - DELETE:      admin only (and cannot delete system users)
 		users := api.Group("/users")
 		users.Use(middleware.JWTAuthMiddleware(jwtSecret, db))
-		users.Use(middleware.RequireRole("admin"))
 		{
-			users.POST("", userHandler.CreateUser)
-			users.GET("", userHandler.ListUsers)
-			users.DELETE("/:id", userHandler.DeleteUser)
+			users.GET("", middleware.RequireRole("admin", "installatore", "prete"), userHandler.ListUsers)
+			users.POST("", middleware.RequireRole("admin", "installatore"), userHandler.CreateUser)
+			users.PUT("/:id", middleware.RequireRole("admin", "installatore", "prete"), userHandler.UpdateUser)
+			users.DELETE("/:id", middleware.RequireRole("admin"), userHandler.DeleteUser)
 		}
 
 		// DEVICE ENDPOINTS (Protected with JWT and Audited)
@@ -314,7 +319,8 @@ func main() {
 	log.Printf("🗄️  Database: %s", dbPath)
 
 	if gin.Mode() != gin.ReleaseMode {
-		log.Println("📝 Default credentials: admin / admin123")
+		log.Println("📝 System users: av-admin | installatore | prete")
+		log.Println("📝 See database/db.go for default passwords")
 		log.Printf("🔌 WebSocket: ws://localhost:%s/ws?token=<JWT>", port)
 		log.Printf("📊 Debug endpoints: http://localhost:%s/debug/*", port)
 	}

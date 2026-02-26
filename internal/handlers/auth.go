@@ -155,10 +155,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		RefreshToken: refreshTokenString,
 		ExpiresIn:    86400, // 24 hours in seconds
 		User: gin.H{
-			"id":       user.ID,
-			"username": user.Username,
-			"role":     user.Role,
-			"name":     user.FullName,
+			"id":                   user.ID,
+			"username":             user.Username,
+			"role":                 user.Role,
+			"name":                 user.FullName,
+			"must_change_password": user.MustChangePassword,
 		},
 	})
 }
@@ -332,13 +333,5 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, UserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Role:      user.Role,
-		FullName:  user.FullName,
-		Email:     user.Email,
-		IsActive:  user.IsActive,
-		CreatedAt: user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	})
+	c.JSON(200, toUserResponse(user))
 }

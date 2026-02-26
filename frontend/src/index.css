@@ -7,8 +7,12 @@
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light dark;
-  background-color: #f3f4f6;
-  /* gray-100 */
+  /* Dark default prevents white flash on tablet navigation before React renders */
+  background-color: #000000;
+}
+
+body {
+  background-color: var(--app-bg, #000000);
 }
 
 @layer base {

@@ -13,7 +13,10 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjU4OTI4NzEsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOiJkZDE0NGI1My04N2M3LTRjNTktYmNhYS1lYzBlNTMxYzAwYTIiLCJ1c2VybmFtZSI6ImFkbWluIn0.gLTeEdijWLz9rRIHDrBQrqWXYa7COvxo_Vta5v3tGME\")",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjU4OTM3MzAsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOiJlMmRiYzBmOC00YzFjLTQ4MjMtYWE4ZC03YzIzYmIyZDIzOTkiLCJ1c2VybmFtZSI6ImFkbWluIn0.lCGBar8xJyBfCIMBl1IY8FrnzYSKN4ZSO444bhiPT5w\":*)",
       "Bash(npm run dev:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(cd \"C:/Users/Principale/Desktop/Progetti/av-control\" && go build ./... 2>&1)",
+      "Bash(cd \"C:/Users/Principale/Desktop/Progetti/av-control/frontend\" && npm run build 2>&1)",
+      "Bash(cd /c/Users/Principale/Desktop/Progetti/av-control/frontend && npm run build 2>&1)"
     ]
   }
 }
