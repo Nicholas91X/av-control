@@ -48,6 +48,7 @@ export const Controls: React.FC = () => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const stepTimeoutsRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
     const pendingStepValueRef = useRef<Record<number, number>>({});
+    const draggingFaderRef = useRef<number | null>(null);
     const [saveModalOpen, setSaveModalOpen] = useState(false);
     const [selectedPresetToSave, setSelectedPresetToSave] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
@@ -245,6 +246,38 @@ export const Controls: React.FC = () => {
         setControlMutation.mutate({ id: control.id, value });
     };
 
+    // Converte la posizione Y del puntatore in un valore dB per il fader verticale.
+    // top del track = max, bottom = min.
+    const calcFaderValue = (clientY: number, rect: DOMRect, min: number, max: number): number => {
+        const relY = clientY - rect.top;
+        const ratio = 1 - Math.max(0, Math.min(1, relY / rect.height));
+        return Math.round((min + ratio * (max - min)) * 10) / 10;
+    };
+
+    const handleFaderPointerDown = (e: React.PointerEvent<HTMLDivElement>, control: Control) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        draggingFaderRef.current = control.id;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const newVal = calcFaderValue(e.clientY, rect, control.min || -96, control.max || 12);
+        handleVolumeChange(control.id, newVal);
+    };
+
+    const handleFaderPointerMove = (e: React.PointerEvent<HTMLDivElement>, control: Control) => {
+        if (draggingFaderRef.current !== control.id) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const newVal = calcFaderValue(e.clientY, rect, control.min || -96, control.max || 12);
+        handleVolumeChange(control.id, newVal);
+    };
+
+    const handleFaderPointerUp = (e: React.PointerEvent<HTMLDivElement>, control: Control) => {
+        if (draggingFaderRef.current !== control.id) return;
+        draggingFaderRef.current = null;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const newVal = calcFaderValue(e.clientY, rect, control.min || -96, control.max || 12);
+        handleVolumeRelease(control, newVal);
+    };
+
     const handleStepVolume = (control: Control, direction: 'up' | 'down') => {
         const current = pendingStepValueRef.current[control.id] ?? controlValues[control.id]?.volume ?? 0;
         const step = defaultVolStep;
@@ -344,21 +377,13 @@ export const Controls: React.FC = () => {
                         </div>
                     </div>
 
-                    <input
-                        type="range"
-                        min={min}
-                        max={max}
-                        step={control.step || 0.1}
-                        value={val}
-                        onInput={(e) => handleVolumeChange(control.id, parseFloat((e.target as HTMLInputElement).value))}
-                        onChange={(e) => handleVolumeChange(control.id, parseFloat((e.target as HTMLInputElement).value))}
-                        onMouseUp={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
-                        onTouchEnd={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
-                        className="absolute inset-y-0 inset-x-0 opacity-0 cursor-pointer w-full z-30"
-                        style={{
-                            appearance: 'slider-vertical' as any,
-                            WebkitAppearance: 'slider-vertical' as any,
-                        }}
+                    <div
+                        className="absolute inset-y-0 inset-x-0 z-30 cursor-pointer"
+                        style={{ touchAction: 'none' }}
+                        onPointerDown={(e) => handleFaderPointerDown(e, control)}
+                        onPointerMove={(e) => handleFaderPointerMove(e, control)}
+                        onPointerUp={(e) => handleFaderPointerUp(e, control)}
+                        onPointerCancel={(e) => handleFaderPointerUp(e, control)}
                     />
                 </div>
 
@@ -425,11 +450,12 @@ export const Controls: React.FC = () => {
                         max={control.max || 12}
                         step={control.step || 0.1}
                         value={val}
+                        onInput={(e) => handleVolumeChange(control.id, parseFloat((e.target as HTMLInputElement).value))}
                         onChange={(e) => handleVolumeChange(control.id, parseFloat(e.target.value))}
                         onMouseUp={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
                         onTouchEnd={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
                         className="flex-1 h-2 bg-black rounded-full appearance-none cursor-pointer"
-                        style={{ accentColor: highlightColor }}
+                        style={{ accentColor: highlightColor, touchAction: 'none' }}
                     />
                     <div className="w-16 text-right font-mono font-bold text-white/60">
                         {val.toFixed(1)}

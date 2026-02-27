@@ -168,6 +168,7 @@ export const Players: React.FC = () => {
 
     const [mockPlayerStatus, setMockPlayerStatus] = useState<PlayerStatus | null>(null);
     const [isSearchNavigating, setIsSearchNavigating] = useState(false);
+    const draggingVolFaderRef = useRef<number | null>(null);
 
     // Fetch controls to find PL L and PL R
     const { data: controlsData } = useQuery<{ controls: any[] }>({
@@ -382,6 +383,37 @@ export const Players: React.FC = () => {
             delete next[control.id];
             return next;
         });
+    };
+
+    // Converte la posizione Y del puntatore in un valore dB per il fader verticale.
+    const calcVolFaderValue = (clientY: number, rect: DOMRect, min: number, max: number): number => {
+        const relY = clientY - rect.top;
+        const ratio = 1 - Math.max(0, Math.min(1, relY / rect.height));
+        return Math.round((min + ratio * (max - min)) * 10) / 10;
+    };
+
+    const handleVolFaderPointerDown = (e: React.PointerEvent<HTMLDivElement>, ctrl: any) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        draggingVolFaderRef.current = ctrl.id;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const newVal = calcVolFaderValue(e.clientY, rect, ctrl.min ?? -96, ctrl.max ?? 12);
+        setPendingVolumes(prev => ({ ...prev, [ctrl.id]: newVal }));
+    };
+
+    const handleVolFaderPointerMove = (e: React.PointerEvent<HTMLDivElement>, ctrl: any) => {
+        if (draggingVolFaderRef.current !== ctrl.id) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const newVal = calcVolFaderValue(e.clientY, rect, ctrl.min ?? -96, ctrl.max ?? 12);
+        setPendingVolumes(prev => ({ ...prev, [ctrl.id]: newVal }));
+    };
+
+    const handleVolFaderPointerUp = (e: React.PointerEvent<HTMLDivElement>, ctrl: any) => {
+        if (draggingVolFaderRef.current !== ctrl.id) return;
+        draggingVolFaderRef.current = null;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const newVal = calcVolFaderValue(e.clientY, rect, ctrl.min ?? -96, ctrl.max ?? 12);
+        handleSliderRelease(ctrl, newVal);
     };
 
     // Fetch sources
@@ -1286,21 +1318,13 @@ export const Players: React.FC = () => {
                                                     </div>
 
                                                     {/* Interaction Layer */}
-                                                    <input
-                                                        type="range"
-                                                        min={min}
-                                                        max={max}
-                                                        step={ctrl.step || 0.1}
-                                                        value={val}
-                                                        onChange={(e) => handleSliderChange(ctrl, e)}
-                                                        onMouseUp={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
-                                                        onTouchEnd={(e) => handleSliderRelease(ctrl, parseFloat((e.target as HTMLInputElement).value))}
-                                                        className="absolute inset-x-0 -inset-y-0 opacity-0 cursor-pointer h-full w-[150%] -left-[25%] z-30"
-                                                        style={{
-                                                            appearance: 'slider-vertical' as any,
-                                                            WebkitAppearance: 'slider-vertical' as any,
-                                                            width: '48px',
-                                                        }}
+                                                    <div
+                                                        className="absolute inset-0 z-30 cursor-pointer"
+                                                        style={{ touchAction: 'none' }}
+                                                        onPointerDown={(e) => handleVolFaderPointerDown(e, ctrl)}
+                                                        onPointerMove={(e) => handleVolFaderPointerMove(e, ctrl)}
+                                                        onPointerUp={(e) => handleVolFaderPointerUp(e, ctrl)}
+                                                        onPointerCancel={(e) => handleVolFaderPointerUp(e, ctrl)}
                                                     />
                                                 </div>
 
