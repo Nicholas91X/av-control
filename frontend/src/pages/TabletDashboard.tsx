@@ -18,7 +18,9 @@ import {
     WifiOff,
     LogOut,
     Users,
-    Cpu
+    Cpu,
+    Maximize2,
+    Minimize2
 } from 'lucide-react';
 import { TabletTile } from '../components/dashboard/TabletTile';
 import { useSettings } from '../context/SettingsContext';
@@ -69,6 +71,36 @@ export const TabletDashboard: React.FC = () => {
     });
 
     const isHardwareConnected = systemStatus?.connected ?? false;
+
+    // Fullscreen
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    useEffect(() => {
+        const handler = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', handler);
+        return () => document.removeEventListener('fullscreenchange', handler);
+    }, []);
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(console.error);
+        } else {
+            document.exitFullscreen().catch(console.error);
+        }
+    };
+
+    // Tooltip for status indicators (hover + long-press)
+    const [visibleTooltip, setVisibleTooltip] = useState<'ws' | 'hw' | null>(null);
+    const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (!visibleTooltip) return;
+        const timer = setTimeout(() => setVisibleTooltip(null), 4000);
+        return () => clearTimeout(timer);
+    }, [visibleTooltip]);
+    const startLongPress = (key: 'ws' | 'hw') => {
+        longPressTimerRef.current = setTimeout(() => setVisibleTooltip(key), 600);
+    };
+    const cancelLongPress = () => {
+        if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+    };
 
     // Modal state management with animations
     const useModalAnimation = (initialState: boolean) => {
@@ -124,6 +156,9 @@ export const TabletDashboard: React.FC = () => {
         refetchInterval: () => 10000,
     });
 
+    const wsStatusItalian = status === 'connected' ? 'connesso' : status === 'connecting' ? 'connessione in corso…' : 'disconnesso';
+    const hwStatusItalian = isHardwareConnected ? 'connesso' : 'disconnesso';
+
     if (isStandby) {
         return (
             <div
@@ -160,24 +195,58 @@ export const TabletDashboard: React.FC = () => {
                         <div className="flex items-center space-x-3 z-10">
                             {/* WebSocket Connection Status Icon */}
                             <div
-                                className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500' :
-                                    status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 border-b-yellow-900/60 text-yellow-500 animate-pulse' :
-                                        'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
-                                    }`}
-                                title={`WebSocket: ${status}`}
+                                className="relative"
+                                onMouseEnter={() => setVisibleTooltip('ws')}
+                                onMouseLeave={() => { setVisibleTooltip(null); cancelLongPress(); }}
+                                onTouchStart={(e) => { e.preventDefault(); startLongPress('ws'); }}
+                                onTouchEnd={cancelLongPress}
+                                onTouchMove={cancelLongPress}
                             >
-                                {status === 'connected' ? <Wifi size={24} /> : <WifiOff size={24} />}
+                                <div
+                                    className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500' :
+                                        status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 border-b-yellow-900/60 text-yellow-500 animate-pulse' :
+                                            'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
+                                        }`}
+                                >
+                                    {status === 'connected' ? <Wifi size={24} /> : <WifiOff size={24} />}
+                                </div>
+                                {visibleTooltip === 'ws' && (
+                                    <div className="absolute top-full left-0 mt-2 z-[200] bg-black/90 border border-white/10 rounded-xl px-3 py-2 shadow-xl backdrop-blur-md pointer-events-none">
+                                        <p className="text-[11px] font-bold text-white/90 whitespace-nowrap">WebSocket</p>
+                                        <p className="text-[10px] text-white/40 whitespace-nowrap">Aggiornamenti in tempo reale</p>
+                                        <p className={`text-[10px] font-bold mt-0.5 whitespace-nowrap ${status === 'connected' ? 'text-green-400' : status === 'connecting' ? 'text-yellow-400' : 'text-red-400'}`}>
+                                            {wsStatusItalian}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Hardware Daemon Connection Status Icon */}
                             <div
-                                className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${isHardwareConnected
-                                    ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500'
-                                    : 'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
-                                    }`}
-                                title={`Hardware Daemon: ${isHardwareConnected ? 'Connected' : 'Disconnected'}`}
+                                className="relative"
+                                onMouseEnter={() => setVisibleTooltip('hw')}
+                                onMouseLeave={() => { setVisibleTooltip(null); cancelLongPress(); }}
+                                onTouchStart={(e) => { e.preventDefault(); startLongPress('hw'); }}
+                                onTouchEnd={cancelLongPress}
+                                onTouchMove={cancelLongPress}
                             >
-                                <Cpu size={24} />
+                                <div
+                                    className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${isHardwareConnected
+                                        ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500'
+                                        : 'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
+                                        }`}
+                                >
+                                    <Cpu size={24} />
+                                </div>
+                                {visibleTooltip === 'hw' && (
+                                    <div className="absolute top-full left-0 mt-2 z-[200] bg-black/90 border border-white/10 rounded-xl px-3 py-2 shadow-xl backdrop-blur-md pointer-events-none">
+                                        <p className="text-[11px] font-bold text-white/90 whitespace-nowrap">Hardware</p>
+                                        <p className="text-[10px] text-white/40 whitespace-nowrap">Collegamento al dispositivo fisico</p>
+                                        <p className={`text-[10px] font-bold mt-0.5 whitespace-nowrap ${isHardwareConnected ? 'text-green-400' : 'text-red-400'}`}>
+                                            {hwStatusItalian}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Admin-only User Management */}
@@ -208,16 +277,25 @@ export const TabletDashboard: React.FC = () => {
                             </h1>
                         </div>
 
-                        {/* Right: VerbumDigital logo link */}
-                        <a
-                            href="https://verbumdigital.com/it/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 opacity-30 hover:opacity-70 transition-opacity z-10"
-                            title="VerbumDigital"
-                        >
-                            <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-9 w-9 object-contain" />
-                        </a>
+                        {/* Right: Fullscreen button + VerbumDigital logo */}
+                        <div className="flex items-center gap-3 z-10">
+                            <button
+                                onClick={toggleFullscreen}
+                                className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-white/10 hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
+                                title={isFullscreen ? 'Esci da schermo intero' : 'Schermo intero'}
+                            >
+                                {isFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
+                            </button>
+                            <a
+                                href="https://verbumdigital.com/it/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 opacity-30 hover:opacity-70 transition-opacity"
+                                title="VerbumDigital"
+                            >
+                                <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-9 w-9 object-contain" />
+                            </a>
+                        </div>
                     </div>
 
                     {/* Row 2: Title — portrait only (hidden in landscape) */}

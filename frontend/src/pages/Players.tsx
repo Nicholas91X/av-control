@@ -932,7 +932,7 @@ export const Players: React.FC = () => {
     if (isTablet) {
         return (
             <div
-                className="h-screen flex flex-col overflow-hidden text-gray-900 dark:text-white font-sans transition-colors duration-500"
+                className="fixed inset-0 flex flex-col overflow-hidden text-gray-900 dark:text-white font-sans transition-colors duration-500"
                 style={{ backgroundColor: backgroundColor }}
             >
                 {/* Main Content Grid */}

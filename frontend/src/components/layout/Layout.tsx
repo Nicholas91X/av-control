@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -11,7 +11,9 @@ import {
     Video,
     HardDrive,
     Settings,
-    ChevronLeft
+    ChevronLeft,
+    Maximize2,
+    Minimize2
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { WebSocketStatus } from '../WebSocketStatus';
@@ -31,6 +33,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const isTablet = useIsTablet();
     const { backgroundColor } = useSettings();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    useEffect(() => {
+        const handler = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', handler);
+        return () => document.removeEventListener('fullscreenchange', handler);
+    }, []);
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(console.error);
+        } else {
+            document.exitFullscreen().catch(console.error);
+        }
+    };
 
     const navigation = [
         { name: 'Desktop', href: '/', icon: LayoutDashboard },
@@ -185,7 +200,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                             <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-4 w-4 object-contain opacity-60" />
                             <span>VerbumDigital</span>
                         </a>
-                        <VersionDisplay />
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={toggleFullscreen}
+                                title={isFullscreen ? 'Esci da schermo intero' : 'Schermo intero'}
+                                className="hover:text-gray-800 dark:hover:text-white transition-colors"
+                            >
+                                {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                            </button>
+                            <VersionDisplay />
+                        </div>
                     </div>
                 </footer>
             )}
