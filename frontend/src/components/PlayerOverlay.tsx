@@ -39,7 +39,7 @@ export const PlayerOverlay: React.FC = () => {
             const response = await api.get('/device/player/status');
             return response.data;
         },
-        refetchInterval: 5000,
+        refetchInterval: () => 5000,
         enabled: !!user && !isOnPlayersPage,
     });
 

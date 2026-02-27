@@ -18,6 +18,7 @@ import { WebSocketStatus } from '../WebSocketStatus';
 import { VersionDisplay } from './VersionDisplay';
 import { useIsTablet } from '../../hooks/useIsTablet';
 import { useSettings } from '../../context/SettingsContext';
+import { HardwareStatusBanner } from '../HardwareStatusBanner';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -53,6 +54,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             className={`min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors duration-500 ${isTablet ? 'flex flex-col' : ''}`}
             style={{ backgroundColor: backgroundColor }}
         >
+            <HardwareStatusBanner />
             {/* Mobile Header - Hidden if tablet */}
             {!isTablet && (
                 <div className="lg:hidden bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between sticky top-0 z-40">

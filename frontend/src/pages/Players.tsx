@@ -274,7 +274,7 @@ export const Players: React.FC = () => {
             }
             return data;
         },
-        refetchInterval: isSeeking ? false : 1000,
+        refetchInterval: isSeeking ? false : () => 1000,
     });
 
     // Local Timer Effect (placed after playerStatus is defined)

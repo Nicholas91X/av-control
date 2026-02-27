@@ -86,7 +86,7 @@ export const Recorders: React.FC = () => {
             const response = await api.get('/device/recorder/status');
             return response.data;
         },
-        refetchInterval: 1000,
+        refetchInterval: () => 1000,
     });
 
     // Handle WebSocket updates

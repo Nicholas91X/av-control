@@ -39,7 +39,7 @@ export const Dashboard: React.FC = () => {
             const response = await api.get('/device/status');
             return response.data;
         },
-        refetchInterval: 2000, // Poll every 2 seconds
+        refetchInterval: () => 2000,
     });
 
     // Fetch presets count

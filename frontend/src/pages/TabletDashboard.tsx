@@ -66,7 +66,7 @@ export const TabletDashboard: React.FC = () => {
             const response = await api.get('/device/status');
             return response.data;
         },
-        refetchInterval: 5000, // Check every 5 seconds
+        refetchInterval: () => 5000,
     });
 
     const isHardwareConnected = systemStatus?.connected ?? false;
@@ -123,7 +123,7 @@ export const TabletDashboard: React.FC = () => {
             const response = await api.get('/device/info');
             return response.data;
         },
-        refetchInterval: 10000,
+        refetchInterval: () => 10000,
     });
 
     if (isStandby) {
