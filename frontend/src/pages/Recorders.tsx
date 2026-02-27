@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSettings } from '../context/SettingsContext';
+import { useIsTablet } from '../hooks/useIsTablet';
 
 interface RecorderStatus {
     state: 'recording' | 'stopped' | 'nomedia';
@@ -124,10 +125,109 @@ export const Recorders: React.FC = () => {
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
+    const isTablet = useIsTablet();
 
+    // ============================================
+    // RENDER MOBILE VIEW
+    // ============================================
+    if (!isTablet) {
+        return (
+            <div
+                className="fixed inset-0 flex flex-col overflow-hidden text-white font-sans"
+                style={{ backgroundColor }}
+            >
+                {/* Header */}
+                <div className="shrink-0 px-5 pt-5 pb-3">
+                    <div className="flex items-center gap-3 mb-1">
+                        <Mic className="w-5 h-5 text-red-400" />
+                        <h1 className="text-lg font-black uppercase tracking-[0.2em]">Registratore</h1>
+                    </div>
+                    <div className="w-full h-px bg-gradient-to-r from-red-500/50 via-transparent to-transparent" />
+                </div>
 
+                {/* Source Selectors */}
+                <div className="shrink-0 px-5 space-y-3 mb-4">
+                    {/* Left Source */}
+                    <div>
+                        <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Sorgente Sinistra</label>
+                        <div className="relative bg-[#111113] border border-white/10 border-b-2 border-b-black/60 rounded-xl px-4 py-3 flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
+                                <Volume2 size={14} className="text-blue-400" />
+                            </div>
+                            <select
+                                value={leftSource}
+                                onChange={(e) => handleSourceChange('left', parseInt(e.target.value))}
+                                className="bg-transparent border-none text-white font-bold text-sm outline-none cursor-pointer w-full appearance-none uppercase tracking-widest"
+                            >
+                                {availableSources.map(src => <option key={src.index} value={src.index} className="bg-[#1a1a1c]">{src.name}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                    {/* Right Source */}
+                    <div>
+                        <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Sorgente Destra</label>
+                        <div className="relative bg-[#111113] border border-white/10 border-b-2 border-b-black/60 rounded-xl px-4 py-3 flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
+                                <Volume2 size={14} className="text-blue-400" />
+                            </div>
+                            <select
+                                value={rightSource}
+                                onChange={(e) => handleSourceChange('right', parseInt(e.target.value))}
+                                className="bg-transparent border-none text-white font-bold text-sm outline-none cursor-pointer w-full appearance-none uppercase tracking-widest"
+                            >
+                                <option value={0} className="bg-[#1a1a1c]">Come a sinistra</option>
+                                {availableSources.map(src => <option key={src.index + 1} value={src.index + 1} className="bg-[#1a1a1c]">{src.name}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
+                {/* Main Record Area */}
+                <div className="flex-1 flex flex-col items-center justify-center gap-6 px-5">
+                    {/* Timer */}
+                    <div className="bg-[#050505] border border-white/10 border-b-2 border-b-black rounded-2xl px-8 py-3">
+                        <span className="text-4xl font-mono font-black text-blue-400 tabular-nums drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                            {formatTime(recorderStatus?.current_time)}
+                        </span>
+                    </div>
 
+                    {/* Record Button */}
+                    <button
+                        onClick={() => isRecording ? stopRecordingMutation.mutate() : startRecordingMutation.mutate()}
+                        disabled={startRecordingMutation.isPending || stopRecordingMutation.isPending}
+                        className={`w-36 h-36 rounded-full flex flex-col items-center justify-center gap-2 transition-all active:translate-y-1 active:shadow-none ${isRecording
+                            ? 'bg-gradient-to-b from-red-500/20 to-red-900/40 border-t-2 border-red-400/50 border-x border-red-500/20 border-b-[8px] border-red-950 text-red-500 shadow-[0_15px_30px_rgba(239,68,68,0.2)]'
+                            : 'bg-gradient-to-b from-[#222] to-[#0a0a0c] border-t-2 border-white/10 border-x border-white/5 border-b-[8px] border-black text-white shadow-[0_20px_40px_rgba(0,0,0,1)]'
+                            }`}
+                    >
+                        {isRecording ? (
+                            <>
+                                <div className="w-10 h-10 bg-red-500 rounded-xl animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.8)]" />
+                                <span className="font-black uppercase tracking-[0.3em] text-[10px]">Ferma</span>
+                            </>
+                        ) : (
+                            <>
+                                <div className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.6)] border-t-2 border-red-400/40" />
+                                <span className="font-black uppercase tracking-[0.3em] text-[10px]">Registra</span>
+                            </>
+                        )}
+                    </button>
+
+                    {/* Status Pill */}
+                    <div className={`px-5 py-2 rounded-full border bg-black/40 flex items-center gap-3 transition-all ${isRecording ? 'border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'border-white/5'}`}>
+                        <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,1)]' : 'bg-white/10'}`} />
+                        <span className={`font-black uppercase tracking-[0.3em] text-[10px] ${isRecording ? 'text-red-400' : 'text-white/20'}`}>
+                            {isRecording ? 'Registrazione in corso' : 'In attesa'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ============================================
+    // RENDER TABLET VIEW
+    // ============================================
     return (
         <div className="fixed inset-0 flex flex-col overflow-hidden transition-colors duration-500" style={{ backgroundColor }}>
             {/* 1. TOP TITLE ROW */}

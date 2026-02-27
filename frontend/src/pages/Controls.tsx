@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSettings } from '../context/SettingsContext';
+import { useIsTablet } from '../hooks/useIsTablet';
 
 interface Control {
     id: number;
@@ -426,6 +427,185 @@ export const Controls: React.FC = () => {
         );
     };
 
+    const isTablet = useIsTablet();
+
+    // ============================================
+    // RENDER MOBILE VIEW
+    // ============================================
+    if (!isTablet) {
+        return (
+            <div
+                className="fixed inset-0 flex flex-col overflow-hidden text-white font-sans"
+                style={{ backgroundColor }}
+            >
+                {/* Header */}
+                <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Sliders className="w-5 h-5 text-blue-400" />
+                        <h1 className="text-lg font-black uppercase tracking-[0.2em]">Controlli</h1>
+                    </div>
+                </div>
+
+                {/* Utility Bar */}
+                <div className="shrink-0 px-4 pb-3 flex items-center gap-2">
+                    <button
+                        onClick={handleResetAll}
+                        className="p-2 bg-white/5 border border-white/10 rounded-xl text-white/50 active:bg-white/10"
+                    >
+                        <RefreshCw size={18} />
+                    </button>
+                    <button
+                        onClick={() => { setSelectedPresetToSave(currentPresetData?.id || null); setSaveModalOpen(true); }}
+                        className="p-2 bg-white/5 border border-white/10 rounded-xl text-white/50 active:bg-white/10"
+                    >
+                        <Save size={18} />
+                    </button>
+                    <div className="flex-1" />
+                    <div className="h-9 flex items-center bg-[#111113] border border-white/10 rounded-xl px-3 gap-2">
+                        <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Step</span>
+                        <select
+                            value={volStep}
+                            onChange={(e) => setVolStep(parseFloat(e.target.value))}
+                            className="bg-transparent border-none text-blue-400 font-bold text-xs outline-none cursor-pointer"
+                        >
+                            <option value="0.1" className="bg-[#1a1a1c]">0.1</option>
+                            <option value="0.2" className="bg-[#1a1a1c]">0.2</option>
+                            <option value="0.5" className="bg-[#1a1a1c]">0.5</option>
+                            <option value="1" className="bg-[#1a1a1c]">1.0</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Channel Cards */}
+                <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
+                    {isLoading && (
+                        <div className="flex-1 flex items-center justify-center py-12">
+                            <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                        </div>
+                    )}
+                    {controls.map((control) => {
+                        const val = control.id in pendingValues ? pendingValues[control.id] : controlValues[control.id]?.volume ?? 0;
+                        const isMuted = controlValues[control.id]?.mute ?? false;
+                        const min = control.min || -96;
+                        const max = control.max || 12;
+
+                        return (
+                            <div key={control.id} className="bg-[#111113] border border-white/5 rounded-xl p-3 flex items-center gap-3">
+                                {/* Mute button */}
+                                <button
+                                    onClick={() => handleMuteToggle(control)}
+                                    className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center border transition-all active:scale-95 ${isMuted
+                                        ? 'bg-red-500/20 border-red-500/30 text-red-400'
+                                        : 'bg-white/5 border-white/10 text-white/40'
+                                        }`}
+                                >
+                                    {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                                </button>
+
+                                {/* Name + Slider */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-white/40 truncate">{control.name}</span>
+                                        <span className="text-xs font-mono font-bold text-white/50 shrink-0 ml-2">{val.toFixed(1)} dB</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={min}
+                                        max={max}
+                                        step={control.step || 0.5}
+                                        value={val}
+                                        onChange={(e) => {
+                                            const newVal = parseFloat(e.target.value);
+                                            setPendingValues(prev => ({ ...prev, [control.id]: newVal }));
+                                            setControlValues(prev => ({
+                                                ...prev,
+                                                [control.id]: { ...prev[control.id], volume: newVal }
+                                            }));
+                                        }}
+                                        onMouseUp={(e) => {
+                                            const v = parseFloat((e.target as HTMLInputElement).value);
+                                            handleVolumeRelease(control, v);
+                                            setPendingValues(prev => { const n = { ...prev }; delete n[control.id]; return n; });
+                                        }}
+                                        onTouchEnd={(e) => {
+                                            const v = parseFloat((e.target as HTMLInputElement).value);
+                                            handleVolumeRelease(control, v);
+                                            setPendingValues(prev => { const n = { ...prev }; delete n[control.id]; return n; });
+                                        }}
+                                        className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer"
+                                        style={{ accentColor: highlightColor }}
+                                    />
+                                </div>
+
+                                {/* Step buttons */}
+                                <div className="shrink-0 flex flex-col gap-1">
+                                    <button
+                                        onClick={() => handleStepVolume(control, 'up')}
+                                        className="w-7 h-7 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-white/40 active:bg-white/20"
+                                    >
+                                        <Plus size={12} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleStepVolume(control, 'down')}
+                                        className="w-7 h-7 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-white/40 active:bg-white/20"
+                                    >
+                                        <Minus size={12} />
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Save Preset Modal (reused) */}
+                {saveModalOpen && (
+                    <div className="fixed inset-0 z-[200] flex items-end justify-center">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSaveModalOpen(false)} />
+                        <div className="relative bg-[#1a1a1a] border-t border-white/10 p-6 rounded-t-[2rem] w-full shadow-2xl pb-8">
+                            <button onClick={() => setSaveModalOpen(false)} className="absolute top-4 right-4 text-white/30"><X size={24} /></button>
+                            {saveSuccess ? (
+                                <div className="flex flex-col items-center py-8">
+                                    <div className="w-14 h-14 bg-green-500/20 rounded-full flex items-center justify-center mb-3"><Check size={28} className="text-green-400" /></div>
+                                    <h3 className="text-lg font-bold text-green-400">Preset Salvato!</h3>
+                                </div>
+                            ) : (
+                                <>
+                                    <h3 className="text-lg font-bold mb-4">Salva su Preset</h3>
+                                    <p className="text-sm text-white/40 mb-3">Seleziona il preset su cui sovrascrivere:</p>
+                                    <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
+                                        {presetsData?.presets?.map((preset) => (
+                                            <button
+                                                key={preset.id}
+                                                onClick={() => setSelectedPresetToSave(preset.id)}
+                                                className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${selectedPresetToSave === preset.id
+                                                    ? 'border-blue-500 bg-blue-500/10 text-white'
+                                                    : 'border-white/5 bg-white/5 text-white/60'
+                                                    } ${currentPresetData?.id === preset.id ? 'ring-1 ring-blue-400/30' : ''}`}
+                                            >
+                                                <span className="font-semibold">{preset.name || preset.id}</span>
+                                                {currentPresetData?.id === preset.id && <span className="ml-2 text-xs text-blue-400 font-bold">(attivo)</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button
+                                        onClick={() => selectedPresetToSave && savePresetMutation.mutate(selectedPresetToSave)}
+                                        disabled={!selectedPresetToSave || savePresetMutation.isPending}
+                                        className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-white/5 disabled:text-white/20 rounded-xl font-bold transition-all active:scale-[0.98]"
+                                    >
+                                        {savePresetMutation.isPending ? 'Salvataggio...' : 'Conferma Salvataggio'}
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // ============================================
+    // RENDER TABLET VIEW
+    // ============================================
     return (
         <div
             className="fixed inset-0 flex flex-col overflow-hidden text-white"

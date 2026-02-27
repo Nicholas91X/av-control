@@ -2,7 +2,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { MobilePlayer } from './MobilePlayer';
+
 import {
     Play,
     Pause,
@@ -16,6 +16,7 @@ import {
     ChevronDown,
     Search,
     VolumeX,
+    Volume2,
     Rewind as FastRewind,
     FastForward,
     ArrowRight,
@@ -3422,6 +3423,498 @@ export const Players: React.FC = () => {
     }
 
     // ============================================
-    return <MobilePlayer />;
+    // RENDER MOBILE VIEW
+    // ============================================
+
+    const mobileStatus = getStatusDisplay(playerStatus?.state);
+    const mobileIsPlaying = playerStatus?.state === 'playing';
+    let mobileEffectiveTime: number;
+    if (isSeeking) {
+        mobileEffectiveTime = seekingTime;
+    } else {
+        mobileEffectiveTime = playerStatus?.current_time || 0;
+    }
+    const mobileProgressPercent = ((mobileEffectiveTime / (playerStatus?.total_time || 1)) * 100);
+
+    return (
+        <div
+            className="fixed inset-0 flex flex-col overflow-hidden text-white font-sans"
+            style={{ backgroundColor }}
+        >
+            {/* ===== TOP HEADER ===== */}
+            <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Disc className="w-5 h-5 text-blue-400" />
+                    <h1 className="text-lg font-black uppercase tracking-[0.2em]">Player</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setIsSearchModalOpen(true)}
+                        className="p-2 bg-white/5 border border-white/10 rounded-xl text-white/50 active:bg-white/10"
+                    >
+                        <Search size={18} />
+                    </button>
+                    <button
+                        onClick={() => setIsManagementModalOpen(true)}
+                        className="p-2 bg-white/5 border border-white/10 rounded-xl text-white/50 active:bg-white/10"
+                    >
+                        <Settings size={18} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Search active bar */}
+            {isSearchActive && (
+                <div className="shrink-0 mx-4 mb-2 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-between">
+                    <span className="text-xs text-blue-400 font-bold">
+                        {searchResults.length} risultati — #{currentSearchIndex + 1}
+                    </span>
+                    <div className="flex gap-2">
+                        <button onClick={findNext} className="px-3 py-1 bg-blue-500/20 rounded-lg text-xs font-bold text-blue-400">Prossimo</button>
+                        <button onClick={clearSearch} className="px-3 py-1 bg-white/10 rounded-lg text-xs font-bold text-white/40">✕</button>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== SOURCE/GROUP SELECTOR (Horizontal pills) ===== */}
+            <div className="shrink-0 px-4 pb-2">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    {sources.map((source) => {
+                        const isSelected = selectedSource === source.id && selectedSourceType === 'source';
+                        return (
+                            <button
+                                key={`s-${source.id}`}
+                                onClick={() => {
+                                    setSelectedSourceType('source');
+                                    setSelectedSource(source.id);
+                                    selectSourceMutation.mutate(source.id);
+                                }}
+                                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${isSelected
+                                    ? 'text-white border-white/20 border-b-black/50'
+                                    : 'bg-white/5 border-white/10 border-b-black/30 text-white/40'
+                                    }`}
+                                style={isSelected ? { backgroundColor: highlightColor, boxShadow: `0 4px 15px ${highlightColor}44` } : {}}
+                            >
+                                {source.name}
+                            </button>
+                        );
+                    })}
+                    {/* Separator */}
+                    <div className="shrink-0 w-px bg-white/10 my-1" />
+                    {groups.map((group) => {
+                        const isSelected = selectedSource === group.id && selectedSourceType === 'group';
+                        return (
+                            <button
+                                key={`g-${group.id}`}
+                                onClick={() => {
+                                    setSelectedSourceType('group');
+                                    setSelectedSource(group.id);
+                                    selectSourceMutation.mutate(group.id);
+                                }}
+                                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${isSelected
+                                    ? 'text-white border-white/20 border-b-black/50'
+                                    : 'bg-purple-500/10 border-purple-500/20 border-b-black/30 text-purple-400/60'
+                                    }`}
+                                style={isSelected ? { backgroundColor: highlightColor, boxShadow: `0 4px 15px ${highlightColor}44` } : {}}
+                            >
+                                <ListMusic size={12} className="inline mr-1 -mt-0.5" />{group.name}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* ===== SONG LIST ===== */}
+            <div className="flex-1 min-h-0 mx-4 mb-2 overflow-y-auto rounded-2xl bg-[#111113] border border-white/5" ref={songListRef}>
+                <div className="song-list-container flex flex-col">
+                    {songs.length === 0 ? (
+                        <div className="flex-1 flex items-center justify-center py-16 text-white/20">
+                            <div className="text-center">
+                                <Music className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                                <span className="text-xs font-bold uppercase tracking-widest">Seleziona una sorgente</span>
+                            </div>
+                        </div>
+                    ) : (
+                        songs.map((song, index) => {
+                            const isPlaying = playerStatus?.song_title?.toLowerCase() === song.name.toLowerCase() && playerStatus?.state !== 'stopped';
+                            const isPending = pendingSong?.id === song.id;
+                            const isCurrentSelection = isPending || isPlaying;
+                            const isSearchResult = isSearchActive && searchResults.includes(index);
+
+                            return (
+                                <button
+                                    key={song.id}
+                                    onClick={() => handleSelectSong(song)}
+                                    className={`w-full text-left px-4 py-3 flex items-center gap-3 border-b border-white/5 transition-all active:bg-white/10 ${isCurrentSelection
+                                        ? 'border-l-2'
+                                        : isSearchResult
+                                            ? 'border-l-2'
+                                            : isPlaying
+                                                ? ''
+                                                : 'text-white/70'
+                                        }`}
+                                    style={{
+                                        backgroundColor: isCurrentSelection
+                                            ? `${highlightColor}33`
+                                            : isSearchResult
+                                                ? `${highlightColor}15`
+                                                : isPlaying
+                                                    ? `${highlightColor}22`
+                                                    : undefined,
+                                        borderLeftColor: (isCurrentSelection || isSearchResult) ? highlightColor : undefined,
+                                        color: isPlaying ? highlightColor : undefined,
+                                    }}
+                                >
+                                    <span className={`w-8 text-right font-mono text-sm ${isSearchResult ? 'text-blue-400' : 'opacity-30'}`}>
+                                        {index + 1}
+                                    </span>
+                                    <span className={`flex-1 text-sm font-bold uppercase tracking-tight truncate ${isSearchResult ? 'text-white' : ''}`}>
+                                        {song.name}
+                                    </span>
+                                    {isCurrentSelection && (
+                                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: highlightColor, boxShadow: `0 0 8px ${highlightColor}` }} />
+                                    )}
+                                </button>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+
+            {/* ===== BOTTOM PANEL (Transport + Controls) ===== */}
+            <div className="shrink-0 bg-[#0a0a0c] border-t border-white/10 px-4 pt-3 pb-5">
+
+                {/* Status + Time */}
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className={`shrink-0 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${mobileStatus.bg} ${mobileStatus.color} border ${mobileStatus.border}`}>
+                            {mobileStatus.text}
+                        </span>
+                        <span className={`text-xs font-bold uppercase truncate ${mobileStatus.color}`}>
+                            {playerStatus?.song_title || 'Nessun brano'}
+                        </span>
+                    </div>
+                    <span className={`shrink-0 font-mono text-sm font-black tabular-nums ${mobileStatus.color}`}>
+                        {formatTime(mobileEffectiveTime)}
+                    </span>
+                </div>
+
+                {/* Seek Bar */}
+                <div className="relative h-6 flex items-center mb-2">
+                    <div className="absolute inset-x-0 h-1 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                            className="absolute left-0 top-0 h-full rounded-full"
+                            style={{
+                                width: `${Math.min(100, Math.max(0, mobileProgressPercent))}%`,
+                                backgroundColor: highlightColor,
+                                boxShadow: `0 0 10px ${highlightColor}66`
+                            }}
+                        />
+                    </div>
+                    <input
+                        type="range"
+                        min={0}
+                        max={playerStatus?.total_time || 100}
+                        value={mobileEffectiveTime}
+                        onMouseDown={() => { setIsSeeking(true); setSeekingTime(playerStatus?.current_time || 0); }}
+                        onTouchStart={() => { setIsSeeking(true); setSeekingTime(playerStatus?.current_time || 0); }}
+                        onInput={(e) => setSeekingTime(parseInt((e.target as HTMLInputElement).value))}
+                        onChange={(e) => setSeekingTime(parseInt(e.target.value))}
+                        onMouseUp={(e) => { seekMutation.mutate(parseInt((e.target as HTMLInputElement).value)); setIsSeeking(false); }}
+                        onTouchEnd={(e) => { seekMutation.mutate(parseInt((e.target as HTMLInputElement).value)); setIsSeeking(false); }}
+                        className="absolute inset-x-0 w-full h-10 -top-2 opacity-0 cursor-pointer z-10"
+                    />
+                    <div
+                        className="absolute w-4 h-4 rounded-full pointer-events-none z-10 border-2"
+                        style={{
+                            left: `clamp(0px, calc(${Math.min(100, Math.max(0, mobileProgressPercent))}% - 8px), calc(100% - 8px))`,
+                            backgroundColor: 'white',
+                            borderColor: highlightColor,
+                            boxShadow: `0 0 10px ${highlightColor}99`
+                        }}
+                    />
+                </div>
+                <div className="flex justify-between text-[9px] font-bold text-white/20 mb-3">
+                    <span>{formatTime(mobileEffectiveTime)}</span>
+                    <span>{formatTime(playerStatus?.total_time)}</span>
+                </div>
+
+                {/* Transport Controls */}
+                <div className="flex items-center justify-center gap-2 mb-3">
+                    <button onClick={() => previousMutation.mutate()} className="w-10 h-10 flex items-center justify-center bg-[#1a1a1c] border border-white/10 border-b-2 border-b-black/50 rounded-xl active:translate-y-0.5 active:border-b-0">
+                        <SkipBack size={18} className="text-white/60" />
+                    </button>
+                    <button
+                        onClick={() => { const t = Math.round(Math.max(0, mobileEffectiveTime - 5)); seekMutation.mutate(t); }}
+                        className="w-10 h-10 flex items-center justify-center bg-[#1a1a1c] border border-white/10 border-b-2 border-b-black/50 rounded-xl active:translate-y-0.5 active:border-b-0"
+                    >
+                        <FastRewind size={18} className="text-white/60" />
+                    </button>
+                    {mobileIsPlaying ? (
+                        <button
+                            onClick={() => pauseMutation.mutate()}
+                            className="w-14 h-14 flex items-center justify-center border border-white/20 border-b-2 border-b-black/50 rounded-2xl active:translate-y-0.5 active:border-b-0"
+                            style={{ backgroundColor: highlightColor, boxShadow: `0 5px 20px ${highlightColor}44` }}
+                        >
+                            <Pause size={24} className="text-white fill-white" />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => playMutation.mutate()}
+                            className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] border border-white/10 border-b-2 border-b-black/50 rounded-2xl active:translate-y-0.5 active:border-b-0"
+                        >
+                            <Play size={24} className="text-blue-400 fill-blue-400/10 ml-0.5" />
+                        </button>
+                    )}
+                    <button onClick={() => stopMutation.mutate()} className="w-10 h-10 flex items-center justify-center bg-[#1a1a1c] border border-white/10 border-b-2 border-b-black/50 rounded-xl active:translate-y-0.5 active:border-b-0">
+                        <Square size={16} className="text-white/60 fill-white/10" />
+                    </button>
+                    <button
+                        onClick={() => { const t = Math.round(Math.min(playerStatus?.total_time || 999, mobileEffectiveTime + 5)); seekMutation.mutate(t); }}
+                        className="w-10 h-10 flex items-center justify-center bg-[#1a1a1c] border border-white/10 border-b-2 border-b-black/50 rounded-xl active:translate-y-0.5 active:border-b-0"
+                    >
+                        <FastForward size={18} className="text-white/60" />
+                    </button>
+                    <button onClick={() => nextMutation.mutate()} className="w-10 h-10 flex items-center justify-center bg-[#1a1a1c] border border-white/10 border-b-2 border-b-black/50 rounded-xl active:translate-y-0.5 active:border-b-0">
+                        <SkipForward size={18} className="text-white/60" />
+                    </button>
+                </div>
+
+                {/* Volume Sliders (PL L / PL R) */}
+                {volumeControls.length > 0 && (
+                    <div className="flex flex-col gap-2 mb-3">
+                        {volumeControls.map((ctrl) => {
+                            const val = ctrl.id in pendingVolumes ? pendingVolumes[ctrl.id] : (controlValues[ctrl.id]?.volume ?? 0);
+                            const isMuted = controlValues[ctrl.id]?.mute;
+                            const min = ctrl.min ?? -96;
+                            const max = ctrl.max ?? 12;
+                            return (
+                                <div key={ctrl.id} className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => {
+                                            const newMute = !isMuted;
+                                            setControlValues(prev => ({ ...prev, [ctrl.id]: { ...prev[ctrl.id], mute: newMute } }));
+                                            setControlMutation.mutate({ id: ctrl.id, value: newMute });
+                                        }}
+                                        className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border text-xs ${isMuted
+                                            ? 'bg-red-500/20 border-red-500/30 text-red-400'
+                                            : 'bg-white/5 border-white/10 text-white/40'
+                                            }`}
+                                    >
+                                        {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                                    </button>
+                                    <span className="shrink-0 w-10 text-[9px] font-black uppercase tracking-wider text-white/30">{ctrl.name}</span>
+                                    <input
+                                        type="range"
+                                        min={min}
+                                        max={max}
+                                        step={ctrl.step || 0.5}
+                                        value={val}
+                                        onChange={(e) => {
+                                            const v = parseFloat(e.target.value);
+                                            setPendingVolumes(prev => ({ ...prev, [ctrl.id]: v }));
+                                            setControlValues(prev => ({ ...prev, [ctrl.id]: { ...prev[ctrl.id], volume: v } }));
+                                        }}
+                                        onMouseUp={(e) => {
+                                            const v = parseFloat((e.target as HTMLInputElement).value);
+                                            setControlMutation.mutate({ id: ctrl.id, value: v });
+                                            setPendingVolumes(prev => { const n = { ...prev }; delete n[ctrl.id]; return n; });
+                                        }}
+                                        onTouchEnd={(e) => {
+                                            const v = parseFloat((e.target as HTMLInputElement).value);
+                                            setControlMutation.mutate({ id: ctrl.id, value: v });
+                                            setPendingVolumes(prev => { const n = { ...prev }; delete n[ctrl.id]; return n; });
+                                        }}
+                                        className="flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer"
+                                        style={{ accentColor: highlightColor }}
+                                    />
+                                    <span className="shrink-0 w-12 text-right font-mono text-[10px] font-bold text-white/40">{val.toFixed(1)}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Bottom Toolbar: Repeat | Fade | OTP */}
+                <div className="flex items-center justify-center gap-2">
+                    {/* Repeat Group */}
+                    <button
+                        onClick={() => {
+                            const isGroup = playerStatus?.repeat_mode === 'group';
+                            repeatMutation.mutate(isGroup ? 'off' : 'all');
+                        }}
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${playerStatus?.repeat_mode === 'group'
+                            ? 'border-white/20 border-b-black/50 text-white'
+                            : 'bg-white/5 border-white/10 border-b-black/30 text-white/30'
+                            }`}
+                        style={playerStatus?.repeat_mode === 'group' ? { backgroundColor: highlightColor } : {}}
+                    >
+                        <ListMusic size={14} />
+                    </button>
+                    <button
+                        onClick={() => {
+                            const isSong = playerStatus?.repeat_mode === 'song';
+                            repeatMutation.mutate(isSong ? 'off' : 'one');
+                        }}
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
+                            ? 'border-white/20 border-b-black/50 text-white'
+                            : 'bg-white/5 border-white/10 border-b-black/30 text-white/30'
+                            }`}
+                        style={playerStatus?.repeat_mode === 'song' ? { backgroundColor: highlightColor } : {}}
+                    >
+                        <Repeat1 size={14} />
+                    </button>
+
+                    <div className="w-px h-6 bg-white/10" />
+
+                    {/* Fade */}
+                    <div
+                        ref={fadeRef}
+                        className="relative h-9 px-3 flex items-center gap-1 bg-white/5 border border-white/10 border-b-2 border-b-black/30 rounded-lg cursor-pointer active:translate-y-0.5 active:border-b-0"
+                        onClick={() => setIsFadeDropdownOpen(!isFadeDropdownOpen)}
+                    >
+                        <span className="text-[9px] font-black text-white/30 uppercase">Fade</span>
+                        <span className="text-xs font-bold" style={{ color: highlightColor }}>{fadeValue}</span>
+                        <ChevronDown size={12} className={`text-white/30 transition-transform ${isFadeDropdownOpen ? 'rotate-180' : ''}`} />
+                        {isFadeDropdownOpen && (
+                            <div className="absolute bottom-full left-0 mb-2 w-full bg-[#0a0a0c] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                                {[0, 1, 2, 3, 4, 5].map(v => (
+                                    <button
+                                        key={v}
+                                        onClick={(e) => { e.stopPropagation(); setFadeValue(v); setIsFadeDropdownOpen(false); fadeMutation.mutate(v); }}
+                                        className={`w-full py-2 text-center text-xs font-bold border-b border-white/5 last:border-0 ${fadeValue === v ? 'text-white' : 'text-white/30'}`}
+                                        style={fadeValue === v ? { backgroundColor: `${highlightColor}33`, color: highlightColor } : {}}
+                                    >
+                                        {v}s
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="w-px h-6 bg-white/10" />
+
+                    {/* OTP */}
+                    <button
+                        onClick={() => setIsOTPDashboardOpen(true)}
+                        className="h-9 px-3 bg-white/5 border border-white/10 border-b-2 border-b-black/30 rounded-lg flex items-center justify-center text-[10px] font-black text-white/30 uppercase active:translate-y-0.5 active:border-b-0"
+                    >
+                        OTP
+                    </button>
+                </div>
+            </div>
+
+            {/* ===== MODALS (Search, Management, OTP — all reused from tablet) ===== */}
+
+            {/* Search Modal */}
+            {isSearchModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-end justify-center">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsSearchModalOpen(false)} />
+                    <div className="relative bg-[#1a1a1a] border-t border-white/10 p-6 rounded-t-[2rem] w-full shadow-2xl pb-8 max-h-[90vh] overflow-y-auto">
+                        <button onClick={() => setIsSearchModalOpen(false)} className="absolute top-4 right-4 text-white/30"><X size={24} /></button>
+                        <h3 className="text-lg font-bold mb-4">Cerca Brano</h3>
+                        <div className="flex gap-2 mb-4">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(searchQuery); }}
+                                placeholder="Nome o numero..."
+                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500/50"
+                                autoFocus
+                            />
+                            <button
+                                onClick={() => handleSearch(searchQuery)}
+                                className="px-5 py-3 rounded-xl font-bold text-sm active:scale-95"
+                                style={{ backgroundColor: highlightColor }}
+                            >
+                                Cerca
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Management Modal — reuse the existing tablet modal rendering */}
+            {isManagementModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-end justify-center">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsManagementModalOpen(false)} />
+                    <div className="relative bg-[#1a1a1a] border-t border-white/10 p-6 rounded-t-[2rem] w-full shadow-2xl pb-8 max-h-[85vh] overflow-y-auto">
+                        <button onClick={() => setIsManagementModalOpen(false)} className="absolute top-4 right-4 text-white/30"><X size={24} /></button>
+                        <h3 className="text-lg font-bold mb-4">Gestione Brani</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button onClick={() => { setIsManagementModalOpen(false); setIsNewGroupModalOpen(true); }} className="p-4 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-white/60 active:bg-white/10">
+                                Nuovo Gruppo
+                            </button>
+                            <button onClick={() => { setIsManagementModalOpen(false); setIsAddToGroupModalOpen(true); setAddToGroupStep(1); }} className="p-4 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-white/60 active:bg-white/10">
+                                Aggiungi a Gruppo
+                            </button>
+                            <button onClick={() => { setIsManagementModalOpen(false); setIsDeleteModalOpen(true); setDeleteStep(1); }} className="p-4 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-white/60 active:bg-white/10">
+                                Elimina Brani
+                            </button>
+                            <button onClick={() => { setIsManagementModalOpen(false); setIsRenameModalOpen(true); setRenameStep(1); }} className="p-4 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-white/60 active:bg-white/10">
+                                Rinomina Brano
+                            </button>
+                            <button onClick={() => { setIsManagementModalOpen(false); setIsChangeTempoModalOpen(true); setChangeTempoStep(1); }} className="p-4 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-white/60 active:bg-white/10">
+                                Cambia Tempo
+                            </button>
+                            <button onClick={() => { setIsManagementModalOpen(false); setIsChangeMetadataModalOpen(true); setChangeMetadataStep(1); }} className="p-4 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-white/60 active:bg-white/10">
+                                Modifica Metadata
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* OTP Modal */}
+            {isOTPDashboardOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsOTPDashboardOpen(false)} />
+                    <div className="relative bg-[#1a1a1a] border border-white/10 p-6 rounded-[2rem] w-full shadow-2xl max-h-[80vh] overflow-y-auto">
+                        <button onClick={() => setIsOTPDashboardOpen(false)} className="absolute top-4 right-4 text-white/30"><X size={24} /></button>
+                        <h3 className="text-lg font-bold mb-4">OTP Dashboard</h3>
+                        <div className="flex flex-col gap-4">
+                            {/* Repeat Mode Buttons */}
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-black text-white/30 uppercase tracking-widest">Ripeti</span>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => repeatMutation.mutate('all')}
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold border ${playerStatus?.repeat_mode === 'group' ? 'bg-blue-500 text-white border-blue-400' : 'bg-white/5 border-white/10 text-white/40'}`}
+                                    >
+                                        Gruppo
+                                    </button>
+                                    <button
+                                        onClick={() => repeatMutation.mutate('one')}
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold border ${playerStatus?.repeat_mode === 'song' ? 'bg-blue-500 text-white border-blue-400' : 'bg-white/5 border-white/10 text-white/40'}`}
+                                    >
+                                        Brano
+                                    </button>
+                                    <button
+                                        onClick={() => repeatMutation.mutate('off')}
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold border ${playerStatus?.repeat_mode === 'none' ? 'bg-blue-500 text-white border-blue-400' : 'bg-white/5 border-white/10 text-white/40'}`}
+                                    >
+                                        Off
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Now Playing */}
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                                <div className="text-[9px] font-black uppercase tracking-widest text-white/20 mb-2">In riproduzione</div>
+                                <div className="text-2xl font-black uppercase tracking-tight truncate" style={{ color: highlightColor }}>
+                                    {playerStatus?.song_title || 'Nessun brano'}
+                                </div>
+                                <div className="flex items-center gap-4 mt-2">
+                                    <span className={`text-sm font-bold ${mobileStatus.color}`}>{mobileStatus.text}</span>
+                                    <span className="font-mono text-sm text-white/40">{formatTime(mobileEffectiveTime)} / {formatTime(playerStatus?.total_time)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 };
 
