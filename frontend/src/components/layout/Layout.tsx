@@ -83,12 +83,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
                         <div className="p-6 hidden lg:flex items-center space-x-3">
-                            <img
-                                src="/verbumdigital-logo.png"
-                                alt="VerbumDigital"
-                                className="h-10 w-10 object-contain"
-                            />
-                            <span className="text-xl font-bold text-gray-900 dark:text-white">VerbumDigital</span>
+                            <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                                <img
+                                    src="/verbumdigital-logo.png"
+                                    alt="VerbumDigital"
+                                    className="h-10 w-10 object-contain"
+                                />
+                                <span className="text-xl font-bold text-gray-900 dark:text-white">VerbumDigital</span>
+                            </a>
                         </div>
 
                         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
@@ -179,9 +181,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {!isTablet && (
                 <footer className="mt-auto py-3 px-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                     <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                        <div>
-                            © 2026 AV Control System
-                        </div>
+                        <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+                            <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-4 w-4 object-contain opacity-60" />
+                            <span>VerbumDigital</span>
+                        </a>
                         <VersionDisplay />
                     </div>
                 </footer>

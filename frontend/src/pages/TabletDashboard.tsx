@@ -13,7 +13,6 @@ import {
     Power,
     Home,
     Wrench,
-    Info,
     X,
     Wifi,
     WifiOff,
@@ -97,7 +96,6 @@ export const TabletDashboard: React.FC = () => {
     };
 
     const homeModal = useModalAnimation(false);
-    const infoModal = useModalAnimation(false);
     const logoutModal = useModalAnimation(false);
 
     const { data: versionData } = useQuery({
@@ -210,17 +208,16 @@ export const TabletDashboard: React.FC = () => {
                             </h1>
                         </div>
 
-                        {/* Right Actions Group */}
-                        <div className="flex items-center space-x-3 z-10">
-                            {/* Info Button */}
-                            <button
-                                onClick={infoModal.open}
-                                className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-white/10 hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
-                                title="Informazioni"
-                            >
-                                <Info size={24} />
-                            </button>
-                        </div>
+                        {/* Right: VerbumDigital logo link */}
+                        <a
+                            href="https://verbumdigital.com/it/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 opacity-30 hover:opacity-70 transition-opacity z-10"
+                            title="VerbumDigital"
+                        >
+                            <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-9 w-9 object-contain" />
+                        </a>
                     </div>
 
                     {/* Row 2: Title — portrait only (hidden in landscape) */}
@@ -284,12 +281,13 @@ export const TabletDashboard: React.FC = () => {
                 </div>
 
                 {/* Footer Decor */}
-                <div className="w-full flex justify-between items-end opacity-20 text-[10px] tracking-widest uppercase py-2">
+                <div className="w-full flex justify-between items-center opacity-20 hover:opacity-40 transition-opacity text-[10px] tracking-widest uppercase py-2">
                     <span>AV Control Network</span>
-                    <div className="flex space-x-4">
-                        <span>AV Control System</span>
-                        {versionData && <span>v{versionData.version}</span>}
-                    </div>
+                    <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                        <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-5 w-5 object-contain" />
+                        <span>VerbumDigital</span>
+                        {versionData && <span className="ml-1">v{versionData.version}</span>}
+                    </a>
                 </div>
             </div>
 
@@ -298,7 +296,7 @@ export const TabletDashboard: React.FC = () => {
                 <div className={`fixed inset-0 z-50 flex items-center justify-center p-8 transition-opacity duration-500 ease-in-out ${homeModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-xl transition-opacity duration-500" onClick={homeModal.close} />
                     <div className={`
-                        relative bg-[#1a1a1a] border border-white/10 p-12 rounded-[2.5rem] max-w-2xl w-full shadow-2xl transition-all duration-500 ease-out
+                        relative bg-[#1a1a1a] border border-white/10 p-10 rounded-[2.5rem] max-w-2xl w-full shadow-2xl transition-all duration-500 ease-out
                         ${homeModal.isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-90 translate-y-4 opacity-0'}
                     `}>
                         <button
@@ -307,12 +305,22 @@ export const TabletDashboard: React.FC = () => {
                         >
                             <X size={32} />
                         </button>
-                        <h2 className="text-4xl font-bold mb-8 text-blue-400 tracking-tight">Informazioni Sistema</h2>
-                        <div className="space-y-6 text-xl text-white/80 leading-relaxed">
-                            <div className="flex justify-between border-b border-white/5 pb-4">
-                                <span className="text-white/40">Produttore</span>
-                                <span className="font-semibold">VerbumDigital</span>
+
+                        {/* Header con logo */}
+                        <div className="flex items-center gap-5 mb-8">
+                            <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="shrink-0 hover:opacity-80 transition-opacity">
+                                <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-16 w-16 object-contain" />
+                            </a>
+                            <div>
+                                <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+                                    <h2 className="text-4xl font-bold text-blue-400 tracking-tight">VerbumDigital</h2>
+                                </a>
+                                <p className="text-white/30 text-sm mt-0.5 tracking-widest uppercase">AV Control System</p>
                             </div>
+                        </div>
+
+                        {/* Contatti */}
+                        <div className="space-y-4 text-lg text-white/80">
                             <div className="flex justify-between border-b border-white/5 pb-4">
                                 <span className="text-white/40">Assistenza Tecnica</span>
                                 <span className="font-semibold text-blue-400">+39 000 000 000</span>
@@ -322,57 +330,20 @@ export const TabletDashboard: React.FC = () => {
                                 <span className="font-semibold">AV Control Network</span>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
 
-            {infoModal.isRendered && (
-                <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-500 ease-in-out ${infoModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xl transition-opacity duration-500" onClick={infoModal.close} />
-                    <div className={`
-                        relative bg-[#1a1a1a] border border-white/10 p-6 rounded-[2rem] max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl transition-all duration-500 ease-out
-                        ${infoModal.isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-90 translate-y-4 opacity-0'}
-                    `}>
-                        <button
-                            onClick={infoModal.close}
-                            className="absolute top-5 right-5 text-white/30 hover:text-white transition-colors"
-                        >
-                            <X size={28} />
-                        </button>
-                        <h2 className="text-2xl font-bold mb-5 tracking-tight">Hardware & Software</h2>
-                        <div className="space-y-2.5">
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Versione SW</span>
-                                <span className="font-mono text-blue-400 font-bold text-sm">{versionData?.version || 'Unknown'}</span>
+                        {/* Info tecniche */}
+                        <div className="mt-6 pt-5 border-t border-white/5 space-y-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-white/30 text-sm">Versione SW</span>
+                                <span className="font-mono text-blue-400 font-bold text-sm">{versionData?.version || '—'}</span>
                             </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Build Date</span>
-                                <span className="font-mono text-white/80 text-sm">{versionData?.build_date || 'Unknown'}</span>
+                            <div className="flex justify-between items-center">
+                                <span className="text-white/30 text-sm">Indirizzo IP</span>
+                                <span className="font-mono text-white/60 text-sm">{systemInfo?.ip || '—'}</span>
                             </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Architettura</span>
-                                <span className="font-mono uppercase text-white/60 text-sm">{versionData?.arch || 'ARMv7'}</span>
-                            </div>
-
-                            {/* Daemon Info Section */}
-                            <div className="mt-4 pt-3 border-t border-white/5">
-                                <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest mb-3">Daemon Hardware</h3>
-                            </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Nome</span>
-                                <span className="font-mono text-white/80 text-sm">{systemInfo?.name || '—'}</span>
-                            </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Versione Daemon</span>
-                                <span className="font-mono text-blue-400 font-bold text-sm">{systemInfo?.version || '—'}</span>
-                            </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Indirizzo IP</span>
-                                <span className="font-mono text-white/80 text-sm">{systemInfo?.ip || '—'}</span>
-                            </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Seriale</span>
-                                <span className="font-mono text-white/60 text-xs">{systemInfo?.serial || '—'}</span>
+                            <div className="flex justify-between items-center">
+                                <span className="text-white/30 text-sm">Seriale</span>
+                                <span className="font-mono text-white/50 text-xs">{systemInfo?.serial || '—'}</span>
                             </div>
                         </div>
                     </div>
