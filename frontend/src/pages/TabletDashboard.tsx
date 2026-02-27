@@ -272,12 +272,23 @@ export const TabletDashboard: React.FC = () => {
 
                         {/* Title — landscape only: absolutely centered between the two button groups */}
                         <div className="hidden landscape:flex absolute inset-0 items-center justify-center pointer-events-none">
-                            <h1 className="text-4xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                                Parrocchia
-                            </h1>
+                            <div className="flex items-center gap-4">
+                                <a
+                                    href="https://verbumdigital.com/it/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-12 h-12 rounded-full bg-white/5 border border-white/15 flex items-center justify-center overflow-hidden opacity-70 hover:opacity-100 transition-opacity pointer-events-auto shrink-0"
+                                    title="VerbumDigital"
+                                >
+                                    <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-7 w-7 object-contain" />
+                                </a>
+                                <h1 className="text-4xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                                    Parrocchia
+                                </h1>
+                            </div>
                         </div>
 
-                        {/* Right: Fullscreen button + VerbumDigital logo */}
+                        {/* Right: Fullscreen button only */}
                         <div className="flex items-center gap-3 z-10">
                             <button
                                 onClick={toggleFullscreen}
@@ -286,22 +297,24 @@ export const TabletDashboard: React.FC = () => {
                             >
                                 {isFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
                             </button>
-                            <a
-                                href="https://verbumdigital.com/it/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 opacity-30 hover:opacity-70 transition-opacity"
-                                title="VerbumDigital"
-                            >
-                                <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-9 w-9 object-contain" />
-                            </a>
                         </div>
                     </div>
 
                     {/* Row 2: Title — portrait only (hidden in landscape) */}
-                    <h1 className="landscape:hidden text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                        Parrocchia
-                    </h1>
+                    <div className="landscape:hidden flex items-center justify-center gap-4">
+                        <a
+                            href="https://verbumdigital.com/it/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-11 h-11 rounded-full bg-white/5 border border-white/15 flex items-center justify-center overflow-hidden opacity-70 hover:opacity-100 transition-opacity shrink-0"
+                            title="VerbumDigital"
+                        >
+                            <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-6 w-6 object-contain" />
+                        </a>
+                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                            Parrocchia
+                        </h1>
+                    </div>
                 </div>
 
                 {/* Main Content Area — Circular Layout */}
