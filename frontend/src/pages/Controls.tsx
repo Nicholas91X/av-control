@@ -47,6 +47,8 @@ export const Controls: React.FC = () => {
     const [isMutating, setIsMutating] = useState(false);
     const [volStep, setVolStep] = useState(defaultVolStep);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const stepTimeoutsRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+    const pendingStepValueRef = useRef<Record<number, number>>({});
     const [saveModalOpen, setSaveModalOpen] = useState(false);
     const [selectedPresetToSave, setSelectedPresetToSave] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
@@ -245,13 +247,25 @@ export const Controls: React.FC = () => {
     };
 
     const handleStepVolume = (control: Control, direction: 'up' | 'down') => {
-        const current = controlValues[control.id]?.volume ?? 0;
+        const current = pendingStepValueRef.current[control.id] ?? controlValues[control.id]?.volume ?? 0;
         const step = volStep;
         const next = direction === 'up' ? current + step : current - step;
         const max = control.max ?? 12;
         const clamped = Math.max(control.min || -96, Math.min(max, next));
-        
-        setControlMutation.mutate({ id: control.id, value: clamped });
+
+        // Aggiorna UI immediatamente
+        pendingStepValueRef.current[control.id] = clamped;
+        setPendingValues(prev => ({ ...prev, [control.id]: clamped }));
+
+        // Debounce: manda un solo comando dopo 150ms di inattività sul canale
+        if (stepTimeoutsRef.current[control.id]) {
+            clearTimeout(stepTimeoutsRef.current[control.id]);
+        }
+        stepTimeoutsRef.current[control.id] = setTimeout(() => {
+            setControlMutation.mutate({ id: control.id, value: pendingStepValueRef.current[control.id] });
+            delete pendingStepValueRef.current[control.id];
+            delete stepTimeoutsRef.current[control.id];
+        }, 150);
     };
 
     const handleResetAll = () => {
