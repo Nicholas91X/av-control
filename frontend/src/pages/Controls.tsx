@@ -443,7 +443,7 @@ export const Controls: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 min-h-[44px]">
                     <input
                         type="range"
                         min={control.min || -96}
@@ -454,8 +454,12 @@ export const Controls: React.FC = () => {
                         onChange={(e) => handleVolumeChange(control.id, parseFloat(e.target.value))}
                         onMouseUp={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
                         onTouchEnd={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
-                        className="flex-1 h-2 bg-black rounded-full appearance-none cursor-pointer"
-                        style={{ accentColor: highlightColor, touchAction: 'none' }}
+                        className="flex-1 h-3 bg-black rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/30 [&::-webkit-slider-thumb]:shadow-lg [&::-moz-range-thumb]:w-7 [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white/30"
+                        style={{
+                            accentColor: highlightColor,
+                            touchAction: 'none',
+                            ['--tw-slider-thumb-bg' as any]: highlightColor
+                        }}
                     />
                     <div className="w-16 text-right font-mono font-bold text-white/60">
                         {val.toFixed(1)}

@@ -936,10 +936,10 @@ export const Players: React.FC = () => {
                 style={{ backgroundColor: backgroundColor }}
             >
                 {/* Main Content Grid */}
-                <div className="flex-1 flex overflow-hidden p-6 gap-6">
+                <div className="flex-1 flex overflow-hidden p-4 gap-4">
 
                     {/* Column 1: Sources (Left) */}
-                    <div className="w-[20%] flex flex-col gap-6 pt-20">
+                    <div className="w-[20%] flex flex-col gap-4 pt-16">
                         <div className="flex-1 flex flex-col gap-4 min-h-0">
                             {/* Physical Sources List */}
                             <div className="flex flex-col gap-3 shrink-0">
@@ -969,7 +969,7 @@ export const Players: React.FC = () => {
                             <div className="h-px bg-white/10 my-2 shrink-0" />
 
                             {/* Groups Section */}
-                            <div className="flex-1 flex flex-col gap-2 min-h-[200px]">
+                            <div className="flex-1 flex flex-col gap-2 min-h-0">
                                 <div className="px-2">
                                     <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30">Gruppi</h3>
                                 </div>
@@ -1007,7 +1007,7 @@ export const Players: React.FC = () => {
                     </div>
 
                     {/* Column 2: Songs & Transport (Center) */}
-                    <div className="flex-1 flex flex-col gap-6">
+                    <div className="flex-1 flex flex-col gap-4">
                         {/* Songs Library */}
                         <div
                             ref={songListRef}
@@ -1045,7 +1045,7 @@ export const Players: React.FC = () => {
                                                         }
                                                     }
                                                 }}
-                                                className={`w-full flex items-center p-5 text-left transition-all border-l-4 ${isCurrentSelection
+                                                className={`w-full flex items-center p-3 text-left transition-all border-l-4 ${isCurrentSelection
                                                     ? 'z-10'
                                                     : isSearchResult
                                                         ? ''
@@ -1066,10 +1066,10 @@ export const Players: React.FC = () => {
                                                     boxShadow: isCurrentSelection ? `inset 0 0 20px ${highlightColor}44` : undefined
                                                 }}
                                             >
-                                                <span className={`w-12 font-mono text-xl ${isSearchResult ? 'opacity-100 text-blue-400' : 'opacity-40'}`}>
+                                                <span className={`w-10 font-mono text-lg ${isSearchResult ? 'opacity-100 text-blue-400' : 'opacity-40'}`}>
                                                     {(index + 1).toString().padStart(1, ' ')}
                                                 </span>
-                                                <span className={`min-w-0 flex-1 text-2xl font-bold tracking-tight uppercase truncate ${isSearchResult ? 'text-white' : ''}`}>
+                                                <span className={`min-w-0 flex-1 text-xl font-bold tracking-tight uppercase truncate ${isSearchResult ? 'text-white' : ''}`}>
                                                     {song.name}
                                                 </span>
                                                 {isCurrentSelection && (
@@ -1119,7 +1119,7 @@ export const Players: React.FC = () => {
                                     </div>
 
                                     {/* Transport Controls */}
-                                    <div className="flex justify-between gap-4 mb-6 px-1">
+                                    <div className="flex justify-between gap-3 mb-4 px-1">
                                         {/* 1) Brano precedente */}
                                         <button
                                             onClick={() => previousMutation.mutate()}
@@ -1258,15 +1258,15 @@ export const Players: React.FC = () => {
                     </div>
 
                     {/* Column 3: Volume & Nav (Right) - ANALOG MIXER STYLE */}
-                    <div className="w-[18%] flex flex-col gap-4">
+                    <div className="w-[18%] flex flex-col gap-3">
                         {/* Main Fader Box - PREMIUM FLOATING GLASS DESIGN */}
-                        <div className="flex-1 relative rounded-[3.5rem] bg-gradient-to-b from-white/10 to-transparent p-[1.5px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] backdrop-blur-3xl overflow-hidden border border-white/5">
+                        <div className="flex-1 relative rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent p-[1.5px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] backdrop-blur-3xl overflow-hidden border border-white/5">
                             {/* Inner Gloss Layer */}
                             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-black/40 pointer-events-none" />
 
                             {/* Recessed Audio Control Panel */}
-                            <div className="relative h-full flex flex-col gap-6 bg-[#0a0a0c]/80 rounded-[3.4rem] p-6 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.02)]">
-                                <div className="flex-1 flex flex-row justify-center gap-5 relative z-10">
+                            <div className="relative h-full flex flex-col gap-3 bg-[#0a0a0c]/80 rounded-[2.4rem] p-4 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.02)]">
+                                <div className="flex-1 flex flex-row justify-center gap-3 relative z-10">
                                     {volumeControls.map((ctrl, index) => {
 
                                         const val = ctrl.id in pendingVolumes ? pendingVolumes[ctrl.id] : (controlValues[ctrl.id]?.volume ?? 0);
@@ -1277,14 +1277,14 @@ export const Players: React.FC = () => {
                                         const percent = ((val - min) / range) * 100;
 
                                         return (
-                                            <div key={`channel-${ctrl.id}`} className="flex flex-col items-center gap-8 h-full">
+                                            <div key={`channel-${ctrl.id}`} className="flex flex-col items-center gap-4 h-full">
                                                 <span className="text-[10px] font-black text-white/30 tracking-widest uppercase -mb-4">
                                                     {ctrl.name || (index === 0 ? 'PL L' : 'PL R')}
                                                 </span>
                                                 {/* Plus Button */}
                                                 <button
                                                     onClick={() => handleStepVolume(ctrl, 'up')}
-                                                    className="w-14 h-14 flex items-center justify-center bg-[#2a2a2e] hover:bg-[#323236] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
+                                                    className="w-12 h-12 flex items-center justify-center bg-[#2a2a2e] hover:bg-[#323236] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
                                                 >
                                                     <Plus className="w-6 h-6 text-blue-400" />
                                                 </button>
@@ -1331,7 +1331,7 @@ export const Players: React.FC = () => {
                                                 {/* Minus Button */}
                                                 <button
                                                     onClick={() => handleStepVolume(ctrl, 'down')}
-                                                    className="w-14 h-14 flex items-center justify-center bg-[#2a2a2e] hover:bg-[#323236] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
+                                                    className="w-12 h-12 flex items-center justify-center bg-[#2a2a2e] hover:bg-[#323236] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-xl transition-all active:translate-y-1 active:border-b-0 shadow-lg shrink-0"
                                                 >
                                                     <Minus className="w-6 h-6 text-blue-400" />
                                                 </button>
@@ -1346,7 +1346,7 @@ export const Players: React.FC = () => {
                                                             [ctrl.id]: { ...prev[ctrl.id], mute: !isMuted }
                                                         }));
                                                     }}
-                                                    className={`w-14 h-12 rounded-2xl flex items-center justify-center transition-all border-t-2 border-white/20 border-b-[6px] border-b-black shrink-0 active:translate-y-1 active:border-b-0 ${isMuted
+                                                    className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all border-t-2 border-white/20 border-b-[6px] border-b-black shrink-0 active:translate-y-1 active:border-b-0 ${isMuted
                                                         ? 'bg-red-600 border-red-400 border-b-red-950 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
                                                         : 'bg-[#2a2a2e] text-blue-400 hover:text-white shadow-lg'
                                                         }`}
@@ -1358,14 +1358,14 @@ export const Players: React.FC = () => {
                                     })}
                                     {/* Disabled PL R placeholder when right channel is not available */}
                                     {!hasPlR && (
-                                        <div className="flex flex-col items-center gap-8 h-full opacity-30 pointer-events-none grayscale">
-                                            <span className="text-[10px] font-black text-white/30 tracking-widest uppercase -mb-4">
+                                        <div className="flex flex-col items-center gap-4 h-full opacity-30 pointer-events-none grayscale">
+                                            <span className="text-[10px] font-black text-white/30 tracking-widest uppercase -mb-2">
                                                 PL R
                                             </span>
-                                             <div className="w-14 h-14 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl" />
+                                             <div className="w-12 h-12 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-xl" />
                                              <div className="flex-1 w-12 bg-black/50 rounded-full border border-white/5" />
-                                             <div className="w-14 h-14 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl" />
-                                             <div className="w-14 h-12 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-2xl" />
+                                             <div className="w-12 h-12 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-xl" />
+                                             <div className="w-12 h-10 bg-[#2a2a2e] border-t-2 border-t-white/20 border-b-[6px] border-b-black rounded-xl" />
                                         </div>
                                     )}
                                 </div>

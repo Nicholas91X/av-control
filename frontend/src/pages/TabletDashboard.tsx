@@ -372,12 +372,12 @@ export const TabletDashboard: React.FC = () => {
                 </div>
 
                 {/* Footer Decor */}
-                <div className="w-full flex justify-between items-center opacity-20 hover:opacity-40 transition-opacity text-[10px] tracking-widest uppercase py-2">
-                    <span>AV Control Network</span>
+                <div className="w-full flex justify-between items-center opacity-60 hover:opacity-80 transition-opacity text-[10px] tracking-widest uppercase py-2">
+                    <span className="text-white/80">AV Control Network</span>
                     <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                         <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-5 w-5 object-contain" />
-                        <span>VerbumDigital</span>
-                        {versionData && <span className="ml-1">v{versionData.version}</span>}
+                        <span className="text-white/80">VerbumDigital</span>
+                        {versionData && <span className="ml-1 text-white/90">v{versionData.version}</span>}
                     </a>
                 </div>
             </div>
@@ -425,16 +425,16 @@ export const TabletDashboard: React.FC = () => {
                         {/* Info tecniche */}
                         <div className="mt-6 pt-5 border-t border-white/5 space-y-3">
                             <div className="flex justify-between items-center">
-                                <span className="text-white/30 text-sm">Versione SW</span>
+                                <span className="text-white/70 text-sm">Versione SW</span>
                                 <span className="font-mono text-blue-400 font-bold text-sm">{versionData?.version || '—'}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-white/30 text-sm">Indirizzo IP</span>
-                                <span className="font-mono text-white/60 text-sm">{systemInfo?.ip || '—'}</span>
+                                <span className="text-white/70 text-sm">Indirizzo IP</span>
+                                <span className="font-mono text-white/80 text-sm">{systemInfo?.ip || '—'}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-white/30 text-sm">Seriale</span>
-                                <span className="font-mono text-white/50 text-xs">{systemInfo?.serial || '—'}</span>
+                                <span className="text-white/70 text-sm">Seriale</span>
+                                <span className="font-mono text-white/80 text-xs">{systemInfo?.serial || '—'}</span>
                             </div>
                         </div>
                     </div>
