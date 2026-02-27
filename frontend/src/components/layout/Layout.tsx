@@ -33,7 +33,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const navigation = [
-        { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+        { name: 'Desktop', href: '/', icon: LayoutDashboard },
         { name: 'Presets', href: '/presets', icon: Settings },
         { name: 'Players', href: '/players', icon: Mic },
         { name: 'Recorders', href: '/recorders', icon: HardDrive },
@@ -156,7 +156,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                                     className="flex items-center space-x-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white px-5 py-3 rounded-2xl border border-white/10 border-b-4 border-black/40 transition-all active:translate-y-1 active:border-b-0 group shadow-2xl backdrop-blur-md"
                                 >
                                     <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
-                                    <span className="font-bold tracking-widest uppercase text-xs">Dashboard</span>
+                                    <span className="font-bold tracking-widest uppercase text-xs">Desktop</span>
                                 </button>
                             </div>
                         )}

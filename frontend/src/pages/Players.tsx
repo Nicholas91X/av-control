@@ -820,9 +820,10 @@ export const Players: React.FC = () => {
 
     // Helpers
     const formatTime = (seconds?: number) => {
-        if (!seconds) return '00:00';
-        const m = Math.floor(seconds / 60);
-        const s = Math.floor(seconds % 60);
+        if (seconds === undefined || seconds === null || isNaN(seconds) || seconds < 0) return '00:00';
+        const total = Math.round(seconds);
+        const m = Math.floor(total / 60);
+        const s = total % 60;
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
@@ -908,11 +909,6 @@ export const Players: React.FC = () => {
                     {/* Column 1: Sources (Left) */}
                     <div className="w-[20%] flex flex-col gap-6 pt-20">
                         <div className="flex-1 flex flex-col gap-4 min-h-0">
-                            {/* Sources Header */}
-                            <div className="border rounded-xl p-4 shrink-0" style={{ backgroundColor: `${highlightColor}11`, borderColor: `${highlightColor}33` }}>
-                                <h2 className="font-bold tracking-widest uppercase text-xs" style={{ color: highlightColor }}>SORGENTI</h2>
-                            </div>
-
                             {/* Physical Sources List */}
                             <div className="flex flex-col gap-3 shrink-0">
                                 {sources.map((source) => {
@@ -983,7 +979,7 @@ export const Players: React.FC = () => {
                         {/* Songs Library */}
                         <div
                             ref={songListRef}
-                            className="flex-1 bg-white/5 border border-white/10 rounded-2xl overflow-y-auto custom-scrollbar-hidden"
+                            className="flex-1 bg-white/5 border border-white/10 rounded-2xl overflow-y-auto overflow-x-hidden custom-scrollbar-hidden"
                         >
                             {isLoadingSongs ? (
                                 <div className="h-full flex items-center justify-center">
@@ -1041,7 +1037,7 @@ export const Players: React.FC = () => {
                                                 <span className={`w-12 font-mono text-xl ${isSearchResult ? 'opacity-100 text-blue-400' : 'opacity-40'}`}>
                                                     {(index + 1).toString().padStart(1, ' ')}
                                                 </span>
-                                                <span className={`text-2xl font-bold tracking-tight uppercase truncate ${isSearchResult ? 'text-white' : ''}`}>
+                                                <span className={`min-w-0 flex-1 text-2xl font-bold tracking-tight uppercase truncate ${isSearchResult ? 'text-white' : ''}`}>
                                                     {song.name}
                                                 </span>
                                                 {isCurrentSelection && (

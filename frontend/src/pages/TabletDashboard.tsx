@@ -398,7 +398,7 @@ export const TabletDashboard: React.FC = () => {
                             <div className="flex w-full space-x-4">
                                 <button
                                     onClick={logoutModal.close}
-                                    className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-2xl font-semibold transition-all active:translate-y-1 active:border-b-0"
+                                    className="flex-1 py-4 bg-white/10 hover:bg-white/15 border border-white/20 border-b-4 border-black/40 text-white rounded-2xl font-bold shadow-lg transition-all active:translate-y-1 active:border-b-0"
                                 >
                                     Annulla
                                 </button>

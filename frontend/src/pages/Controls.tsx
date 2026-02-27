@@ -40,12 +40,11 @@ interface ControlValue {
 export const Controls: React.FC = () => {
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
-    const { highlightColor, backgroundColor, defaultVolStep, defaultControlsView } = useSettings();
+    const { highlightColor, backgroundColor, defaultVolStep, setDefaultVolStep, defaultControlsView } = useSettings();
     const [pendingValues, setPendingValues] = useState<Record<number, number>>({});
     const [controlValues, setControlValues] = useState<Record<number, ControlValue>>({});
     const [viewMode, setViewMode] = useState<'mixer' | 'compact'>(defaultControlsView);
     const [isMutating, setIsMutating] = useState(false);
-    const [volStep, setVolStep] = useState(defaultVolStep);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const stepTimeoutsRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
     const pendingStepValueRef = useRef<Record<number, number>>({});
@@ -104,7 +103,7 @@ export const Controls: React.FC = () => {
         const result: Control[] = [];
 
         baseControls.forEach((control: Control) => {
-            result.push({ ...control, step: volStep });
+            result.push({ ...control, step: defaultVolStep });
 
             if (control.second_id) {
                 let rName = control.name;
@@ -121,13 +120,13 @@ export const Controls: React.FC = () => {
                     id: control.second_id,
                     name: rName,
                     second_id: undefined, // Clear second_id for the synthesized control
-                    step: volStep
+                    step: defaultVolStep
                 });
             }
         });
 
         return result;
-    }, [controlsData?.controls, volStep]);
+    }, [controlsData?.controls, defaultVolStep]);
 
 
 
@@ -248,7 +247,7 @@ export const Controls: React.FC = () => {
 
     const handleStepVolume = (control: Control, direction: 'up' | 'down') => {
         const current = pendingStepValueRef.current[control.id] ?? controlValues[control.id]?.volume ?? 0;
-        const step = volStep;
+        const step = defaultVolStep;
         const next = direction === 'up' ? current + step : current - step;
         const max = control.max ?? 12;
         const clamped = Math.max(control.min || -96, Math.min(max, next));
@@ -480,8 +479,8 @@ export const Controls: React.FC = () => {
                     <div className="h-12 flex items-center bg-black/40 border border-white/10 rounded-xl px-4 gap-3 shadow-inner">
                         <span className="text-[10px] font-black text-white/30 uppercase tracking-widest whitespace-nowrap">Step Volume</span>
                         <select
-                            value={volStep}
-                            onChange={(e) => setVolStep(parseFloat(e.target.value))}
+                            value={defaultVolStep}
+                            onChange={(e) => setDefaultVolStep(parseFloat(e.target.value))}
                             className="bg-transparent border-none text-blue-400 font-bold text-sm outline-none cursor-pointer hover:text-white transition-colors"
                         >
                             <option value="0.1" className="bg-[#1a1a1c]">0.1 dB</option>
