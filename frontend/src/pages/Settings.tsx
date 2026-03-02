@@ -2,6 +2,7 @@ import React from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { Card } from '../components/ui/Card';
 import { Palette, Sun, Check, Settings as SettingsIcon, Sliders, Music, LayoutGrid, Power } from 'lucide-react';
+import { useIsTablet } from '../hooks/useIsTablet';
 
 const BG_PRESETS = [
     { label: 'OLED Black', value: '#000000' },
@@ -46,6 +47,237 @@ export const Settings: React.FC = () => {
         standbyTimeout, setStandbyTimeout,
     } = useSettings();
 
+    const isTablet = useIsTablet();
+
+    // ============================================
+    // RENDER MOBILE VIEW
+    // ============================================
+    if (!isTablet) {
+        return (
+            <div
+                className="fixed inset-0 flex flex-col overflow-hidden text-white font-sans"
+                style={{ backgroundColor }}
+            >
+                {/* Header */}
+                <div className="shrink-0 px-5 pt-5 pb-3">
+                    <div className="flex items-center gap-3 mb-1">
+                        <SettingsIcon className="w-5 h-5 text-blue-400" />
+                        <h1 className="text-lg font-black uppercase tracking-[0.2em]">Impostazioni</h1>
+                    </div>
+                    <div className="w-full h-px bg-gradient-to-r from-blue-500/50 via-transparent to-transparent" />
+                </div>
+
+                {/* Scrollable Settings */}
+                <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-4">
+
+                    {/* Background Color */}
+                    <div className="bg-[#111113] border border-white/5 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Palette size={16} className="text-white/40" />
+                            <span className="text-xs font-black uppercase tracking-wider text-white/60">Colore Sfondo</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {BG_PRESETS.map((preset) => (
+                                <button
+                                    key={preset.value}
+                                    onClick={() => setBackgroundColor(preset.value)}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all active:scale-95 ${
+                                        backgroundColor === preset.value
+                                            ? 'border-white/20 bg-white/10'
+                                            : 'border-white/5 bg-white/3 opacity-50'
+                                    }`}
+                                >
+                                    <div className="w-6 h-6 rounded-full border border-white/20 shrink-0" style={{ backgroundColor: preset.value }} />
+                                    <span className={`text-[9px] font-black uppercase tracking-wider ${backgroundColor === preset.value ? 'text-white' : 'text-white/30'}`}>
+                                        {preset.label}
+                                    </span>
+                                    {backgroundColor === preset.value && <Check className="w-3.5 h-3.5 text-white ml-auto" />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Highlight Color */}
+                    <div className="bg-[#111113] border border-white/5 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-4 h-4 rounded-full border border-white/30" style={{ backgroundColor: highlightColor }} />
+                            <span className="text-xs font-black uppercase tracking-wider text-white/60">Colore Highlight</span>
+                        </div>
+                        <div className="space-y-1.5">
+                            {HIGHLIGHT_PRESETS.map((preset) => (
+                                <button
+                                    key={preset.value}
+                                    onClick={() => setHighlightColor(preset.value)}
+                                    className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all active:scale-95 ${
+                                        highlightColor === preset.value
+                                            ? 'border-white/15 bg-white/8'
+                                            : 'border-white/5 opacity-40'
+                                    }`}
+                                >
+                                    <div className="w-5 h-5 rounded-full border border-white/20" style={{ backgroundColor: preset.value }} />
+                                    <span className={`text-[10px] font-black uppercase tracking-wider ${highlightColor === preset.value ? 'text-white' : 'text-white/30'}`}>
+                                        {preset.label}
+                                    </span>
+                                    {highlightColor === preset.value && (
+                                        <div className="w-2.5 h-2.5 rounded-full ml-auto" style={{ backgroundColor: highlightColor, boxShadow: `0 0 8px 2px ${highlightColor}` }} />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Backlight */}
+                    <div className="bg-[#111113] border border-white/5 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Sun size={16} className="text-white/40" />
+                            <span className="text-xs font-black uppercase tracking-wider text-white/60">Retroilluminazione</span>
+                            <span className="ml-auto text-lg font-black text-white/80">{backlightLevel}%</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="10"
+                            max="100"
+                            value={backlightLevel}
+                            onChange={(e) => setBacklightLevel(parseInt(e.target.value))}
+                            className="w-full h-2 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5"
+                            style={{
+                                backgroundImage: `linear-gradient(to right, ${highlightColor} 0%, ${highlightColor} ${backlightLevel}%, transparent ${backlightLevel}%, transparent 100%)`
+                            }}
+                        />
+                        <div className="flex justify-between">
+                            {[10, 25, 50, 75, 100].map(val => (
+                                <button
+                                    key={val}
+                                    onClick={() => setBacklightLevel(val)}
+                                    className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg transition-colors ${backlightLevel === val ? 'text-white bg-white/10' : 'text-white/20'}`}
+                                >
+                                    {val}%
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Default Fade */}
+                    <div className="bg-[#111113] border border-white/5 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Music size={16} className="text-white/40" />
+                            <span className="text-xs font-black uppercase tracking-wider text-white/60">Fade Predefinito</span>
+                            <span className="ml-auto text-lg font-black text-white/80">{defaultFade}s</span>
+                        </div>
+                        <div className="grid grid-cols-6 gap-1.5">
+                            {FADE_OPTIONS.map((val) => (
+                                <button
+                                    key={val}
+                                    onClick={() => setDefaultFade(val)}
+                                    className={`h-10 rounded-xl font-black text-sm transition-all border active:scale-95 ${
+                                        defaultFade === val
+                                            ? 'border-white/20 text-white'
+                                            : 'border-white/5 bg-white/5 text-white/30'
+                                    }`}
+                                    style={defaultFade === val ? { backgroundColor: highlightColor } : {}}
+                                >
+                                    {val}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Vol Step */}
+                    <div className="bg-[#111113] border border-white/5 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Sliders size={16} className="text-white/40" />
+                            <span className="text-xs font-black uppercase tracking-wider text-white/60">Step Volume</span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5">
+                            {VOL_STEP_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => setDefaultVolStep(opt.value)}
+                                    className={`h-10 rounded-xl font-black text-xs transition-all border active:scale-95 ${
+                                        defaultVolStep === opt.value
+                                            ? 'border-white/20 text-white'
+                                            : 'border-white/5 bg-white/5 text-white/30'
+                                    }`}
+                                    style={defaultVolStep === opt.value ? { backgroundColor: highlightColor } : {}}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Auto-Standby */}
+                    <div className="bg-[#111113] border border-white/5 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Power size={16} className="text-white/40" />
+                            <span className="text-xs font-black uppercase tracking-wider text-white/60">Auto-Standby</span>
+                        </div>
+                        <div className="space-y-1.5">
+                            {STANDBY_TIMEOUT_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => setStandbyTimeout(opt.value)}
+                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all active:scale-95 ${
+                                        standbyTimeout === opt.value
+                                            ? 'border-white/20 text-white'
+                                            : 'border-white/5 bg-white/5 text-white/30'
+                                    }`}
+                                    style={standbyTimeout === opt.value ? { backgroundColor: highlightColor } : {}}
+                                >
+                                    <span className="font-black text-xs uppercase tracking-wider">{opt.label}</span>
+                                    {standbyTimeout === opt.value && <Check className="w-4 h-4" />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Controls View */}
+                    <div className="bg-[#111113] border border-white/5 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <LayoutGrid size={16} className="text-white/40" />
+                            <span className="text-xs font-black uppercase tracking-wider text-white/60">Vista Controlli</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => setDefaultControlsView('mixer')}
+                                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 active:scale-95 ${
+                                    defaultControlsView === 'mixer'
+                                        ? 'border-white/20 bg-white/10'
+                                        : 'border-white/5 bg-white/5 opacity-40'
+                                }`}
+                            >
+                                <div className="flex gap-1 h-8">
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className={`w-2.5 rounded-full ${defaultControlsView === 'mixer' ? 'bg-white/40' : 'bg-white/15'}`} />
+                                    ))}
+                                </div>
+                                <span className={`font-black uppercase tracking-widest text-[10px] ${defaultControlsView === 'mixer' ? 'text-white' : 'text-white/30'}`}>Mixer</span>
+                            </button>
+                            <button
+                                onClick={() => setDefaultControlsView('compact')}
+                                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 active:scale-95 ${
+                                    defaultControlsView === 'compact'
+                                        ? 'border-white/20 bg-white/10'
+                                        : 'border-white/5 bg-white/5 opacity-40'
+                                }`}
+                            >
+                                <div className="flex flex-col gap-1 h-8 justify-center">
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className={`w-10 h-2 rounded-full ${defaultControlsView === 'compact' ? 'bg-white/40' : 'bg-white/15'}`} />
+                                    ))}
+                                </div>
+                                <span className={`font-black uppercase tracking-widest text-[10px] ${defaultControlsView === 'compact' ? 'text-white' : 'text-white/30'}`}>Compact</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ============================================
+    // RENDER TABLET VIEW
+    // ============================================
     return (
         <div className="fixed inset-0 flex flex-col overflow-hidden transition-colors duration-500" style={{ backgroundColor }}>
             {/* 1. TOP TITLE ROW */}

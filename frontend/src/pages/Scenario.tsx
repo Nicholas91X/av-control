@@ -4,6 +4,7 @@ import api from '../lib/api';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
+import { useIsTablet } from '../hooks/useIsTablet';
 import { Check, User, Music, Save, Loader2, LayoutGrid, Undo2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -200,7 +201,167 @@ export const Scenario: React.FC = () => {
     );
 
     const { backgroundColor } = useSettings();
+    const isTablet = useIsTablet();
 
+    // ============================================
+    // RENDER MOBILE VIEW
+    // ============================================
+    if (!isTablet) {
+        return (
+            <div
+                className="fixed inset-0 flex flex-col overflow-hidden text-white font-sans"
+                style={{ backgroundColor }}
+            >
+                {/* Header */}
+                <div className="shrink-0 px-5 pt-5 pb-3">
+                    <div className="flex items-center gap-3 mb-1">
+                        <LayoutGrid className="w-5 h-5 text-blue-400" />
+                        <h1 className="text-lg font-black uppercase tracking-[0.2em]">Scenario</h1>
+                    </div>
+                    <div className="w-full h-px bg-gradient-to-r from-blue-500/50 via-transparent to-transparent" />
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-5">
+
+                    {/* Celebrant Section */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-2 px-1">
+                            <User size={14} className="text-white/30" />
+                            <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Celebrante</span>
+                            <div className="h-px flex-1 bg-white/5" />
+                        </div>
+                        <div className="space-y-2">
+                            {celebrants.map(c => (
+                                <button
+                                    key={c.id}
+                                    onClick={() => handleCelebrantClick(c)}
+                                    className={`w-full flex items-center justify-between p-3.5 rounded-xl transition-all border active:translate-y-0.5 active:border-b-0 ${
+                                        selectedCelebrant === c.id
+                                            ? 'bg-green-600/15 border-green-500/30 border-b-2 border-b-green-900'
+                                            : 'bg-[#111113] border-white/5 border-b-2 border-b-black/60'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <User size={16} className={selectedCelebrant === c.id ? 'text-green-400' : 'text-white/20'} />
+                                        <span className={`font-bold text-sm uppercase tracking-wider ${selectedCelebrant === c.id ? 'text-green-400' : 'text-white/60'}`}>
+                                            {c.label}
+                                        </span>
+                                    </div>
+                                    {selectedCelebrant === c.id && <Check size={18} className="text-green-400" />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Celebration (Presets) Section */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-2 px-1">
+                            <Music size={14} className="text-white/30" />
+                            <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Celebrazione</span>
+                            <div className="h-px flex-1 bg-white/5" />
+                        </div>
+                        <div className="space-y-2">
+                            {isLoadingPresets ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="animate-spin text-white/20" size={32} />
+                                </div>
+                            ) : (
+                                presets.map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => loadPresetMutation.mutate(p.id)}
+                                        disabled={loadPresetMutation.isPending && loadPresetMutation.variables === p.id}
+                                        className={`w-full flex items-center justify-between p-3.5 rounded-xl transition-all border active:translate-y-0.5 active:border-b-0 ${
+                                            activePresetId === p.id
+                                                ? 'bg-green-600/15 border-green-500/30 border-b-2 border-b-green-900'
+                                                : 'bg-[#111113] border-white/5 border-b-2 border-b-black/60'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Music size={16} className={activePresetId === p.id ? 'text-green-400' : 'text-white/20'} />
+                                            <span className={`font-bold text-sm uppercase tracking-wider ${activePresetId === p.id ? 'text-green-400' : 'text-white/60'}`}>
+                                                {p.name}
+                                            </span>
+                                        </div>
+                                        {loadPresetMutation.isPending && loadPresetMutation.variables === p.id ? (
+                                            <Loader2 size={18} className="animate-spin text-green-400" />
+                                        ) : activePresetId === p.id ? (
+                                            <Check size={18} className="text-green-400" />
+                                        ) : null}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Memory List Section */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-2 px-1">
+                            <Save size={14} className="text-white/30" />
+                            <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Lista</span>
+                            <div className="h-px flex-1 bg-white/5" />
+                        </div>
+                        <div className="space-y-2">
+                            {memoryList.map(m => (
+                                <button
+                                    key={m.id}
+                                    onClick={() => handleMemoryClick(m)}
+                                    className={`w-full flex items-center justify-between p-3.5 rounded-xl transition-all border active:translate-y-0.5 active:border-b-0 ${
+                                        selectedMemory === m.id
+                                            ? 'bg-green-600/15 border-green-500/30 border-b-2 border-b-green-900'
+                                            : 'bg-[#111113] border-white/5 border-b-2 border-b-black/60'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Save size={16} className={selectedMemory === m.id ? 'text-green-400' : 'text-white/20'} />
+                                        <span className={`font-bold text-sm uppercase tracking-wider ${selectedMemory === m.id ? 'text-green-400' : 'text-white/60'}`}>
+                                            {m.label}
+                                        </span>
+                                    </div>
+                                    {selectedMemory === m.id && <Check size={18} className="text-green-400" />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Undo Floating Pill */}
+                <AnimatePresence>
+                    {showUndo && previousPresetName && (
+                        <motion.div
+                            initial={{ y: 100, opacity: 0, scale: 0.8 }}
+                            animate={{ y: 0, opacity: 1, scale: 1 }}
+                            exit={{ y: 100, opacity: 0, scale: 0.8 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100]"
+                        >
+                            <button
+                                onClick={handleUndo}
+                                disabled={loadPresetMutation.isPending}
+                                className="relative flex items-center gap-2 px-5 py-3 bg-white/10 backdrop-blur-2xl rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.5)] active:scale-95 transition-all overflow-hidden"
+                            >
+                                <motion.div
+                                    initial={{ scaleX: 1 }}
+                                    animate={{ scaleX: 0 }}
+                                    transition={{ duration: UNDO_TIMEOUT / 1000, ease: 'linear' }}
+                                    className="absolute bottom-0 left-0 right-0 h-[3px] bg-amber-400/60 origin-left rounded-full"
+                                />
+                                <Undo2 className="w-4 h-4 text-amber-400" />
+                                <span className="text-white/90 font-bold text-xs uppercase tracking-wider">Annulla</span>
+                                <span className="text-white/40 text-xs">·</span>
+                                <span className="text-white/60 font-medium text-xs">{previousPresetName}</span>
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        );
+    }
+
+    // ============================================
+    // RENDER TABLET VIEW
+    // ============================================
     return (
         <div
             className="fixed inset-0 bg-black text-gray-900 dark:text-white p-6 md:p-12 font-sans overflow-hidden flex flex-col transition-colors duration-500"

@@ -14,7 +14,6 @@ import { MobileDashboard } from './pages/MobileDashboard';
 import { Players } from './pages/Players';
 import { Recorders } from './pages/Recorders';
 import { Controls } from './pages/Controls';
-import { Presets } from './pages/Presets';
 import { Scenario } from './pages/Scenario';
 import { UserManagement } from './pages/UserManagement';
 import { TabletDashboard } from './pages/TabletDashboard';
@@ -55,8 +54,7 @@ const DashboardSwitcher: React.FC = () => {
 };
 
 const ScenarioSwitcher: React.FC = () => {
-  const isTablet = useIsTablet();
-  return isTablet ? <Scenario /> : <Presets />;
+  return <Scenario />;
 };
 
 const AppContent: React.FC = () => {
