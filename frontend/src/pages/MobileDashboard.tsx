@@ -26,7 +26,7 @@ export const MobileDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
     const { status } = useWebSocket();
-    const { backgroundColor } = useSettings();
+    const { backgroundColor, parishName } = useSettings();
 
     // Hardware daemon connection status
     interface SystemStatus {
@@ -224,8 +224,13 @@ export const MobileDashboard: React.FC = () => {
 
                     {/* Main Title Row */}
                     <div className="w-full text-center">
-                        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                            Parrocchia
+                        <h1 
+                            className="text-3xl md:text-4xl font-black tracking-tight text-white/90"
+                            style={{
+                                textShadow: '0 1px 0 rgba(255,255,255,0.15), 0 -1px 0 rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.6), 0 0 20px rgba(255,255,255,0.05)'
+                            }}
+                        >
+                            {parishName}
                         </h1>
                     </div>
                 </div>
@@ -273,18 +278,12 @@ export const MobileDashboard: React.FC = () => {
 
                 {/* Footer Decor - Hidden in landscape, shown in portrait */}
                 <div className="w-full landscape:hidden flex justify-center items-center opacity-20 text-[9px] tracking-widest uppercase py-2">
-                    <div className="flex space-x-2">
-                        <span>AV Control System</span>
-                        {versionData && <span>v{versionData.version}</span>}
-                    </div>
+                    <span>AV Control System</span>
                 </div>
 
                 {/* Footer Decor - Absolute positioned for landscape */}
                 <div className="hidden landscape:flex absolute bottom-4 left-4 opacity-20 text-[9px] tracking-widest uppercase">
-                    <div className="flex flex-col space-y-1">
-                        <span>AV Control System</span>
-                        {versionData && <span>v{versionData.version}</span>}
-                    </div>
+                    <span>AV Control System</span>
                 </div>
             </div>
 

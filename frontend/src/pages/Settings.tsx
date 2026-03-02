@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import { Card } from '../components/ui/Card';
-import { Palette, Sun, Check, Settings as SettingsIcon, Sliders, Music, LayoutGrid, Power, ChevronLeft } from 'lucide-react';
+import { Palette, Sun, Check, Settings as SettingsIcon, Sliders, Music, LayoutGrid, Power, ChevronLeft, Church } from 'lucide-react';
 import { useIsTablet } from '../hooks/useIsTablet';
 
 const BG_PRESETS = [
@@ -47,6 +47,7 @@ export const Settings: React.FC = () => {
         defaultVolStep, setDefaultVolStep,
         defaultControlsView, setDefaultControlsView,
         standbyTimeout, setStandbyTimeout,
+        parishName, setParishName,
     } = useSettings();
 
     const isTablet = useIsTablet();
@@ -72,6 +73,21 @@ export const Settings: React.FC = () => {
 
                 {/* Scrollable Settings */}
                 <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-4 landscape:grid landscape:grid-cols-2 landscape:gap-3 landscape:space-y-0 landscape:px-3 landscape:pb-3">
+
+                    {/* Parish Name */}
+                    <div className="bg-[#111113] border border-white/5 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Church size={16} className="text-white/40" />
+                            <span className="text-xs font-black uppercase tracking-wider text-white/60">Nome Parrocchia</span>
+                        </div>
+                        <input
+                            type="text"
+                            value={parishName}
+                            onChange={(e) => setParishName(e.target.value)}
+                            placeholder="Es: S. Maria Assunta"
+                            className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-sm outline-none focus:border-blue-500/50 placeholder:text-white/15 transition-colors"
+                        />
+                    </div>
 
                     {/* Background Color */}
                     <div className="bg-[#111113] border border-white/5 rounded-xl p-4 space-y-3">

@@ -9,6 +9,7 @@ interface SettingsContextType {
     defaultVolStep: number;
     defaultControlsView: 'mixer' | 'compact';
     standbyTimeout: number; // minutes, 0 = disabled
+    parishName: string;
     setBackgroundColor: (color: string) => void;
     setHighlightColor: (color: string) => void;
     setBacklightLevel: (level: number) => void;
@@ -16,6 +17,7 @@ interface SettingsContextType {
     setDefaultVolStep: (step: number) => void;
     setDefaultControlsView: (view: 'mixer' | 'compact') => void;
     setStandbyTimeout: (minutes: number) => void;
+    setParishName: (name: string) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -29,13 +31,13 @@ export const useSettings = () => {
 };
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [backgroundColor, setBackgroundColor] = useState(() => localStorage.getItem('bg_color') || '#000000');
+    const [backgroundColor, setBackgroundColor] = useState(() => localStorage.getItem('bg_color') || '#121214');
     const [highlightColor, setHighlightColor] = useState(() => localStorage.getItem('highlight_color') || '#3b82f6');
     const [backlightLevel, setBacklightLevel] = useState(() => Number(localStorage.getItem('backlight_level')) || 100);
-    const [defaultFade, setDefaultFade] = useState(() => Number(localStorage.getItem('default_fade')) || 4);
+    const [defaultFade, setDefaultFade] = useState(() => Number(localStorage.getItem('default_fade')) || 2);
     const [defaultVolStep, setDefaultVolStep] = useState(() => {
         const stored = localStorage.getItem('default_vol_step');
-        return stored ? Number(stored) : 0.1;
+        return stored ? Number(stored) : 1;
     });
     const [defaultControlsView, setDefaultControlsView] = useState<'mixer' | 'compact'>(() => {
         const stored = localStorage.getItem('default_controls_view');
@@ -45,6 +47,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const stored = localStorage.getItem('standby_timeout');
         return stored ? Number(stored) : 10;
     });
+    const [parishName, setParishName] = useState(() => localStorage.getItem('parish_name') || 'Parrocchia');
 
     const isDark = React.useMemo(() => {
         const hex = backgroundColor.replace('#', '');
@@ -63,6 +66,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         localStorage.setItem('default_vol_step', defaultVolStep.toString());
         localStorage.setItem('default_controls_view', defaultControlsView);
         localStorage.setItem('standby_timeout', standbyTimeout.toString());
+        localStorage.setItem('parish_name', parishName);
 
         // Update CSS variables
         document.documentElement.style.setProperty('--app-bg', backgroundColor);
@@ -82,7 +86,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (overlay) {
             overlay.style.opacity = (1 - backlightLevel / 100).toString();
         }
-    }, [backgroundColor, highlightColor, backlightLevel, isDark, defaultFade, defaultVolStep, defaultControlsView, standbyTimeout]);
+    }, [backgroundColor, highlightColor, backlightLevel, isDark, defaultFade, defaultVolStep, defaultControlsView, standbyTimeout, parishName]);
 
     return (
         <SettingsContext.Provider value={{
@@ -94,6 +98,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             defaultVolStep,
             defaultControlsView,
             standbyTimeout,
+            parishName,
             setBackgroundColor,
             setHighlightColor,
             setBacklightLevel,
@@ -101,6 +106,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             setDefaultVolStep,
             setDefaultControlsView,
             setStandbyTimeout,
+            setParishName,
         }}>
             {children}
             {/* Fake Backlight Overlay */}

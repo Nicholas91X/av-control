@@ -29,7 +29,7 @@ export const TabletDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
     const { status } = useWebSocket();
-    const { backgroundColor, standbyTimeout } = useSettings();
+    const { backgroundColor, standbyTimeout, parishName } = useSettings();
     const [isStandby, setIsStandby] = useState(false);
     const lastActivityRef = useRef(Date.now());
 
@@ -283,7 +283,7 @@ export const TabletDashboard: React.FC = () => {
                                     <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-7 w-7 object-contain" />
                                 </a>
                                 <h1 className="text-4xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                                    Parrocchia
+                                    {parishName}
                                 </h1>
                             </div>
                         </div>
@@ -312,7 +312,7 @@ export const TabletDashboard: React.FC = () => {
                             <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-6 w-6 object-contain" />
                         </a>
                         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                            Parrocchia
+                            {parishName}
                         </h1>
                     </div>
                 </div>

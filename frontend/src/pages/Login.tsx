@@ -22,6 +22,9 @@ export const Login: React.FC = () => {
         setError('');
         setLoading(true);
 
+        // Must be called synchronously during user gesture (before await)
+        document.documentElement.requestFullscreen().catch(() => {});
+
         try {
             const response = await api.post('/auth/login', { username, password });
             const { access_token, refresh_token, user } = response.data;

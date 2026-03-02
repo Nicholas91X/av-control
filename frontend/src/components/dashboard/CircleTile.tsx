@@ -23,64 +23,108 @@ export const CircleTile: React.FC<CircleTileProps> = ({
     iconClassName = '',
     hideLabel = false,
 }) => {
-    // The sizes here will determine the diameter of the circular button
-    // Stepping down slightly from max bounds for breathing room
     const sizeClasses = {
-        small: 'w-[clamp(5rem,22vmin,7.5rem)] h-[clamp(5rem,22vmin,7.5rem)]', // Balanced outer taps
-        large: 'w-[clamp(7.5rem,30vmin,11rem)] h-[clamp(7.5rem,30vmin,11rem)]', // Balanced central tap
+        small: 'w-[clamp(5rem,22vmin,7.5rem)] h-[clamp(5rem,22vmin,7.5rem)]',
+        large: 'w-[clamp(7.5rem,30vmin,11rem)] h-[clamp(7.5rem,30vmin,11rem)]',
+    };
+
+    const iconSize = {
+        small: 'clamp(1.5rem, 6vmin, 2.5rem)',
+        large: 'clamp(2.5rem, 9vmin, 3.5rem)',
     };
 
     return (
         <button
             onClick={onClick}
             className={`
-                relative flex flex-col items-center justify-center rounded-full transition-all duration-200 ease-out
-                bg-[#2a2a2e] border-t-2 border-t-white/20 border-x border-x-white/10 border-b-[8px] border-b-[#111114] shadow-[0_20px_40px_rgba(0,0,0,1)]
-                active:translate-y-2 active:border-b-[4px]
-                group overflow-hidden
+                relative group flex-shrink-0 active:translate-y-1 transition-transform duration-200
                 ${sizeClasses[size as keyof typeof sizeClasses]}
                 ${className}
             `}
-            style={{
-                boxShadow: glowColor ? `0 0 25px ${glowColor}25, inset 0 0 10px rgba(181, 64, 64, 0.05)` : 'inset 0 0 10px rgba(255,255,255,0.05)',
-                backgroundColor: undefined // Will be overridden by tailwind or hover if needed
-            }}
         >
-            {/* Tap Background Overlay */}
+            {/* Circle body */}
             <div
-                className="absolute inset-0 opacity-0 active:opacity-20 transition-opacity duration-300 pointer-events-none rounded-full"
-                style={{ backgroundColor: glowColor || '#3b82f6' }}
-            />
-            {/* Background Grain/Texture (Simulated) */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-repeat rounded-full"
-                style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/dark-matter.png")' }} />
-
-            {/* Glossy Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none rounded-full" />
-
-            <div className={`
-                flex items-center justify-center rounded-full mb-1
-                group-hover:scale-110 transition-transform duration-300
-                ${iconClassName}
-            `}>
-                <Icon
-                    size={size === 'small' ? 'clamp(1.5rem, 6vmin, 2.5rem)' : 'clamp(2.5rem, 9vmin, 3.5rem)'}
-                    style={{ color: glowColor || 'white' }}
-                    className="drop-shadow-lg"
+                className="absolute inset-0 rounded-full overflow-hidden
+                    bg-gradient-to-b from-[#333338] to-[#1e1e22]
+                    border-t border-t-white/15
+                    border-b-[6px] border-b-[#0c0c0e]
+                    group-active:border-b-[2px]
+                    transition-[border] duration-150"
+                style={{
+                    boxShadow: glowColor
+                        ? `inset 0 2px 4px rgba(255,255,255,0.06), inset 0 -2px 6px rgba(0,0,0,0.3), 0 0 20px ${glowColor}18, 0 8px 24px rgba(0,0,0,0.7)`
+                        : 'inset 0 2px 4px rgba(255,255,255,0.06), inset 0 -2px 6px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.7)',
+                }}
+            >
+                {/* Tap colour flash */}
+                <div
+                    className="absolute inset-0 opacity-0 group-active:opacity-15 transition-opacity duration-200 pointer-events-none rounded-full"
+                    style={{ backgroundColor: glowColor || '#3b82f6' }}
                 />
+
+                {/* Subtle glossy arc at top */}
+                <div className="absolute inset-0 pointer-events-none rounded-full"
+                    style={{
+                        background: 'linear-gradient(175deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 35%, transparent 50%)'
+                    }}
+                />
+
+                {/* Soft radial colour tint */}
+                <div
+                    className="absolute inset-0 pointer-events-none rounded-full opacity-15"
+                    style={{ background: `radial-gradient(circle at 50% 40%, ${glowColor || '#ffffff'}44, transparent 60%)` }}
+                />
+
+                {/* Inner ring for depth */}
+                <div className="absolute inset-[3px] rounded-full border border-white/[0.04] pointer-events-none" />
+
+                {/* Icon — centred with refined shadow */}
+                <div className={`absolute inset-0 flex flex-col items-center justify-center px-2
+                    group-hover:scale-105 transition-transform duration-300`}>
+                    <Icon
+                        size={iconSize[size as keyof typeof iconSize]}
+                        style={{
+                            color: glowColor || 'white',
+                            filter: `
+                                drop-shadow(0 1px 0 rgba(255,255,255,0.2))
+                                drop-shadow(0 2px 4px rgba(0,0,0,0.5))
+                            `
+                        }}
+                        className={`${iconClassName} ${hideLabel ? '' : 'mb-2'}`}
+                    />
+                </div>
+
+                {/* Curved Label — SVG textPath */}
+                {!hideLabel && (
+                    <svg
+                        viewBox="0 0 100 100"
+                        className="absolute inset-0 w-full h-full pointer-events-none group-hover:scale-105 transition-transform duration-300"
+                    >
+                        <defs>
+                            <path
+                                id={`mc-${label.replace(/\s+/g, '-')}`}
+                                d="M 8 70 A 55 55 0 0 0 92 70"
+                                fill="transparent"
+                            />
+                        </defs>
+                        <text
+                            className={`
+                                font-semibold tracking-[0.15em] uppercase
+                                ${size === 'small' ? 'text-[10px]' : 'text-[13px]'}
+                            `}
+                            fill="rgba(255, 255, 255, 0.65)"
+                        >
+                            <textPath
+                                href={`#mc-${label.replace(/\s+/g, '-')}`}
+                                startOffset="50%"
+                                textAnchor="middle"
+                            >
+                                {label}
+                            </textPath>
+                        </text>
+                    </svg>
+                )}
             </div>
-
-            {!hideLabel && (
-                <span className={`
-                    uppercase font-semibold text-center tracking-widest text-white/90 transition-colors duration-300 group-hover:text-white
-                    ${size === 'small' ? 'text-[clamp(10px,3.2vmin,12px)]' : 'text-[clamp(12px,4vmin,15px)]'}
-                `}>
-                    {label}
-                </span>
-            )}
-
-            {/* Subtle bottom border highlight */}
-            <div className="absolute bottom-4 left-1/4 right-1/4 h-[2px] bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
         </button>
     );
 };
