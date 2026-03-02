@@ -41,13 +41,15 @@ interface ControlValue {
 export const Controls: React.FC = () => {
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
-    const { highlightColor, backgroundColor, defaultVolStep, defaultControlsView } = useSettings();
+    const { highlightColor, backgroundColor, defaultVolStep, setDefaultVolStep, defaultControlsView } = useSettings();
     const [pendingValues, setPendingValues] = useState<Record<number, number>>({});
     const [controlValues, setControlValues] = useState<Record<number, ControlValue>>({});
     const [viewMode, setViewMode] = useState<'mixer' | 'compact'>(defaultControlsView);
     const [isMutating, setIsMutating] = useState(false);
-    const [volStep, setVolStep] = useState(defaultVolStep);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const stepTimeoutsRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+    const pendingStepValueRef = useRef<Record<number, number>>({});
+    const draggingFaderRef = useRef<number | null>(null);
     const [saveModalOpen, setSaveModalOpen] = useState(false);
     const [selectedPresetToSave, setSelectedPresetToSave] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
@@ -103,7 +105,7 @@ export const Controls: React.FC = () => {
         const result: Control[] = [];
 
         baseControls.forEach((control: Control) => {
-            result.push({ ...control, step: volStep });
+            result.push({ ...control, step: defaultVolStep });
 
             if (control.second_id) {
                 let rName = control.name;
@@ -120,13 +122,13 @@ export const Controls: React.FC = () => {
                     id: control.second_id,
                     name: rName,
                     second_id: undefined, // Clear second_id for the synthesized control
-                    step: volStep
+                    step: defaultVolStep
                 });
             }
         });
 
         return result;
-    }, [controlsData?.controls, volStep]);
+    }, [controlsData?.controls, defaultVolStep]);
 
 
 
@@ -245,14 +247,59 @@ export const Controls: React.FC = () => {
         setControlMutation.mutate({ id: control.id, value });
     };
 
+    // Converte la posizione Y del puntatore in un valore dB per il fader verticale.
+    // top del track = max, bottom = min.
+    const calcFaderValue = (clientY: number, rect: DOMRect, min: number, max: number): number => {
+        const relY = clientY - rect.top;
+        const ratio = 1 - Math.max(0, Math.min(1, relY / rect.height));
+        return Math.round((min + ratio * (max - min)) * 10) / 10;
+    };
+
+    const handleFaderPointerDown = (e: React.PointerEvent<HTMLDivElement>, control: Control) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        draggingFaderRef.current = control.id;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const newVal = calcFaderValue(e.clientY, rect, control.min || -96, control.max || 12);
+        handleVolumeChange(control.id, newVal);
+    };
+
+    const handleFaderPointerMove = (e: React.PointerEvent<HTMLDivElement>, control: Control) => {
+        if (draggingFaderRef.current !== control.id) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const newVal = calcFaderValue(e.clientY, rect, control.min || -96, control.max || 12);
+        handleVolumeChange(control.id, newVal);
+    };
+
+    const handleFaderPointerUp = (e: React.PointerEvent<HTMLDivElement>, control: Control) => {
+        if (draggingFaderRef.current !== control.id) return;
+        draggingFaderRef.current = null;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const newVal = calcFaderValue(e.clientY, rect, control.min || -96, control.max || 12);
+        handleVolumeRelease(control, newVal);
+    };
+
     const handleStepVolume = (control: Control, direction: 'up' | 'down') => {
-        const current = controlValues[control.id]?.volume ?? 0;
-        const step = volStep;
+        const current = pendingStepValueRef.current[control.id] ?? controlValues[control.id]?.volume ?? 0;
+        const step = defaultVolStep;
         const next = direction === 'up' ? current + step : current - step;
         const max = control.max ?? 12;
         const clamped = Math.max(control.min || -96, Math.min(max, next));
-        
-        setControlMutation.mutate({ id: control.id, value: clamped });
+
+        // Aggiorna UI immediatamente
+        pendingStepValueRef.current[control.id] = clamped;
+        setPendingValues(prev => ({ ...prev, [control.id]: clamped }));
+
+        // Debounce: manda un solo comando dopo 150ms di inattività sul canale
+        if (stepTimeoutsRef.current[control.id]) {
+            clearTimeout(stepTimeoutsRef.current[control.id]);
+        }
+        stepTimeoutsRef.current[control.id] = setTimeout(() => {
+            setControlMutation.mutate({ id: control.id, value: pendingStepValueRef.current[control.id] });
+            delete pendingStepValueRef.current[control.id];
+            delete stepTimeoutsRef.current[control.id];
+        }, 150);
     };
 
     const handleResetAll = () => {
@@ -288,7 +335,7 @@ export const Controls: React.FC = () => {
         const percent = ((val - min) / (max - min)) * 100;
 
         return (
-            <div key={control.id} className="flex flex-col items-center h-full w-40 shrink-0 select-none border-r border-white/5 relative last:border-r-0 pb-12">
+            <div key={control.id} className="flex flex-col items-center h-full w-32 shrink-0 select-none border-r border-white/5 relative last:border-r-0 pb-10">
                 {/* Channel Label */}
                 <div className="h-16 flex items-center justify-center w-full px-2 mt-4 shrink-0">
                     <span className="text-sm font-black text-white uppercase tracking-[0.2em] text-center line-clamp-2 leading-relaxed">
@@ -297,7 +344,7 @@ export const Controls: React.FC = () => {
                 </div>
 
                 {/* Fader Track Container */}
-                <div className="flex-1 w-full relative flex flex-col items-center group px-6 my-10">
+                <div className="flex-1 w-full relative flex flex-col items-center group px-4 my-6">
                     <div className="absolute inset-y-0 w-2 bg-black/70 rounded-full border border-white/5 shadow-[inset_0_2px_15px_rgba(0,0,0,1)] overflow-hidden pointer-events-none">
                         <div
                             className="absolute bottom-0 w-full opacity-60 transition-all duration-300"
@@ -310,7 +357,7 @@ export const Controls: React.FC = () => {
                     </div>
 
                     <div
-                        className="absolute w-14 h-24 z-20 pointer-events-none transition-all duration-75 flex flex-col items-center justify-center translate-y-1/2"
+                        className="absolute w-12 h-20 z-20 pointer-events-none transition-all duration-75 flex flex-col items-center justify-center translate-y-1/2"
                         style={{ bottom: `${percent}%` }}
                     >
                         <div className="w-full h-full bg-gradient-to-b from-[#555] via-[#1a1a1c] to-[#000] border border-white/20 shadow-[0_20px_40px_-12px_rgba(0,0,0,1),inset_0_1px_1px_rgba(255,255,255,0.1)] rounded-xl flex flex-col items-center justify-center overflow-hidden">
@@ -332,21 +379,13 @@ export const Controls: React.FC = () => {
                         </div>
                     </div>
 
-                    <input
-                        type="range"
-                        min={min}
-                        max={max}
-                        step={control.step || 0.1}
-                        value={val}
-                        onInput={(e) => handleVolumeChange(control.id, parseFloat((e.target as HTMLInputElement).value))}
-                        onChange={(e) => handleVolumeChange(control.id, parseFloat((e.target as HTMLInputElement).value))}
-                        onMouseUp={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
-                        onTouchEnd={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
-                        className="absolute inset-y-0 inset-x-0 opacity-0 cursor-pointer w-full z-30"
-                        style={{
-                            appearance: 'slider-vertical' as any,
-                            WebkitAppearance: 'slider-vertical' as any,
-                        }}
+                    <div
+                        className="absolute inset-y-0 inset-x-0 z-30 cursor-pointer"
+                        style={{ touchAction: 'none' }}
+                        onPointerDown={(e) => handleFaderPointerDown(e, control)}
+                        onPointerMove={(e) => handleFaderPointerMove(e, control)}
+                        onPointerUp={(e) => handleFaderPointerUp(e, control)}
+                        onPointerCancel={(e) => handleFaderPointerUp(e, control)}
                     />
                 </div>
 
@@ -406,18 +445,23 @@ export const Controls: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 min-h-[44px]">
                     <input
                         type="range"
                         min={control.min || -96}
                         max={control.max || 12}
                         step={control.step || 0.1}
                         value={val}
+                        onInput={(e) => handleVolumeChange(control.id, parseFloat((e.target as HTMLInputElement).value))}
                         onChange={(e) => handleVolumeChange(control.id, parseFloat(e.target.value))}
                         onMouseUp={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
                         onTouchEnd={(e) => handleVolumeRelease(control, parseFloat((e.target as HTMLInputElement).value))}
-                        className="flex-1 h-2 bg-black rounded-full appearance-none cursor-pointer"
-                        style={{ accentColor: highlightColor }}
+                        className="flex-1 h-3 bg-black rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/30 [&::-webkit-slider-thumb]:shadow-lg [&::-moz-range-thumb]:w-7 [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white/30"
+                        style={{
+                            accentColor: highlightColor,
+                            touchAction: 'none',
+                            ['--tw-slider-thumb-bg' as any]: highlightColor
+                        }}
                     />
                     <div className="w-16 text-right font-mono font-bold text-white/60">
                         {val.toFixed(1)}
@@ -646,8 +690,8 @@ export const Controls: React.FC = () => {
                     <div className="h-12 flex items-center bg-black/40 border border-white/10 rounded-xl px-4 gap-3 shadow-inner">
                         <span className="text-[10px] font-black text-white/30 uppercase tracking-widest whitespace-nowrap">Step Volume</span>
                         <select
-                            value={volStep}
-                            onChange={(e) => setVolStep(parseFloat(e.target.value))}
+                            value={defaultVolStep}
+                            onChange={(e) => setDefaultVolStep(parseFloat(e.target.value))}
                             className="bg-transparent border-none text-blue-400 font-bold text-sm outline-none cursor-pointer hover:text-white transition-colors"
                         >
                             <option value="0.1" className="bg-[#1a1a1c]">0.1 dB</option>
@@ -696,6 +740,7 @@ export const Controls: React.FC = () => {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             className="h-full flex overflow-x-auto overflow-y-hidden no-scrollbar px-6"
+                            style={{ touchAction: 'pan-x' }}
                             ref={scrollContainerRef}
                         >
                             {controls.map(renderMixerChannel)}

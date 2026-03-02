@@ -298,11 +298,20 @@ func main() {
 
 		// Check if file exists
 		if _, err := os.Stat(path); err == nil {
+			// No-cache for index.html even when requested directly
+			if c.Request.URL.Path == "/index.html" {
+				c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+				c.Header("Pragma", "no-cache")
+				c.Header("Expires", "0")
+			}
 			c.File(path)
 			return
 		}
 
-		// Fallback to index.html for SPA routing
+		// Fallback to index.html for SPA routing — always no-cache
+		c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Header("Pragma", "no-cache")
+		c.Header("Expires", "0")
 		c.File("./public/index.html")
 	})
 

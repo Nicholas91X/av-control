@@ -36,7 +36,7 @@ export const Presets: React.FC = () => {
             const response = await api.get('/device/presets/current');
             return response.data;
         },
-        refetchInterval: 5000, // Poll every 5 seconds
+        refetchInterval: () => 5000,
     });
     const currentPresetId = currentPresetData?.id;
 

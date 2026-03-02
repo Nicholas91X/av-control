@@ -13,13 +13,14 @@ import {
     Power,
     Home,
     Wrench,
-    Info,
     X,
     Wifi,
     WifiOff,
     LogOut,
     Users,
-    Cpu
+    Cpu,
+    Maximize2,
+    Minimize2
 } from 'lucide-react';
 import { TabletTile } from '../components/dashboard/TabletTile';
 import { useSettings } from '../context/SettingsContext';
@@ -66,10 +67,40 @@ export const TabletDashboard: React.FC = () => {
             const response = await api.get('/device/status');
             return response.data;
         },
-        refetchInterval: 5000, // Check every 5 seconds
+        refetchInterval: () => 5000,
     });
 
     const isHardwareConnected = systemStatus?.connected ?? false;
+
+    // Fullscreen
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    useEffect(() => {
+        const handler = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', handler);
+        return () => document.removeEventListener('fullscreenchange', handler);
+    }, []);
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(console.error);
+        } else {
+            document.exitFullscreen().catch(console.error);
+        }
+    };
+
+    // Tooltip for status indicators (hover + long-press)
+    const [visibleTooltip, setVisibleTooltip] = useState<'ws' | 'hw' | null>(null);
+    const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (!visibleTooltip) return;
+        const timer = setTimeout(() => setVisibleTooltip(null), 4000);
+        return () => clearTimeout(timer);
+    }, [visibleTooltip]);
+    const startLongPress = (key: 'ws' | 'hw') => {
+        longPressTimerRef.current = setTimeout(() => setVisibleTooltip(key), 600);
+    };
+    const cancelLongPress = () => {
+        if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+    };
 
     // Modal state management with animations
     const useModalAnimation = (initialState: boolean) => {
@@ -97,7 +128,6 @@ export const TabletDashboard: React.FC = () => {
     };
 
     const homeModal = useModalAnimation(false);
-    const infoModal = useModalAnimation(false);
     const logoutModal = useModalAnimation(false);
 
     const { data: versionData } = useQuery({
@@ -123,8 +153,11 @@ export const TabletDashboard: React.FC = () => {
             const response = await api.get('/device/info');
             return response.data;
         },
-        refetchInterval: 10000,
+        refetchInterval: () => 10000,
     });
+
+    const wsStatusItalian = status === 'connected' ? 'connesso' : status === 'connecting' ? 'connessione in corso…' : 'disconnesso';
+    const hwStatusItalian = isHardwareConnected ? 'connesso' : 'disconnesso';
 
     if (isStandby) {
         return (
@@ -162,24 +195,58 @@ export const TabletDashboard: React.FC = () => {
                         <div className="flex items-center space-x-3 z-10">
                             {/* WebSocket Connection Status Icon */}
                             <div
-                                className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500' :
-                                    status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 border-b-yellow-900/60 text-yellow-500 animate-pulse' :
-                                        'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
-                                    }`}
-                                title={`WebSocket: ${status}`}
+                                className="relative"
+                                onMouseEnter={() => setVisibleTooltip('ws')}
+                                onMouseLeave={() => { setVisibleTooltip(null); cancelLongPress(); }}
+                                onTouchStart={(e) => { e.preventDefault(); startLongPress('ws'); }}
+                                onTouchEnd={cancelLongPress}
+                                onTouchMove={cancelLongPress}
                             >
-                                {status === 'connected' ? <Wifi size={24} /> : <WifiOff size={24} />}
+                                <div
+                                    className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500' :
+                                        status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 border-b-yellow-900/60 text-yellow-500 animate-pulse' :
+                                            'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
+                                        }`}
+                                >
+                                    {status === 'connected' ? <Wifi size={24} /> : <WifiOff size={24} />}
+                                </div>
+                                {visibleTooltip === 'ws' && (
+                                    <div className="absolute top-full left-0 mt-2 z-[200] bg-black/90 border border-white/10 rounded-xl px-3 py-2 shadow-xl backdrop-blur-md pointer-events-none">
+                                        <p className="text-[11px] font-bold text-white/90 whitespace-nowrap">WebSocket</p>
+                                        <p className="text-[10px] text-white/40 whitespace-nowrap">Aggiornamenti in tempo reale</p>
+                                        <p className={`text-[10px] font-bold mt-0.5 whitespace-nowrap ${status === 'connected' ? 'text-green-400' : status === 'connecting' ? 'text-yellow-400' : 'text-red-400'}`}>
+                                            {wsStatusItalian}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Hardware Daemon Connection Status Icon */}
                             <div
-                                className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${isHardwareConnected
-                                    ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500'
-                                    : 'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
-                                    }`}
-                                title={`Hardware Daemon: ${isHardwareConnected ? 'Connected' : 'Disconnected'}`}
+                                className="relative"
+                                onMouseEnter={() => setVisibleTooltip('hw')}
+                                onMouseLeave={() => { setVisibleTooltip(null); cancelLongPress(); }}
+                                onTouchStart={(e) => { e.preventDefault(); startLongPress('hw'); }}
+                                onTouchEnd={cancelLongPress}
+                                onTouchMove={cancelLongPress}
                             >
-                                <Cpu size={24} />
+                                <div
+                                    className={`p-3 rounded-xl border border-b-4 transition-all shadow-lg active:translate-y-1 active:border-b-0 ${isHardwareConnected
+                                        ? 'bg-green-500/10 border-green-500/20 border-b-green-900/60 text-green-500'
+                                        : 'bg-red-500/10 border-red-500/20 border-b-red-900/60 text-red-500'
+                                        }`}
+                                >
+                                    <Cpu size={24} />
+                                </div>
+                                {visibleTooltip === 'hw' && (
+                                    <div className="absolute top-full left-0 mt-2 z-[200] bg-black/90 border border-white/10 rounded-xl px-3 py-2 shadow-xl backdrop-blur-md pointer-events-none">
+                                        <p className="text-[11px] font-bold text-white/90 whitespace-nowrap">Hardware</p>
+                                        <p className="text-[10px] text-white/40 whitespace-nowrap">Collegamento al dispositivo fisico</p>
+                                        <p className={`text-[10px] font-bold mt-0.5 whitespace-nowrap ${isHardwareConnected ? 'text-green-400' : 'text-red-400'}`}>
+                                            {hwStatusItalian}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Admin-only User Management */}
@@ -205,28 +272,49 @@ export const TabletDashboard: React.FC = () => {
 
                         {/* Title — landscape only: absolutely centered between the two button groups */}
                         <div className="hidden landscape:flex absolute inset-0 items-center justify-center pointer-events-none">
-                            <h1 className="text-4xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                                Parrocchia
-                            </h1>
+                            <div className="flex items-center gap-4">
+                                <a
+                                    href="https://verbumdigital.com/it/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-12 h-12 rounded-full bg-white/5 border border-white/15 flex items-center justify-center overflow-hidden opacity-70 hover:opacity-100 transition-opacity pointer-events-auto shrink-0"
+                                    title="VerbumDigital"
+                                >
+                                    <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-7 w-7 object-contain" />
+                                </a>
+                                <h1 className="text-4xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                                    Parrocchia
+                                </h1>
+                            </div>
                         </div>
 
-                        {/* Right Actions Group */}
-                        <div className="flex items-center space-x-3 z-10">
-                            {/* Info Button */}
+                        {/* Right: Fullscreen button only */}
+                        <div className="flex items-center gap-3 z-10">
                             <button
-                                onClick={infoModal.open}
+                                onClick={toggleFullscreen}
                                 className="p-3 text-white/40 hover:text-white transition-all bg-[#2a2a2e] rounded-xl border-t-2 border-t-white/10 border-x border-x-white/5 border-b-[6px] border-b-white/10 hover:bg-[#323236] active:translate-y-1 active:border-b-0 shadow-lg"
-                                title="Informazioni"
+                                title={isFullscreen ? 'Esci da schermo intero' : 'Schermo intero'}
                             >
-                                <Info size={24} />
+                                {isFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
                             </button>
                         </div>
                     </div>
 
                     {/* Row 2: Title — portrait only (hidden in landscape) */}
-                    <h1 className="landscape:hidden text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                        Parrocchia
-                    </h1>
+                    <div className="landscape:hidden flex items-center justify-center gap-4">
+                        <a
+                            href="https://verbumdigital.com/it/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-11 h-11 rounded-full bg-white/5 border border-white/15 flex items-center justify-center overflow-hidden opacity-70 hover:opacity-100 transition-opacity shrink-0"
+                            title="VerbumDigital"
+                        >
+                            <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-6 w-6 object-contain" />
+                        </a>
+                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                            Parrocchia
+                        </h1>
+                    </div>
                 </div>
 
                 {/* Main Content Area — Circular Layout */}
@@ -284,12 +372,13 @@ export const TabletDashboard: React.FC = () => {
                 </div>
 
                 {/* Footer Decor */}
-                <div className="w-full flex justify-between items-end opacity-20 text-[10px] tracking-widest uppercase py-2">
-                    <span>AV Control Network</span>
-                    <div className="flex space-x-4">
-                        <span>AV Control System</span>
-                        {versionData && <span>v{versionData.version}</span>}
-                    </div>
+                <div className="w-full flex justify-between items-center opacity-60 hover:opacity-80 transition-opacity text-[10px] tracking-widest uppercase py-2">
+                    <span className="text-white/80">AV Control Network</span>
+                    <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                        <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-5 w-5 object-contain" />
+                        <span className="text-white/80">VerbumDigital</span>
+                        {versionData && <span className="ml-1 text-white/90">v{versionData.version}</span>}
+                    </a>
                 </div>
             </div>
 
@@ -298,7 +387,7 @@ export const TabletDashboard: React.FC = () => {
                 <div className={`fixed inset-0 z-50 flex items-center justify-center p-8 transition-opacity duration-500 ease-in-out ${homeModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-xl transition-opacity duration-500" onClick={homeModal.close} />
                     <div className={`
-                        relative bg-[#1a1a1a] border border-white/10 p-12 rounded-[2.5rem] max-w-2xl w-full shadow-2xl transition-all duration-500 ease-out
+                        relative bg-[#1a1a1a] border border-white/10 p-10 rounded-[2.5rem] max-w-2xl w-full shadow-2xl transition-all duration-500 ease-out
                         ${homeModal.isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-90 translate-y-4 opacity-0'}
                     `}>
                         <button
@@ -307,12 +396,22 @@ export const TabletDashboard: React.FC = () => {
                         >
                             <X size={32} />
                         </button>
-                        <h2 className="text-4xl font-bold mb-8 text-blue-400 tracking-tight">Informazioni Sistema</h2>
-                        <div className="space-y-6 text-xl text-white/80 leading-relaxed">
-                            <div className="flex justify-between border-b border-white/5 pb-4">
-                                <span className="text-white/40">Produttore</span>
-                                <span className="font-semibold">VerbumDigital</span>
+
+                        {/* Header con logo */}
+                        <div className="flex items-center gap-5 mb-8">
+                            <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="shrink-0 hover:opacity-80 transition-opacity">
+                                <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-16 w-16 object-contain" />
+                            </a>
+                            <div>
+                                <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+                                    <h2 className="text-4xl font-bold text-blue-400 tracking-tight">VerbumDigital</h2>
+                                </a>
+                                <p className="text-white/30 text-sm mt-0.5 tracking-widest uppercase">AV Control System</p>
                             </div>
+                        </div>
+
+                        {/* Contatti */}
+                        <div className="space-y-4 text-lg text-white/80">
                             <div className="flex justify-between border-b border-white/5 pb-4">
                                 <span className="text-white/40">Assistenza Tecnica</span>
                                 <span className="font-semibold text-blue-400">+39 000 000 000</span>
@@ -322,57 +421,20 @@ export const TabletDashboard: React.FC = () => {
                                 <span className="font-semibold">AV Control Network</span>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
 
-            {infoModal.isRendered && (
-                <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-500 ease-in-out ${infoModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xl transition-opacity duration-500" onClick={infoModal.close} />
-                    <div className={`
-                        relative bg-[#1a1a1a] border border-white/10 p-6 rounded-[2rem] max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl transition-all duration-500 ease-out
-                        ${infoModal.isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-90 translate-y-4 opacity-0'}
-                    `}>
-                        <button
-                            onClick={infoModal.close}
-                            className="absolute top-5 right-5 text-white/30 hover:text-white transition-colors"
-                        >
-                            <X size={28} />
-                        </button>
-                        <h2 className="text-2xl font-bold mb-5 tracking-tight">Hardware & Software</h2>
-                        <div className="space-y-2.5">
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Versione SW</span>
-                                <span className="font-mono text-blue-400 font-bold text-sm">{versionData?.version || 'Unknown'}</span>
+                        {/* Info tecniche */}
+                        <div className="mt-6 pt-5 border-t border-white/5 space-y-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-white/70 text-sm">Versione SW</span>
+                                <span className="font-mono text-blue-400 font-bold text-sm">{versionData?.version || '—'}</span>
                             </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Build Date</span>
-                                <span className="font-mono text-white/80 text-sm">{versionData?.build_date || 'Unknown'}</span>
-                            </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Architettura</span>
-                                <span className="font-mono uppercase text-white/60 text-sm">{versionData?.arch || 'ARMv7'}</span>
-                            </div>
-
-                            {/* Daemon Info Section */}
-                            <div className="mt-4 pt-3 border-t border-white/5">
-                                <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest mb-3">Daemon Hardware</h3>
-                            </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Nome</span>
-                                <span className="font-mono text-white/80 text-sm">{systemInfo?.name || '—'}</span>
-                            </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Versione Daemon</span>
-                                <span className="font-mono text-blue-400 font-bold text-sm">{systemInfo?.version || '—'}</span>
-                            </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Indirizzo IP</span>
+                            <div className="flex justify-between items-center">
+                                <span className="text-white/70 text-sm">Indirizzo IP</span>
                                 <span className="font-mono text-white/80 text-sm">{systemInfo?.ip || '—'}</span>
                             </div>
-                            <div className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 font-medium text-sm">Seriale</span>
-                                <span className="font-mono text-white/60 text-xs">{systemInfo?.serial || '—'}</span>
+                            <div className="flex justify-between items-center">
+                                <span className="text-white/70 text-sm">Seriale</span>
+                                <span className="font-mono text-white/80 text-xs">{systemInfo?.serial || '—'}</span>
                             </div>
                         </div>
                     </div>
@@ -398,7 +460,7 @@ export const TabletDashboard: React.FC = () => {
                             <div className="flex w-full space-x-4">
                                 <button
                                     onClick={logoutModal.close}
-                                    className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/10 border-b-4 border-black/40 rounded-2xl font-semibold transition-all active:translate-y-1 active:border-b-0"
+                                    className="flex-1 py-4 bg-white/10 hover:bg-white/15 border border-white/20 border-b-4 border-black/40 text-white rounded-2xl font-bold shadow-lg transition-all active:translate-y-1 active:border-b-0"
                                 >
                                     Annulla
                                 </button>

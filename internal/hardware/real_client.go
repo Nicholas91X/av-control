@@ -6,8 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"net"
 	"net/http"
 	"time"
+)
+
+const (
+	maxGetRetries = 2
+	retryDelay    = 300 * time.Millisecond
 )
 
 type RealHardwareClient struct {
@@ -16,15 +23,27 @@ type RealHardwareClient struct {
 }
 
 func NewRealHardwareClient() *RealHardwareClient {
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   5 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:        10,
+		MaxIdleConnsPerHost: 5,
+		IdleConnTimeout:     60 * time.Second,
+		DisableKeepAlives:   false,
+	}
+
 	return &RealHardwareClient{
 		baseURL: "http://localhost:8080",
 		client: &http.Client{
-			Timeout: 5 * time.Second,
+			Timeout:   10 * time.Second,
+			Transport: transport,
 		},
 	}
 }
 
-// Helper method for GET requests
+// get executes a single GET request (no retry).
 func (r *RealHardwareClient) get(path string, result interface{}) error {
 	resp, err := r.client.Get(r.baseURL + path)
 	if err != nil {
@@ -46,7 +65,30 @@ func (r *RealHardwareClient) get(path string, result interface{}) error {
 	return nil
 }
 
-// Helper method for POST requests
+// getRetry executes a GET request with automatic retry on transient failures.
+// Safe for all GET endpoints since they are idempotent.
+func (r *RealHardwareClient) getRetry(path string, result interface{}) error {
+	var lastErr error
+	for attempt := 0; attempt <= maxGetRetries; attempt++ {
+		if attempt > 0 {
+			delay := retryDelay * time.Duration(attempt)
+			log.Printf("⚠️  Hardware GET retry %d/%d for %s (wait %v)", attempt, maxGetRetries, path, delay)
+			time.Sleep(delay)
+		}
+
+		lastErr = r.get(path, result)
+		if lastErr == nil {
+			if attempt > 0 {
+				log.Printf("✅ Hardware GET %s succeeded after %d retries", path, attempt)
+			}
+			return nil
+		}
+	}
+	log.Printf("❌ Hardware GET %s failed after %d retries: %v", path, maxGetRetries, lastErr)
+	return lastErr
+}
+
+// post executes a single POST request (never retried to avoid duplicate commands).
 func (r *RealHardwareClient) post(path string, payload interface{}, result interface{}) error {
 	var body io.Reader
 
@@ -84,13 +126,13 @@ func (r *RealHardwareClient) post(path string, payload interface{}, result inter
 
 func (r *RealHardwareClient) GetPresets() (*models.PresetsResponse, error) {
 	var response models.PresetsResponse
-	err := r.get("/api/device/presets", &response)
+	err := r.getRetry("/api/device/presets", &response)
 	return &response, err
 }
 
 func (r *RealHardwareClient) GetCurrentPreset() (*models.CurrentPresetResponse, error) {
 	var response models.CurrentPresetResponse
-	err := r.get("/api/device/presets/current", &response)
+	err := r.getRetry("/api/device/presets/current", &response)
 	return &response, err
 }
 
@@ -110,7 +152,7 @@ func (r *RealHardwareClient) SavePreset(presetID string) error {
 
 func (r *RealHardwareClient) GetSources() (*models.SourcesResponse, error) {
 	var response models.SourcesResponse
-	err := r.get("/api/device/player/sources", &response)
+	err := r.getRetry("/api/device/player/sources", &response)
 	return &response, err
 }
 
@@ -121,7 +163,7 @@ func (r *RealHardwareClient) SelectSource(sourceID int) error {
 
 func (r *RealHardwareClient) GetSongs() (*models.SongsResponse, error) {
 	var response models.SongsResponse
-	err := r.get("/api/device/player/songs", &response)
+	err := r.getRetry("/api/device/player/songs", &response)
 	return &response, err
 }
 
@@ -162,7 +204,7 @@ func (r *RealHardwareClient) SetRepeatMode(mode string) error {
 
 func (r *RealHardwareClient) GetPlayerStatus() (*models.PlayerStatus, error) {
 	var response models.PlayerStatus
-	err := r.get("/api/device/player/status", &response)
+	err := r.getRetry("/api/device/player/status", &response)
 	return &response, err
 }
 
@@ -200,13 +242,13 @@ func (r *RealHardwareClient) StopRecording() error {
 
 func (r *RealHardwareClient) GetRecorderStatus() (*models.RecorderStatus, error) {
 	var response models.RecorderStatus
-	err := r.get("/api/device/recorder/status", &response)
+	err := r.getRetry("/api/device/recorder/status", &response)
 	return &response, err
 }
 
 func (r *RealHardwareClient) GetRecorderSources() (map[string]interface{}, error) {
 	var response map[string]interface{}
-	err := r.get("/api/device/recorder/sources", &response)
+	err := r.getRetry("/api/device/recorder/sources", &response)
 	return response, err
 }
 
@@ -221,7 +263,7 @@ func (r *RealHardwareClient) SetRecorderSource(left, right int) error {
 
 func (r *RealHardwareClient) GetControls() (*models.ControlsResponse, error) {
 	var response models.ControlsResponse
-	err := r.get("/api/device/controls", &response)
+	err := r.getRetry("/api/device/controls", &response)
 	return &response, err
 }
 
@@ -276,17 +318,17 @@ func (r *RealHardwareClient) SetControlValue(controlID string, value interface{}
 
 func (r *RealHardwareClient) GetSystemStatus() (*models.SystemStatus, error) {
 	var response models.SystemStatus
-	err := r.get("/api/device/status", &response)
+	err := r.getRetry("/api/device/status", &response)
 	return &response, err
 }
 
 func (r *RealHardwareClient) GetSystemInfo() (*models.SystemInfo, error) {
 	var response models.SystemInfo
-	err := r.get("/api/device/info", &response)
+	err := r.getRetry("/api/device/info", &response)
 	return &response, err
 }
 
 // GetDirect esegue una GET request diretta (pubblico per handler)
 func (r *RealHardwareClient) GetDirect(path string, result interface{}) error {
-	return r.get(path, result)
+	return r.getRetry(path, result)
 }
