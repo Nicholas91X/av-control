@@ -256,6 +256,7 @@ export const Controls: React.FC = () => {
 
     const handleFaderPointerDown = (e: React.PointerEvent<HTMLDivElement>, control: Control) => {
         e.preventDefault();
+        e.stopPropagation();
         e.currentTarget.setPointerCapture(e.pointerId);
         draggingFaderRef.current = control.id;
         const rect = e.currentTarget.getBoundingClientRect();
@@ -333,7 +334,7 @@ export const Controls: React.FC = () => {
         const percent = ((val - min) / (max - min)) * 100;
 
         return (
-            <div key={control.id} className="flex flex-col items-center h-full w-40 shrink-0 select-none border-r border-white/5 relative last:border-r-0 pb-12">
+            <div key={control.id} className="flex flex-col items-center h-full w-32 shrink-0 select-none border-r border-white/5 relative last:border-r-0 pb-10">
                 {/* Channel Label */}
                 <div className="h-16 flex items-center justify-center w-full px-2 mt-4 shrink-0">
                     <span className="text-sm font-black text-white uppercase tracking-[0.2em] text-center line-clamp-2 leading-relaxed">
@@ -342,7 +343,7 @@ export const Controls: React.FC = () => {
                 </div>
 
                 {/* Fader Track Container */}
-                <div className="flex-1 w-full relative flex flex-col items-center group px-6 my-10">
+                <div className="flex-1 w-full relative flex flex-col items-center group px-4 my-6">
                     <div className="absolute inset-y-0 w-2 bg-black/70 rounded-full border border-white/5 shadow-[inset_0_2px_15px_rgba(0,0,0,1)] overflow-hidden pointer-events-none">
                         <div
                             className="absolute bottom-0 w-full opacity-60 transition-all duration-300"
@@ -355,7 +356,7 @@ export const Controls: React.FC = () => {
                     </div>
 
                     <div
-                        className="absolute w-14 h-24 z-20 pointer-events-none transition-all duration-75 flex flex-col items-center justify-center translate-y-1/2"
+                        className="absolute w-12 h-20 z-20 pointer-events-none transition-all duration-75 flex flex-col items-center justify-center translate-y-1/2"
                         style={{ bottom: `${percent}%` }}
                     >
                         <div className="w-full h-full bg-gradient-to-b from-[#555] via-[#1a1a1c] to-[#000] border border-white/20 shadow-[0_20px_40px_-12px_rgba(0,0,0,1),inset_0_1px_1px_rgba(255,255,255,0.1)] rounded-xl flex flex-col items-center justify-center overflow-hidden">
@@ -559,6 +560,7 @@ export const Controls: React.FC = () => {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             className="h-full flex overflow-x-auto overflow-y-hidden no-scrollbar px-6"
+                            style={{ touchAction: 'pan-x' }}
                             ref={scrollContainerRef}
                         >
                             {controls.map(renderMixerChannel)}

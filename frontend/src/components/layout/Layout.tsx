@@ -167,13 +167,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <main className={`flex-1 relative ${isTablet ? 'py-0 px-0' : 'py-8 px-6 lg:px-12'}`}>
                         {/* Tablet Back Button */}
                         {isTablet && !isDashboard && (
-                            <div className="fixed top-8 left-8 z-50">
+                            <div className="fixed top-6 left-6 z-50">
                                 <button
                                     onClick={() => navigate('/')}
-                                    className="flex items-center space-x-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white px-5 py-3 rounded-2xl border border-white/10 border-b-4 border-black/40 transition-all active:translate-y-1 active:border-b-0 group shadow-2xl backdrop-blur-md"
+                                    className="flex items-center space-x-1.5 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white px-3 py-2 rounded-xl border border-white/10 border-b-4 border-black/40 transition-all active:translate-y-1 active:border-b-0 group shadow-2xl backdrop-blur-md"
                                 >
-                                    <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
-                                    <span className="font-bold tracking-widest uppercase text-xs">Desktop</span>
+                                    <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                                    <span className="font-bold tracking-widest uppercase text-[10px]">Desktop</span>
                                 </button>
                             </div>
                         )}
