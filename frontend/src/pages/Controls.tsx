@@ -485,7 +485,7 @@ export const Controls: React.FC = () => {
                 style={{ backgroundColor }}
             >
                 {/* Header */}
-                <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between">
+                <div className="shrink-0 px-4 pt-4 pb-2 landscape:pt-2 landscape:pb-1 landscape:px-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <button onClick={() => navigate('/')} className="p-1.5 -ml-1 rounded-lg text-white/30 active:bg-white/10"><ChevronLeft className="w-5 h-5" /></button>
                         <Sliders className="w-5 h-5 text-blue-400" />
@@ -494,7 +494,7 @@ export const Controls: React.FC = () => {
                 </div>
 
                 {/* Utility Bar */}
-                <div className="shrink-0 px-4 pb-3 flex items-center gap-2">
+                <div className="shrink-0 px-4 pb-3 landscape:pb-1.5 landscape:px-3 flex items-center gap-2">
                     <button
                         onClick={handleResetAll}
                         className="p-2 bg-white/5 border border-white/10 rounded-xl text-white/50 active:bg-white/10"
@@ -524,7 +524,7 @@ export const Controls: React.FC = () => {
                 </div>
 
                 {/* Channel Cards */}
-                <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
+                <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2 landscape:grid landscape:grid-cols-2 landscape:gap-2 landscape:space-y-0 landscape:px-3 landscape:pb-3">
                     {isLoading && (
                         <div className="flex-1 flex items-center justify-center py-12">
                             <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />

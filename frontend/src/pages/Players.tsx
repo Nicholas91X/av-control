@@ -3464,7 +3464,7 @@ export const Players: React.FC = () => {
             style={{ backgroundColor }}
         >
             {/* ===== TOP HEADER ===== */}
-            <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between">
+            <div className="shrink-0 px-4 pt-4 pb-2 landscape:pt-2 landscape:pb-1 landscape:px-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <button onClick={() => navigate('/')} className="p-1.5 -ml-1 rounded-lg text-white/30 active:bg-white/10"><ChevronDown className="w-5 h-5 rotate-90" /></button>
                     <Disc className="w-5 h-5 text-blue-400" />
@@ -3499,8 +3499,13 @@ export const Players: React.FC = () => {
                 </div>
             )}
 
+            {/* === Content wrapper: col in portrait, row in landscape === */}
+            <div className="flex-1 min-h-0 flex flex-col landscape:flex-row landscape:gap-2">
+            {/* Left column: Sources + Song list */}
+            <div className="flex-1 min-h-0 flex flex-col landscape:w-1/2">
+
             {/* ===== SOURCE/GROUP SELECTOR (Compact pills) ===== */}
-            <div className="shrink-0 px-3 pb-1.5">
+            <div className="shrink-0 px-3 pb-1.5 landscape:pb-1">
                 <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 snap-x justify-center">
                     {sources.map((source) => {
                         const isSelected = selectedSource === source.id && selectedSourceType === 'source';
@@ -3547,7 +3552,7 @@ export const Players: React.FC = () => {
             </div>
 
             {/* ===== SONG LIST ===== */}
-            <div className="flex-1 min-h-0 mx-4 mb-2 overflow-y-auto rounded-2xl bg-[#111113] border border-white/5" ref={songListRef}>
+            <div className="flex-1 min-h-0 mx-4 mb-2 landscape:mb-1 landscape:mx-2 overflow-y-auto rounded-2xl bg-[#111113] border border-white/5" ref={songListRef}>
                 <div className="song-list-container flex flex-col">
                     {songs.length === 0 ? (
                         <div className="flex-1 flex items-center justify-center py-16 text-white/20">
@@ -3567,7 +3572,7 @@ export const Players: React.FC = () => {
                                 <button
                                     key={song.id}
                                     onClick={() => handleSelectSong(song)}
-                                    className={`w-full text-left px-4 py-3 flex items-center gap-3 border-b border-white/5 transition-all active:bg-white/10 ${isCurrentSelection
+                                    className={`w-full text-left px-4 py-3 landscape:py-2 landscape:px-3 flex items-center gap-3 border-b border-white/5 transition-all active:bg-white/10 ${isCurrentSelection
                                         ? 'border-l-2'
                                         : isSearchResult
                                             ? 'border-l-2'
@@ -3602,9 +3607,10 @@ export const Players: React.FC = () => {
                     )}
                 </div>
             </div>
+            </div>{/* /Left column */}
 
-            {/* ===== BOTTOM PANEL (Transport + Controls) ===== */}
-            <div className="shrink-0 bg-[#0a0a0c] border-t border-white/10 px-4 pt-3 pb-5">
+            {/* ===== BOTTOM PANEL / Right column ===== */}
+            <div className="shrink-0 landscape:flex-1 landscape:w-1/2 landscape:overflow-y-auto bg-[#0a0a0c] border-t landscape:border-t-0 landscape:border-l border-white/10 px-4 pt-3 pb-5 landscape:pt-2 landscape:pb-2 landscape:px-3">
 
                 {/* Status + Time */}
                 <div className="flex items-center justify-between mb-2">
@@ -3662,7 +3668,7 @@ export const Players: React.FC = () => {
                 </div>
 
                 {/* Transport Controls */}
-                <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="flex items-center justify-center gap-2 mb-3 landscape:gap-1.5 landscape:mb-2">
                     <button onClick={() => previousMutation.mutate()} className="w-10 h-10 flex items-center justify-center bg-[#1a1a1c] border border-white/10 border-b-2 border-b-black/50 rounded-xl active:translate-y-0.5 active:border-b-0">
                         <SkipBack size={18} className="text-white/60" />
                     </button>
@@ -3704,7 +3710,7 @@ export const Players: React.FC = () => {
 
                 {/* Volume Sliders (PL L / PL R) */}
                 {volumeControls.length > 0 && (
-                    <div className="flex flex-col gap-2 mb-3">
+                    <div className="flex flex-col gap-2 mb-3 landscape:hidden">
                         {volumeControls.map((ctrl) => {
                             const val = ctrl.id in pendingVolumes ? pendingVolumes[ctrl.id] : (controlValues[ctrl.id]?.volume ?? 0);
                             const isMuted = controlValues[ctrl.id]?.mute;
@@ -3823,6 +3829,7 @@ export const Players: React.FC = () => {
                     </button>
                 </div>
             </div>
+            </div>{/* /Content wrapper */}
 
             {/* ===== MODALS (Search, Management, OTP — all reused from tablet) ===== */}
 

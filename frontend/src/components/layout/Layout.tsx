@@ -71,7 +71,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Footer - always visible everywhere */}
             <footer className={isTablet
                 ? "mt-auto py-3 px-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                : "fixed bottom-0 left-0 right-0 z-[9980] py-1.5 px-3 border-t border-white/5 bg-black/60 backdrop-blur-md"
+                : "fixed bottom-0 left-0 right-0 z-[9980] py-1.5 landscape:py-1 px-3 border-t border-white/5 bg-black/60 backdrop-blur-md"
             }>
                 <div className={isTablet
                     ? "flex items-center justify-between text-xs text-gray-500 dark:text-gray-400"

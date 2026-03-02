@@ -140,7 +140,7 @@ export const Recorders: React.FC = () => {
                 style={{ backgroundColor }}
             >
                 {/* Header */}
-                <div className="shrink-0 px-5 pt-5 pb-3">
+                <div className="shrink-0 px-5 pt-5 pb-3 landscape:pt-2 landscape:pb-1 landscape:px-3">
                     <div className="flex items-center gap-3 mb-1">
                         <button onClick={() => navigate('/')} className="p-1.5 -ml-1 rounded-lg text-white/30 active:bg-white/10"><ChevronLeft className="w-5 h-5" /></button>
                         <Mic className="w-5 h-5 text-red-400" />
@@ -150,9 +150,9 @@ export const Recorders: React.FC = () => {
                 </div>
 
                 {/* Source Selectors */}
-                <div className="shrink-0 px-5 space-y-3 mb-4">
+                <div className="shrink-0 px-5 space-y-3 mb-4 landscape:flex landscape:flex-row landscape:gap-3 landscape:space-y-0 landscape:mb-2 landscape:px-3">
                     {/* Left Source */}
-                    <div>
+                    <div className="landscape:flex-1">
                         <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Sorgente Sinistra</label>
                         <div className="relative bg-[#111113] border border-white/10 border-b-2 border-b-black/60 rounded-xl px-4 py-3 flex items-center gap-3">
                             <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
@@ -168,7 +168,7 @@ export const Recorders: React.FC = () => {
                         </div>
                     </div>
                     {/* Right Source */}
-                    <div>
+                    <div className="landscape:flex-1">
                         <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Sorgente Destra</label>
                         <div className="relative bg-[#111113] border border-white/10 border-b-2 border-b-black/60 rounded-xl px-4 py-3 flex items-center gap-3">
                             <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
@@ -187,10 +187,10 @@ export const Recorders: React.FC = () => {
                 </div>
 
                 {/* Main Record Area */}
-                <div className="flex-1 flex flex-col items-center justify-center gap-6 px-5">
+                <div className="flex-1 flex flex-col items-center justify-center gap-6 px-5 landscape:gap-3 landscape:px-3 landscape:flex-row">
                     {/* Timer */}
-                    <div className="bg-[#050505] border border-white/10 border-b-2 border-b-black rounded-2xl px-8 py-3">
-                        <span className="text-4xl font-mono font-black text-blue-400 tabular-nums drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                    <div className="bg-[#050505] border border-white/10 border-b-2 border-b-black rounded-2xl px-8 py-3 landscape:px-4 landscape:py-2">
+                        <span className="text-4xl landscape:text-2xl font-mono font-black text-blue-400 tabular-nums drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                             {formatTime(recorderStatus?.current_time)}
                         </span>
                     </div>
@@ -199,26 +199,26 @@ export const Recorders: React.FC = () => {
                     <button
                         onClick={() => isRecording ? stopRecordingMutation.mutate() : startRecordingMutation.mutate()}
                         disabled={startRecordingMutation.isPending || stopRecordingMutation.isPending}
-                        className={`w-36 h-36 rounded-full flex flex-col items-center justify-center gap-2 transition-all active:translate-y-1 active:shadow-none ${isRecording
+                        className={`w-36 h-36 landscape:w-24 landscape:h-24 rounded-full flex flex-col items-center justify-center gap-2 landscape:gap-1 transition-all active:translate-y-1 active:shadow-none ${isRecording
                             ? 'bg-gradient-to-b from-red-500/20 to-red-900/40 border-t-2 border-red-400/50 border-x border-red-500/20 border-b-[8px] border-red-950 text-red-500 shadow-[0_15px_30px_rgba(239,68,68,0.2)]'
                             : 'bg-gradient-to-b from-[#222] to-[#0a0a0c] border-t-2 border-white/10 border-x border-white/5 border-b-[8px] border-black text-white shadow-[0_20px_40px_rgba(0,0,0,1)]'
                             }`}
                     >
                         {isRecording ? (
                             <>
-                                <div className="w-10 h-10 bg-red-500 rounded-xl animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.8)]" />
+                                <div className="w-10 h-10 landscape:w-7 landscape:h-7 bg-red-500 rounded-xl animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.8)]" />
                                 <span className="font-black uppercase tracking-[0.3em] text-[10px]">Ferma</span>
                             </>
                         ) : (
                             <>
-                                <div className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.6)] border-t-2 border-red-400/40" />
+                                <div className="w-10 h-10 landscape:w-7 landscape:h-7 rounded-full bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.6)] border-t-2 border-red-400/40" />
                                 <span className="font-black uppercase tracking-[0.3em] text-[10px]">Registra</span>
                             </>
                         )}
                     </button>
 
                     {/* Status Pill */}
-                    <div className={`px-5 py-2 rounded-full border bg-black/40 flex items-center gap-3 transition-all ${isRecording ? 'border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'border-white/5'}`}>
+                    <div className={`px-5 py-2 rounded-full border bg-black/40 flex items-center gap-3 transition-all landscape:hidden ${isRecording ? 'border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'border-white/5'}`}>
                         <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,1)]' : 'bg-white/10'}`} />
                         <span className={`font-black uppercase tracking-[0.3em] text-[10px] ${isRecording ? 'text-red-400' : 'text-white/20'}`}>
                             {isRecording ? 'Registrazione in corso' : 'In attesa'}

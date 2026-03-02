@@ -217,7 +217,7 @@ export const UserManagement: React.FC = () => {
                 style={{ backgroundColor }}
             >
                 {/* Header */}
-                <div className="shrink-0 px-5 pt-5 pb-3">
+                <div className="shrink-0 px-5 pt-5 pb-3 landscape:pt-2 landscape:pb-1 landscape:px-3">
                     <div className="flex items-center gap-3 mb-1">
                         <button onClick={() => navigate('/')} className="p-1.5 -ml-1 rounded-lg text-white/30 active:bg-white/10"><ChevronLeft className="w-5 h-5" /></button>
                         <UserPlus className="w-5 h-5 text-blue-400" />
@@ -227,7 +227,7 @@ export const UserManagement: React.FC = () => {
                 </div>
 
                 {/* User List */}
-                <div className="flex-1 overflow-y-auto px-4 pb-24 space-y-3">
+                <div className="flex-1 overflow-y-auto px-4 pb-24 space-y-3 landscape:grid landscape:grid-cols-2 landscape:gap-2 landscape:space-y-0 landscape:px-3 landscape:pb-20">
                     {isLoading ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="w-10 h-10 border-t-2 border-blue-500 rounded-full animate-spin" />

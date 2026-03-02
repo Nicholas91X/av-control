@@ -61,7 +61,7 @@ export const Settings: React.FC = () => {
                 style={{ backgroundColor }}
             >
                 {/* Header */}
-                <div className="shrink-0 px-5 pt-5 pb-3">
+                <div className="shrink-0 px-5 pt-5 pb-3 landscape:pt-2 landscape:pb-1 landscape:px-3">
                     <div className="flex items-center gap-3 mb-1">
                         <button onClick={() => navigate('/')} className="p-1.5 -ml-1 rounded-lg text-white/30 active:bg-white/10"><ChevronLeft className="w-5 h-5" /></button>
                         <SettingsIcon className="w-5 h-5 text-blue-400" />
@@ -71,7 +71,7 @@ export const Settings: React.FC = () => {
                 </div>
 
                 {/* Scrollable Settings */}
-                <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-4">
+                <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-4 landscape:grid landscape:grid-cols-2 landscape:gap-3 landscape:space-y-0 landscape:px-3 landscape:pb-3">
 
                     {/* Background Color */}
                     <div className="bg-[#111113] border border-white/5 rounded-xl p-4 space-y-3">

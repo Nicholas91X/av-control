@@ -215,7 +215,7 @@ export const Scenario: React.FC = () => {
                 style={{ backgroundColor }}
             >
                 {/* Header */}
-                <div className="shrink-0 px-5 pt-5 pb-3">
+                <div className="shrink-0 px-5 pt-5 pb-3 landscape:pt-2 landscape:pb-1 landscape:px-3">
                     <div className="flex items-center gap-3 mb-1">
                         <button onClick={() => navigate('/')} className="p-1.5 -ml-1 rounded-lg text-white/30 active:bg-white/10"><ChevronLeft className="w-5 h-5" /></button>
                         <LayoutGrid className="w-5 h-5 text-blue-400" />
@@ -225,10 +225,10 @@ export const Scenario: React.FC = () => {
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-5">
+                <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-5 landscape:flex landscape:flex-row landscape:gap-3 landscape:space-y-0 landscape:px-3 landscape:pb-3 landscape:overflow-x-hidden">
 
                     {/* Celebrant Section */}
-                    <div>
+                    <div className="landscape:flex-1 landscape:min-w-0">
                         <div className="flex items-center gap-2 mb-2 px-1">
                             <User size={14} className="text-white/30" />
                             <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Celebrante</span>
@@ -258,7 +258,7 @@ export const Scenario: React.FC = () => {
                     </div>
 
                     {/* Celebration (Presets) Section */}
-                    <div>
+                    <div className="landscape:flex-1 landscape:min-w-0">
                         <div className="flex items-center gap-2 mb-2 px-1">
                             <Music size={14} className="text-white/30" />
                             <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Celebrazione</span>
@@ -299,7 +299,7 @@ export const Scenario: React.FC = () => {
                     </div>
 
                     {/* Memory List Section */}
-                    <div>
+                    <div className="landscape:flex-1 landscape:min-w-0">
                         <div className="flex items-center gap-2 mb-2 px-1">
                             <Save size={14} className="text-white/30" />
                             <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Lista</span>
