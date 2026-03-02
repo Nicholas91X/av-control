@@ -18,7 +18,8 @@
       "Bash(cd \"C:/Users/Principale/Desktop/Progetti/av-control/frontend\" && npm run build 2>&1)",
       "Bash(cd /c/Users/Principale/Desktop/Progetti/av-control/frontend && npm run build 2>&1)",
       "Bash(npm run:*)",
-      "Bash(go build:*)"
+      "Bash(go build:*)",
+      "Bash(bash:*)"
     ]
   }
 }
