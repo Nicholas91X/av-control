@@ -508,8 +508,8 @@ export const Controls: React.FC = () => {
                     <div className="h-9 flex items-center bg-[#111113] border border-white/10 rounded-xl px-3 gap-2">
                         <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Step</span>
                         <select
-                            value={volStep}
-                            onChange={(e) => setVolStep(parseFloat(e.target.value))}
+                            value={defaultVolStep}
+                            onChange={(e) => setDefaultVolStep(parseFloat(e.target.value))}
                             className="bg-transparent border-none text-blue-400 font-bold text-xs outline-none cursor-pointer"
                         >
                             <option value="0.1" className="bg-[#1a1a1c]">0.1</option>
