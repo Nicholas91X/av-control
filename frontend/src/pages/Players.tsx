@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
@@ -72,6 +73,7 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const Players: React.FC = () => {
     const isTablet = useIsTablet();
     const { highlightColor, backgroundColor, defaultFade } = useSettings();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
     const songListRef = useRef<HTMLDivElement>(null);
@@ -3458,12 +3460,13 @@ export const Players: React.FC = () => {
 
     return (
         <div
-            className="fixed inset-0 flex flex-col overflow-hidden text-white font-sans"
+            className="fixed top-0 left-0 right-0 bottom-7 flex flex-col overflow-hidden text-white font-sans"
             style={{ backgroundColor }}
         >
             {/* ===== TOP HEADER ===== */}
             <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
+                    <button onClick={() => navigate('/')} className="p-1.5 -ml-1 rounded-lg text-white/30 active:bg-white/10"><ChevronDown className="w-5 h-5 rotate-90" /></button>
                     <Disc className="w-5 h-5 text-blue-400" />
                     <h1 className="text-lg font-black uppercase tracking-[0.2em]">Player</h1>
                 </div>
@@ -3496,9 +3499,9 @@ export const Players: React.FC = () => {
                 </div>
             )}
 
-            {/* ===== SOURCE/GROUP SELECTOR (Horizontal pills) ===== */}
-            <div className="shrink-0 px-4 pb-2">
-                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {/* ===== SOURCE/GROUP SELECTOR (Compact pills) ===== */}
+            <div className="shrink-0 px-3 pb-1.5">
+                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 snap-x justify-center">
                     {sources.map((source) => {
                         const isSelected = selectedSource === source.id && selectedSourceType === 'source';
                         return (
@@ -3509,7 +3512,7 @@ export const Players: React.FC = () => {
                                     setSelectedSource(source.id);
                                     selectSourceMutation.mutate(source.id);
                                 }}
-                                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${isSelected
+                                className={`snap-start shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${isSelected
                                     ? 'text-white border-white/20 border-b-black/50'
                                     : 'bg-white/5 border-white/10 border-b-black/30 text-white/40'
                                     }`}
@@ -3519,8 +3522,7 @@ export const Players: React.FC = () => {
                             </button>
                         );
                     })}
-                    {/* Separator */}
-                    <div className="shrink-0 w-px bg-white/10 my-1" />
+                    <div className="shrink-0 w-px bg-white/10 my-0.5" />
                     {groups.map((group) => {
                         const isSelected = selectedSource === group.id && selectedSourceType === 'group';
                         return (
@@ -3531,13 +3533,13 @@ export const Players: React.FC = () => {
                                     setSelectedSource(group.id);
                                     selectSourceMutation.mutate(group.id);
                                 }}
-                                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${isSelected
+                                className={`snap-start shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${isSelected
                                     ? 'text-white border-white/20 border-b-black/50'
                                     : 'bg-purple-500/10 border-purple-500/20 border-b-black/30 text-purple-400/60'
                                     }`}
                                 style={isSelected ? { backgroundColor: highlightColor, boxShadow: `0 4px 15px ${highlightColor}44` } : {}}
                             >
-                                <ListMusic size={12} className="inline mr-1 -mt-0.5" />{group.name}
+                                <ListMusic size={10} className="inline mr-0.5 -mt-0.5" />{group.name}
                             </button>
                         );
                     })}
@@ -3756,45 +3758,45 @@ export const Players: React.FC = () => {
                 )}
 
                 {/* Bottom Toolbar: Repeat | Fade | OTP */}
-                <div className="flex items-center justify-center gap-2">
-                    {/* Repeat Group */}
-                    <button
-                        onClick={() => {
-                            const isGroup = playerStatus?.repeat_mode === 'group';
-                            repeatMutation.mutate(isGroup ? 'off' : 'all');
-                        }}
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${playerStatus?.repeat_mode === 'group'
-                            ? 'border-white/20 border-b-black/50 text-white'
-                            : 'bg-white/5 border-white/10 border-b-black/30 text-white/30'
-                            }`}
-                        style={playerStatus?.repeat_mode === 'group' ? { backgroundColor: highlightColor } : {}}
-                    >
-                        <ListMusic size={14} />
-                    </button>
-                    <button
-                        onClick={() => {
-                            const isSong = playerStatus?.repeat_mode === 'song';
-                            repeatMutation.mutate(isSong ? 'off' : 'one');
-                        }}
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
-                            ? 'border-white/20 border-b-black/50 text-white'
-                            : 'bg-white/5 border-white/10 border-b-black/30 text-white/30'
-                            }`}
-                        style={playerStatus?.repeat_mode === 'song' ? { backgroundColor: highlightColor } : {}}
-                    >
-                        <Repeat1 size={14} />
-                    </button>
+                <div className="flex items-center justify-between gap-1.5 mt-1">
+                    {/* Repeat Buttons */}
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            onClick={() => {
+                                const isGroup = playerStatus?.repeat_mode === 'group';
+                                repeatMutation.mutate(isGroup ? 'off' : 'all');
+                            }}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${playerStatus?.repeat_mode === 'group'
+                                ? 'border-white/20 border-b-black/50 text-white'
+                                : 'bg-white/5 border-white/10 border-b-black/30 text-white/30'
+                                }`}
+                            style={playerStatus?.repeat_mode === 'group' ? { backgroundColor: highlightColor } : {}}
+                        >
+                            <ListMusic size={16} />
+                        </button>
+                        <button
+                            onClick={() => {
+                                const isSong = playerStatus?.repeat_mode === 'song';
+                                repeatMutation.mutate(isSong ? 'off' : 'one');
+                            }}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center border border-b-2 transition-all active:translate-y-0.5 active:border-b-0 ${playerStatus?.repeat_mode === 'song'
+                                ? 'border-white/20 border-b-black/50 text-white'
+                                : 'bg-white/5 border-white/10 border-b-black/30 text-white/30'
+                                }`}
+                            style={playerStatus?.repeat_mode === 'song' ? { backgroundColor: highlightColor } : {}}
+                        >
+                            <Repeat1 size={16} />
+                        </button>
+                    </div>
 
-                    <div className="w-px h-6 bg-white/10" />
-
-                    {/* Fade */}
+                    {/* Fade Selector */}
                     <div
                         ref={fadeRef}
-                        className="relative h-9 px-3 flex items-center gap-1 bg-white/5 border border-white/10 border-b-2 border-b-black/30 rounded-lg cursor-pointer active:translate-y-0.5 active:border-b-0"
+                        className="relative h-10 px-4 flex items-center gap-1.5 bg-white/5 border border-white/10 border-b-2 border-b-black/30 rounded-xl cursor-pointer active:translate-y-0.5 active:border-b-0"
                         onClick={() => setIsFadeDropdownOpen(!isFadeDropdownOpen)}
                     >
                         <span className="text-[9px] font-black text-white/30 uppercase">Fade</span>
-                        <span className="text-xs font-bold" style={{ color: highlightColor }}>{fadeValue}</span>
+                        <span className="text-sm font-bold" style={{ color: highlightColor }}>{fadeValue}</span>
                         <ChevronDown size={12} className={`text-white/30 transition-transform ${isFadeDropdownOpen ? 'rotate-180' : ''}`} />
                         {isFadeDropdownOpen && (
                             <div className="absolute bottom-full left-0 mb-2 w-full bg-[#0a0a0c] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
@@ -3802,7 +3804,7 @@ export const Players: React.FC = () => {
                                     <button
                                         key={v}
                                         onClick={(e) => { e.stopPropagation(); setFadeValue(v); setIsFadeDropdownOpen(false); fadeMutation.mutate(v); }}
-                                        className={`w-full py-2 text-center text-xs font-bold border-b border-white/5 last:border-0 ${fadeValue === v ? 'text-white' : 'text-white/30'}`}
+                                        className={`w-full py-2.5 text-center text-xs font-bold border-b border-white/5 last:border-0 ${fadeValue === v ? 'text-white' : 'text-white/30'}`}
                                         style={fadeValue === v ? { backgroundColor: `${highlightColor}33`, color: highlightColor } : {}}
                                     >
                                         {v}s
@@ -3812,12 +3814,10 @@ export const Players: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="w-px h-6 bg-white/10" />
-
-                    {/* OTP */}
+                    {/* OTP Button */}
                     <button
                         onClick={() => setIsOTPDashboardOpen(true)}
-                        className="h-9 px-3 bg-white/5 border border-white/10 border-b-2 border-b-black/30 rounded-lg flex items-center justify-center text-[10px] font-black text-white/30 uppercase active:translate-y-0.5 active:border-b-0"
+                        className="h-10 px-5 bg-white/5 border border-white/10 border-b-2 border-b-black/30 rounded-xl flex items-center justify-center text-[10px] font-black text-white/30 uppercase tracking-wider active:translate-y-0.5 active:border-b-0"
                     >
                         OTP
                     </button>
@@ -3917,6 +3917,32 @@ export const Players: React.FC = () => {
                                         Off
                                     </button>
                                 </div>
+                            </div>
+
+                            {/* Transport Controls */}
+                            <div className="flex items-center justify-center gap-3">
+                                {mobileIsPlaying ? (
+                                    <button
+                                        onClick={() => pauseMutation.mutate()}
+                                        className="w-14 h-14 flex items-center justify-center border border-white/20 border-b-2 border-b-black/50 rounded-2xl active:translate-y-0.5 active:border-b-0"
+                                        style={{ backgroundColor: highlightColor, boxShadow: `0 5px 20px ${highlightColor}44` }}
+                                    >
+                                        <Pause size={24} className="text-white fill-white" />
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => playMutation.mutate()}
+                                        className="w-14 h-14 flex items-center justify-center bg-[#1a1a1c] border border-white/10 border-b-2 border-b-black/50 rounded-2xl active:translate-y-0.5 active:border-b-0"
+                                    >
+                                        <Play size={24} className="text-blue-400 fill-blue-400/10 ml-0.5" />
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => stopMutation.mutate()}
+                                    className="w-11 h-11 flex items-center justify-center bg-[#1a1a1c] border border-white/10 border-b-2 border-b-black/50 rounded-xl active:translate-y-0.5 active:border-b-0"
+                                >
+                                    <Square size={16} className="text-white/60 fill-white/10" />
+                                </button>
                             </div>
 
                             {/* Now Playing */}

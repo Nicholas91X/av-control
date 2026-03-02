@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 import {
     UserPlus, Trash2, Shield, User, CheckCircle,
-    Pencil, X, KeyRound, AlertTriangle
+    Pencil, X, KeyRound, AlertTriangle, Plus, ChevronLeft
 } from 'lucide-react';
+import { useIsTablet } from '../hooks/useIsTablet';
 
 interface UserRecord {
     id: string;
@@ -50,6 +52,7 @@ function getRoleLabel(role: string) {
 export const UserManagement: React.FC = () => {
     const { backgroundColor } = useSettings();
     const { user: currentUser } = useAuth();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
 
     const isAdmin = currentUser?.role === 'admin';
@@ -201,6 +204,275 @@ export const UserManagement: React.FC = () => {
           ];
 
     const pageTitle = isPrete ? 'Il Mio Account' : 'Gestione Utenti';
+    const isTablet = useIsTablet();
+    const [showCreateSheet, setShowCreateSheet] = useState(false);
+
+    // ============================================
+    // RENDER MOBILE VIEW
+    // ============================================
+    if (!isTablet) {
+        return (
+            <div
+                className="fixed top-0 left-0 right-0 bottom-7 flex flex-col overflow-hidden text-white font-sans"
+                style={{ backgroundColor }}
+            >
+                {/* Header */}
+                <div className="shrink-0 px-5 pt-5 pb-3">
+                    <div className="flex items-center gap-3 mb-1">
+                        <button onClick={() => navigate('/')} className="p-1.5 -ml-1 rounded-lg text-white/30 active:bg-white/10"><ChevronLeft className="w-5 h-5" /></button>
+                        <UserPlus className="w-5 h-5 text-blue-400" />
+                        <h1 className="text-lg font-black uppercase tracking-[0.2em]">{pageTitle}</h1>
+                    </div>
+                    <div className="w-full h-px bg-gradient-to-r from-blue-500/50 via-transparent to-transparent" />
+                </div>
+
+                {/* User List */}
+                <div className="flex-1 overflow-y-auto px-4 pb-24 space-y-3">
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="w-10 h-10 border-t-2 border-blue-500 rounded-full animate-spin" />
+                        </div>
+                    ) : users.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 opacity-20">
+                            <User size={48} />
+                            <span className="mt-3 font-black uppercase tracking-[0.3em] text-[10px]">Nessun utente</span>
+                        </div>
+                    ) : (
+                        users.map((u) => (
+                            <div
+                                key={u.id}
+                                className="bg-[#111113] border border-white/5 rounded-xl p-4 flex items-center gap-4"
+                            >
+                                {/* Avatar */}
+                                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#222] to-[#050505] flex items-center justify-center text-base font-black text-white border border-white/10 shrink-0">
+                                    {u.full_name.charAt(0).toUpperCase()}
+                                </div>
+
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-black text-sm text-white truncate">{u.full_name}</span>
+                                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${getRoleBadge(u.role)}`}>
+                                            {getRoleLabel(u.role)}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-0.5">
+                                        <span className="font-mono text-[10px] text-white/30">@{u.username}</span>
+                                        <div className="flex items-center gap-1 text-[10px] text-white/30">
+                                            <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
+                                            {u.is_active ? 'Attivo' : 'Off'}
+                                        </div>
+                                        {u.is_system_user && <span className="text-[8px] text-white/20 font-bold uppercase">Sistema</span>}
+                                        {u.must_change_password && <AlertTriangle size={10} className="text-amber-400" />}
+                                    </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-1.5 shrink-0">
+                                    {canEdit(u) && (
+                                        <button
+                                            onClick={() => openEditModal(u)}
+                                            className="w-9 h-9 rounded-lg border bg-blue-500/10 border-blue-500/20 text-blue-400 flex items-center justify-center active:scale-90"
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
+                                    )}
+                                    {canDelete(u) && (
+                                        <button
+                                            onClick={() => setUserToDelete(u)}
+                                            className="w-9 h-9 rounded-lg border bg-red-500/10 border-red-500/20 text-red-400 flex items-center justify-center active:scale-90"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* FAB — Create User (admin/installatore only) */}
+                {!isPrete && (
+                    <button
+                        onClick={() => setShowCreateSheet(true)}
+                        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-2xl bg-blue-500 border border-blue-400/30 border-b-4 border-b-blue-900 text-white flex items-center justify-center shadow-[0_8px_30px_rgba(59,130,246,0.4)] active:translate-y-1 active:border-b-0"
+                    >
+                        <Plus size={24} />
+                    </button>
+                )}
+
+                {/* Create User Bottom Sheet */}
+                {showCreateSheet && (
+                    <div className="fixed inset-0 z-[100] flex items-end">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowCreateSheet(false)} />
+                        <div className="relative bg-[#1a1a1a] border-t border-white/10 p-6 rounded-t-[2rem] w-full shadow-2xl pb-10 max-h-[85vh] overflow-y-auto">
+                            <button onClick={() => setShowCreateSheet(false)} className="absolute top-5 right-5 text-white/30">
+                                <X size={24} />
+                            </button>
+                            <h3 className="text-lg font-black text-white uppercase tracking-widest mb-5">Nuovo Utente</h3>
+
+                            <form onSubmit={handleCreateSubmit} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Username</label>
+                                        <input
+                                            type="text"
+                                            value={formData.username}
+                                            onChange={(e) => handleInputChange('username', e.target.value)}
+                                            className="w-full bg-[#0a0a0c] border border-white/10 border-b-2 border-b-black rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none focus:border-blue-500/50 placeholder:text-white/20"
+                                            placeholder="nome.cognome"
+                                        />
+                                        {formErrors.username && <span className="text-[8px] text-red-500 font-bold mt-0.5">{formErrors.username}</span>}
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Password</label>
+                                        <input
+                                            type="password"
+                                            value={formData.password}
+                                            onChange={(e) => handleInputChange('password', e.target.value)}
+                                            className="w-full bg-[#0a0a0c] border border-white/10 border-b-2 border-b-black rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none focus:border-blue-500/50 placeholder:text-white/20"
+                                            placeholder="••••••••"
+                                        />
+                                        {formErrors.password && <span className="text-[8px] text-red-500 font-bold mt-0.5">{formErrors.password}</span>}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Nome Completo</label>
+                                    <input
+                                        type="text"
+                                        value={formData.full_name}
+                                        onChange={(e) => handleInputChange('full_name', e.target.value)}
+                                        className="w-full bg-[#0a0a0c] border border-white/10 border-b-2 border-b-black rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none focus:border-blue-500/50 placeholder:text-white/20"
+                                        placeholder="Mario Rossi"
+                                    />
+                                    {formErrors.full_name && <span className="text-[8px] text-red-500 font-bold mt-0.5">{formErrors.full_name}</span>}
+                                </div>
+
+                                <div>
+                                    <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Email (opzionale)</label>
+                                    <input
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={(e) => handleInputChange('email', e.target.value)}
+                                        className="w-full bg-[#0a0a0c] border border-white/10 border-b-2 border-b-black rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none focus:border-blue-500/50 placeholder:text-white/20"
+                                        placeholder="mario@azienda.it"
+                                    />
+                                </div>
+
+                                {availableRoles.length > 1 && (
+                                    <div>
+                                        <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-2 block">Ruolo</label>
+                                        <div className={`grid gap-2 ${availableRoles.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                                            {availableRoles.map((role) => (
+                                                <button
+                                                    key={role.value}
+                                                    type="button"
+                                                    onClick={() => handleInputChange('role', role.value)}
+                                                    className={`border rounded-xl px-2 py-3 flex flex-col items-center gap-1.5 transition-all active:scale-95 ${
+                                                        formData.role === role.value
+                                                            ? 'bg-blue-500/10 border-blue-500/40 text-blue-400'
+                                                            : 'bg-[#0a0a0c] border-white/5 text-white/20'
+                                                    }`}
+                                                >
+                                                    <role.icon size={16} />
+                                                    <span className="text-[9px] font-black uppercase tracking-widest">{role.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={createMutation.isPending}
+                                    className="w-full mt-3 py-3.5 bg-blue-500 border border-blue-400/30 border-b-4 border-b-blue-900 text-white rounded-xl font-black uppercase tracking-widest text-sm shadow-lg shadow-blue-500/20 active:translate-y-1 active:border-b-0 flex items-center justify-center gap-2"
+                                >
+                                    {createMutation.isPending ? (
+                                        <div className="w-5 h-5 border-t-2 border-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <UserPlus size={16} />
+                                            Crea Utente
+                                        </>
+                                    )}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Edit/Delete modals are shared — rendered below */}
+                {editTarget && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="w-full max-w-md bg-[#161618] border border-white/10 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden">
+                            <div className="relative z-10">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h3 className="text-lg font-black text-white uppercase tracking-widest">Modifica</h3>
+                                        <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em] mt-1">@{editTarget.username}</p>
+                                    </div>
+                                    <button onClick={() => setEditTarget(null)} className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 text-white/40 flex items-center justify-center">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                                <form onSubmit={handleEditSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Nome Utente</label>
+                                        <input type="text" value={editForm.username} onChange={(e) => setEditForm((p) => ({ ...p, username: e.target.value }))}
+                                            className="w-full bg-[#0a0a0c] border border-white/10 border-b-2 border-b-black rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none focus:border-blue-500/50" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Nome Completo</label>
+                                        <input type="text" value={editForm.full_name} onChange={(e) => setEditForm((p) => ({ ...p, full_name: e.target.value }))}
+                                            className="w-full bg-[#0a0a0c] border border-white/10 border-b-2 border-b-black rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none focus:border-blue-500/50" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 block">Nuova Password <span className="normal-case">(lascia vuoto per non cambiare)</span></label>
+                                        <input type="password" value={editForm.password} onChange={(e) => setEditForm((p) => ({ ...p, password: e.target.value }))} autoComplete="new-password"
+                                            className="w-full bg-[#0a0a0c] border border-white/10 border-b-2 border-b-black rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none focus:border-blue-500/50 placeholder:text-white/20" placeholder="••••••••" />
+                                    </div>
+                                    {editError && <p className="text-red-400 text-xs font-bold uppercase text-center">{editError}</p>}
+                                    <div className="grid grid-cols-2 gap-3 mt-3">
+                                        <button type="button" onClick={() => setEditTarget(null)} className="py-3 bg-white/5 border border-white/10 border-b-2 border-b-black rounded-xl font-bold uppercase tracking-widest text-xs text-white/40 active:translate-y-0.5 active:border-b-0">Annulla</button>
+                                        <button type="submit" disabled={editMutation.isPending} className="py-3 bg-blue-500 border border-blue-400/30 border-b-2 border-b-blue-900 text-white rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg active:translate-y-0.5 active:border-b-0 flex items-center justify-center gap-1.5">
+                                            {editMutation.isPending ? <div className="w-4 h-4 border-t-2 border-white rounded-full animate-spin" /> : <><KeyRound size={14} /> Salva</>}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {userToDelete && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="w-full max-w-md bg-[#161618] border border-white/10 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden">
+                            <div className="relative z-10 flex flex-col items-center text-center">
+                                <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 mb-5">
+                                    <Trash2 size={32} />
+                                </div>
+                                <h3 className="text-xl font-black text-white uppercase tracking-widest mb-2">Elimina</h3>
+                                <p className="text-white/40 text-sm leading-relaxed mb-6">
+                                    Stai per eliminare <span className="text-white font-black">@{userToDelete.username}</span>.
+                                </p>
+                                <div className="grid grid-cols-2 gap-3 w-full">
+                                    <button onClick={() => setUserToDelete(null)} className="py-3 bg-white/5 border border-white/10 border-b-2 border-b-black rounded-xl font-bold uppercase tracking-widest text-xs text-white/40 active:translate-y-0.5 active:border-b-0">Annulla</button>
+                                    <button onClick={() => deleteMutation.mutate(userToDelete.id)} disabled={deleteMutation.isPending} className="py-3 bg-red-500 border border-red-400/30 border-b-2 border-b-red-900 text-white rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg active:translate-y-0.5 active:border-b-0 flex items-center justify-center">
+                                        {deleteMutation.isPending ? <div className="w-4 h-4 border-t-2 border-white rounded-full animate-spin" /> : 'Elimina'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // ============================================
+    // RENDER TABLET VIEW
+    // ============================================
 
     return (
         <div className="fixed inset-0 flex flex-col overflow-hidden transition-colors duration-500" style={{ backgroundColor }}>

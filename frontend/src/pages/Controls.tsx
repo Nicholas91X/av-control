@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
@@ -39,6 +40,7 @@ interface ControlValue {
 }
 
 export const Controls: React.FC = () => {
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
     const { highlightColor, backgroundColor, defaultVolStep, setDefaultVolStep, defaultControlsView } = useSettings();
@@ -479,12 +481,13 @@ export const Controls: React.FC = () => {
     if (!isTablet) {
         return (
             <div
-                className="fixed inset-0 flex flex-col overflow-hidden text-white font-sans"
+                className="fixed top-0 left-0 right-0 bottom-7 flex flex-col overflow-hidden text-white font-sans"
                 style={{ backgroundColor }}
             >
                 {/* Header */}
                 <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
+                        <button onClick={() => navigate('/')} className="p-1.5 -ml-1 rounded-lg text-white/30 active:bg-white/10"><ChevronLeft className="w-5 h-5" /></button>
                         <Sliders className="w-5 h-5 text-blue-400" />
                         <h1 className="text-lg font-black uppercase tracking-[0.2em]">Controlli</h1>
                     </div>

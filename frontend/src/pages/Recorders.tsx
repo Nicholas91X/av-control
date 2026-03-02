@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import {
     Mic,
-    Volume2
+    Volume2,
+    ChevronLeft
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSettings } from '../context/SettingsContext';
@@ -23,6 +25,7 @@ interface RecorderStatus {
 export const Recorders: React.FC = () => {
     const queryClient = useQueryClient();
     const { lastMessage } = useWebSocket();
+    const navigate = useNavigate();
     const { backgroundColor } = useSettings();
 
     // State for selectors
@@ -133,12 +136,13 @@ export const Recorders: React.FC = () => {
     if (!isTablet) {
         return (
             <div
-                className="fixed inset-0 flex flex-col overflow-hidden text-white font-sans"
+                className="fixed top-0 left-0 right-0 bottom-7 flex flex-col overflow-hidden text-white font-sans"
                 style={{ backgroundColor }}
             >
                 {/* Header */}
                 <div className="shrink-0 px-5 pt-5 pb-3">
                     <div className="flex items-center gap-3 mb-1">
+                        <button onClick={() => navigate('/')} className="p-1.5 -ml-1 rounded-lg text-white/30 active:bg-white/10"><ChevronLeft className="w-5 h-5" /></button>
                         <Mic className="w-5 h-5 text-red-400" />
                         <h1 className="text-lg font-black uppercase tracking-[0.2em]">Registratore</h1>
                     </div>

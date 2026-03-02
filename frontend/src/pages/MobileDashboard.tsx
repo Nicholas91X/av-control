@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
@@ -10,10 +10,8 @@ import {
     Circle,
     Sliders,
     Globe,
-    Power,
     Home,
     Wrench,
-    Info,
     X,
     Wifi,
     WifiOff,
@@ -29,7 +27,6 @@ export const MobileDashboard: React.FC = () => {
     const { user, logout } = useAuth();
     const { status } = useWebSocket();
     const { backgroundColor } = useSettings();
-    const [isStandby, setIsStandby] = useState(false);
 
     // Hardware daemon connection status
     interface SystemStatus {
@@ -49,6 +46,21 @@ export const MobileDashboard: React.FC = () => {
     });
 
     const isHardwareConnected = systemStatus?.connected ?? false;
+
+    // Tooltip state (long-press for touch, hover for desktop)
+    const [visibleTooltip, setVisibleTooltip] = useState<'ws' | 'hw' | null>(null);
+    const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (!visibleTooltip) return;
+        const timer = setTimeout(() => setVisibleTooltip(null), 4000);
+        return () => clearTimeout(timer);
+    }, [visibleTooltip]);
+    const startLongPress = (key: 'ws' | 'hw') => {
+        longPressTimerRef.current = setTimeout(() => setVisibleTooltip(key), 600);
+    };
+    const cancelLongPress = () => {
+        if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+    };
 
     // Modal state management with animations
     const useModalAnimation = (initialState: boolean) => {
@@ -71,7 +83,6 @@ export const MobileDashboard: React.FC = () => {
     };
 
     const homeModal = useModalAnimation(false);
-    const infoModal = useModalAnimation(false);
     const logoutModal = useModalAnimation(false);
 
     const { data: versionData } = useQuery({
@@ -100,36 +111,21 @@ export const MobileDashboard: React.FC = () => {
         refetchInterval: 10000,
     });
 
-    // Calculations for the circular layout
-    const numItems = 7;
-    // Responsive radius: tuning it to prevent top/bottom edge collisions
+    const wsStatusItalian = status === 'connected' ? 'connesso' : status === 'connecting' ? 'connessione in corso…' : 'disconnesso';
+    const hwStatusItalian = isHardwareConnected ? 'connesso' : 'disconnesso';
+
+    // 6 items around the circle (Standby removed)
+    const numItems = 6;
     const circleRadius = "32vmin"; 
 
-    // The items to place around the circle
     const surroundingItems = [
         { icon: Mic2, label: "SCENARIO", glowColor: "#f59e0b", action: () => navigate('/presets') },
         { icon: Disc, label: "PLAYER", glowColor: "#3b82f6", action: () => navigate('/players') },
         { icon: Globe, label: "STREAM", glowColor: "#6366f1", action: () => {}, className: 'opacity-40 grayscale' },
-        { icon: Power, label: "STANDBY", glowColor: "#f97316", action: () => setIsStandby(true) },
         { icon: Wrench, label: "IMPOSTA", glowColor: "#64748b", action: () => navigate('/settings') },
         { icon: Sliders, label: "CONTROL", glowColor: "#10b981", action: () => navigate('/controls') },
         { icon: Circle, label: "RECORD", glowColor: "#ef4444", iconClassName: "text-red-500 fill-red-500/20", action: () => navigate('/recorders') },
     ];
-
-    if (isStandby) {
-        return (
-            <div
-                className="fixed inset-0 bg-black z-[100] flex items-center justify-center cursor-pointer"
-                onClick={() => setIsStandby(false)}
-            >
-                <div className="text-white/20 animate-pulse flex flex-col items-center space-y-4">
-                    <Power size={120} />
-                    <span className="text-2xl font-light tracking-[0.5em] uppercase">Standby</span>
-                    <span className="text-sm">Tocca per riattivare</span>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div
@@ -148,27 +144,65 @@ export const MobileDashboard: React.FC = () => {
                     <div className="w-full landscape:w-[35%] landscape:h-full landscape:flex landscape:flex-col landscape:justify-center">
                     {/* Header: Actions */}
                     <div className="w-full flex items-center justify-between min-h-[48px] z-10 mb-6">
-                        {/* Left Actions */}
+                        {/* Left Actions — WS + Daemon with tooltips */}
                         <div className="flex items-center space-x-2">
+                            {/* WebSocket */}
                             <div
-                                className={`p-2 rounded-xl border border-b-2 shadow-lg ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 text-green-500' :
-                                    status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500 animate-pulse' :
-                                        'bg-red-500/10 border-red-500/20 text-red-500'
-                                    }`}
+                                className="relative"
+                                onMouseEnter={() => setVisibleTooltip('ws')}
+                                onMouseLeave={() => { setVisibleTooltip(null); cancelLongPress(); }}
+                                onTouchStart={(e) => { e.preventDefault(); startLongPress('ws'); }}
+                                onTouchEnd={cancelLongPress}
+                                onTouchMove={cancelLongPress}
                             >
-                                {status === 'connected' ? <Wifi size={18} /> : <WifiOff size={18} />}
+                                <div
+                                    className={`p-2 rounded-xl border border-b-2 shadow-lg ${status === 'connected' ? 'bg-green-500/10 border-green-500/20 text-green-500' :
+                                        status === 'connecting' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500 animate-pulse' :
+                                            'bg-red-500/10 border-red-500/20 text-red-500'
+                                        }`}
+                                >
+                                    {status === 'connected' ? <Wifi size={18} /> : <WifiOff size={18} />}
+                                </div>
+                                {visibleTooltip === 'ws' && (
+                                    <div className="absolute top-full left-0 mt-2 z-[200] bg-black/90 border border-white/10 rounded-xl px-3 py-2 shadow-xl backdrop-blur-md pointer-events-none">
+                                        <p className="text-[11px] font-bold text-white/90 whitespace-nowrap">WebSocket</p>
+                                        <p className="text-[10px] text-white/40 whitespace-nowrap">Aggiornamenti in tempo reale</p>
+                                        <p className={`text-[10px] font-bold mt-0.5 whitespace-nowrap ${status === 'connected' ? 'text-green-400' : status === 'connecting' ? 'text-yellow-400' : 'text-red-400'}`}>
+                                            {wsStatusItalian}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
+                            {/* Daemon */}
                             <div
-                                className={`p-2 rounded-xl border border-b-2 shadow-lg ${isHardwareConnected
-                                    ? 'bg-green-500/10 border-green-500/20 text-green-500'
-                                    : 'bg-red-500/10 border-red-500/20 text-red-500'
-                                    }`}
+                                className="relative"
+                                onMouseEnter={() => setVisibleTooltip('hw')}
+                                onMouseLeave={() => { setVisibleTooltip(null); cancelLongPress(); }}
+                                onTouchStart={(e) => { e.preventDefault(); startLongPress('hw'); }}
+                                onTouchEnd={cancelLongPress}
+                                onTouchMove={cancelLongPress}
                             >
-                                <Cpu size={18} />
+                                <div
+                                    className={`p-2 rounded-xl border border-b-2 shadow-lg ${isHardwareConnected
+                                        ? 'bg-green-500/10 border-green-500/20 text-green-500'
+                                        : 'bg-red-500/10 border-red-500/20 text-red-500'
+                                        }`}
+                                >
+                                    <Cpu size={18} />
+                                </div>
+                                {visibleTooltip === 'hw' && (
+                                    <div className="absolute top-full left-0 mt-2 z-[200] bg-black/90 border border-white/10 rounded-xl px-3 py-2 shadow-xl backdrop-blur-md pointer-events-none">
+                                        <p className="text-[11px] font-bold text-white/90 whitespace-nowrap">Hardware Daemon</p>
+                                        <p className="text-[10px] text-white/40 whitespace-nowrap">Connessione al dispositivo</p>
+                                        <p className={`text-[10px] font-bold mt-0.5 whitespace-nowrap ${isHardwareConnected ? 'text-green-400' : 'text-red-400'}`}>
+                                            {hwStatusItalian}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Right Actions */}
+                        {/* Right Actions — Users + Logout (Info removed) */}
                         <div className="flex items-center space-x-2">
                             {user?.role === 'admin' && (
                                 <button
@@ -178,12 +212,6 @@ export const MobileDashboard: React.FC = () => {
                                     <Users size={18} />
                                 </button>
                             )}
-                            <button
-                                onClick={infoModal.open}
-                                className="p-2 text-white/40 bg-[#2a2a2e] rounded-xl border-t border-t-white/10 border-x border-x-white/5 border-b-2 border-b-white/10 shadow-lg"
-                            >
-                                <Info size={18} />
-                            </button>
                             <button
                                 onClick={logoutModal.open}
                                 className="p-2 text-red-500/40 bg-[#2a2a2e] rounded-xl border-t border-t-red-400/20 border-x border-x-red-400/10 border-b-2 border-b-red-950 shadow-lg"
@@ -218,8 +246,6 @@ export const MobileDashboard: React.FC = () => {
 
                     {/* The Surrounding Buttons */}
                     {surroundingItems.map((item, index) => {
-                        // Calculate angle: 
-                        // Start from top (-90 deg or -PI/2) 
                         const angle = (-Math.PI / 2) + (index * ((2 * Math.PI) / numItems));
 
                         return (
@@ -262,7 +288,7 @@ export const MobileDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Modals - Simplified for Mobile */}
+            {/* Home Modal — merged with Info (contacts + tech data) */}
             {homeModal.isRendered && (
                 <div className={`fixed inset-0 z-50 flex items-end justify-center transition-opacity duration-500 ease-in-out ${homeModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-500" onClick={homeModal.close} />
@@ -276,69 +302,52 @@ export const MobileDashboard: React.FC = () => {
                         >
                             <X size={28} />
                         </button>
-                        <h2 className="text-2xl font-bold mb-6 text-blue-400 tracking-tight">Informazioni</h2>
-                        <div className="space-y-4 text-white/80 text-sm">
-                            <div className="flex flex-col border-b border-white/5 pb-2">
-                                <span className="text-white/40 mb-1">Produttore</span>
-                                <span className="font-semibold text-lg">VerbumDigital</span>
-                            </div>
-                            <div className="flex flex-col border-b border-white/5 pb-2">
-                                <span className="text-white/40 mb-1">Assistenza</span>
-                                <span className="font-semibold text-blue-400 text-lg">+39 000 000 000</span>
-                            </div>
-                            <div className="flex flex-col border-b border-white/5 pb-2">
-                                <span className="text-white/40 mb-1">Distributore</span>
-                                <span className="font-semibold text-lg">AV Control Network</span>
+
+                        {/* Logo + Company */}
+                        <div className="flex items-center gap-4 mb-6">
+                            <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="shrink-0 hover:opacity-80 transition-opacity">
+                                <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-12 w-12 object-contain" />
+                            </a>
+                            <div>
+                                <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+                                    <h2 className="text-2xl font-bold text-blue-400 tracking-tight">VerbumDigital</h2>
+                                </a>
+                                <p className="text-white/30 text-xs tracking-widest uppercase">AV Control System</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
 
-            {infoModal.isRendered && (
-                <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-500 ease-in-out ${infoModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-500" onClick={infoModal.close} />
-                    <div className={`
-                        relative bg-[#1a1a1a] border border-white/10 p-6 rounded-[2rem] w-full max-h-[80vh] overflow-y-auto shadow-2xl transition-all duration-500 ease-out
-                        ${infoModal.isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
-                    `}>
-                        <button
-                            onClick={infoModal.close}
-                            className="absolute top-5 right-5 text-white/30 hover:text-white transition-colors"
-                        >
-                            <X size={24} />
-                        </button>
-                        <h2 className="text-xl font-bold mb-4 tracking-tight">Sistema</h2>
-                        <div className="space-y-2">
-                            <div className="p-3 bg-white/5 rounded-xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 text-xs">SW</span>
-                                <span className="font-mono text-blue-400 text-xs">{versionData?.version || '-'}</span>
+                        {/* Contacts */}
+                        <div className="space-y-3 text-white/80 text-sm">
+                            <div className="flex justify-between border-b border-white/5 pb-2">
+                                <span className="text-white/40">Assistenza Tecnica</span>
+                                <span className="font-semibold text-blue-400">+39 000 000 000</span>
                             </div>
-                            <div className="p-3 bg-white/5 rounded-xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 text-xs">Build</span>
-                                <span className="font-mono text-white/80 text-[10px] truncate max-w-[120px]">{versionData?.build_date || '-'}</span>
+                            <div className="flex justify-between border-b border-white/5 pb-2">
+                                <span className="text-white/40">Distributore</span>
+                                <span className="font-semibold">AV Control Network</span>
                             </div>
+                        </div>
 
-                            <div className="mt-4 pt-2 border-t border-white/5">
-                                <h3 className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">Daemon</h3>
+                        {/* Tech Info */}
+                        <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
+                            <div className="flex justify-between items-center">
+                                <span className="text-white/40 text-xs">Versione SW</span>
+                                <span className="font-mono text-blue-400 font-bold text-xs">{versionData?.version || '—'}</span>
                             </div>
-                            <div className="p-3 bg-white/5 rounded-xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 text-xs">Nome</span>
-                                <span className="font-mono text-white/80 text-xs">{systemInfo?.name || '-'}</span>
+                            <div className="flex justify-between items-center">
+                                <span className="text-white/40 text-xs">Indirizzo IP</span>
+                                <span className="font-mono text-white/80 text-xs">{systemInfo?.ip || '—'}</span>
                             </div>
-                            <div className="p-3 bg-white/5 rounded-xl flex justify-between items-center border border-white/5">
-                                <span className="text-white/40 text-xs">IP</span>
-                                <span className="font-mono text-white/80 text-xs">{systemInfo?.ip || '-'}</span>
-                            </div>
-                            <div className="p-3 bg-white/5 rounded-xl flex justify-between items-center border border-white/5">
+                            <div className="flex justify-between items-center">
                                 <span className="text-white/40 text-xs">Seriale</span>
-                                <span className="font-mono text-white/60 text-[10px] truncate max-w-[120px]">{systemInfo?.serial || '-'}</span>
+                                <span className="font-mono text-white/60 text-[10px]">{systemInfo?.serial || '—'}</span>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
+            {/* Logout Modal */}
             {logoutModal.isRendered && (
                 <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-500 ease-in-out ${logoutModal.isOpen ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-500" onClick={logoutModal.close} />

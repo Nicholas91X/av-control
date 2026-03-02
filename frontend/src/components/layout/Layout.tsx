@@ -48,8 +48,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {/* Main Content */}
                 <div className="flex-1 overflow-y-auto focus:outline-none scroll-smooth bg-transparent">
                     <main className="flex-1 relative py-0 px-0">
-                        {/* Back to Desktop Button */}
-                        {!isDashboard && (
+                        {/* Back to Desktop Button — tablet only (mobile pages have inline back buttons) */}
+                        {!isDashboard && isTablet && (
                             <div className="fixed top-6 left-6 z-50">
                                 <button
                                     onClick={() => navigate('/')}
@@ -68,27 +68,31 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
             </div>
 
-            {/* Footer - only on non-tablet desktop browsers */}
-            {!isTablet && (
-                <footer className="mt-auto py-3 px-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                        <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-                            <img src="/verbumdigital-logo.png" alt="VerbumDigital" className="h-4 w-4 object-contain opacity-60" />
-                            <span>VerbumDigital</span>
-                        </a>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={toggleFullscreen}
-                                title={isFullscreen ? 'Esci da schermo intero' : 'Schermo intero'}
-                                className="hover:text-gray-800 dark:hover:text-white transition-colors"
-                            >
-                                {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-                            </button>
-                            <VersionDisplay />
-                        </div>
+            {/* Footer - always visible everywhere */}
+            <footer className={isTablet
+                ? "mt-auto py-3 px-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                : "fixed bottom-0 left-0 right-0 z-[9980] py-1.5 px-3 border-t border-white/5 bg-black/60 backdrop-blur-md"
+            }>
+                <div className={isTablet
+                    ? "flex items-center justify-between text-xs text-gray-500 dark:text-gray-400"
+                    : "flex items-center justify-between text-[9px] text-white/25"
+                }>
+                    <a href="https://verbumdigital.com/it/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                        <img src="/verbumdigital-logo.png" alt="VerbumDigital" className={isTablet ? "h-4 w-4 object-contain opacity-60" : "h-3 w-3 object-contain opacity-40"} />
+                        <span>VerbumDigital</span>
+                    </a>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={toggleFullscreen}
+                            title={isFullscreen ? 'Esci da schermo intero' : 'Schermo intero'}
+                            className="hover:text-gray-800 dark:hover:text-white transition-colors"
+                        >
+                            {isFullscreen ? <Minimize2 size={isTablet ? 13 : 11} /> : <Maximize2 size={isTablet ? 13 : 11} />}
+                        </button>
+                        <VersionDisplay />
                     </div>
-                </footer>
-            )}
+                </div>
+            </footer>
         </div>
     );
 };

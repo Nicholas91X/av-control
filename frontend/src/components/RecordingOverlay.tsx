@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { useIsTablet } from '../hooks/useIsTablet';
 
 interface RecorderStatus {
     state: 'recording' | 'stopped' | 'nomedia';
@@ -23,6 +24,7 @@ export const RecordingOverlay: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const isTablet = useIsTablet();
 
     const { data: recorderStatus } = useQuery<RecorderStatus>({
         queryKey: ['recorder', 'status'],
@@ -49,17 +51,26 @@ export const RecordingOverlay: React.FC = () => {
                     exit={{ y: 80, opacity: 0, scale: 0.8 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     onClick={() => navigate('/recorders')}
-                    className="fixed bottom-8 right-8 z-[9990] flex items-center gap-3 px-5 py-3 bg-red-600/90 backdrop-blur-xl rounded-full border border-red-400/30 shadow-[0_0_30px_rgba(220,38,38,0.4)] hover:bg-red-500/90 active:scale-95 transition-all cursor-pointer group"
+                    className={isTablet
+                        ? "fixed bottom-8 right-8 z-[9990] flex items-center gap-3 px-5 py-3 bg-red-600/90 backdrop-blur-xl rounded-full border border-red-400/30 shadow-[0_0_30px_rgba(220,38,38,0.4)] hover:bg-red-500/90 active:scale-95 transition-all cursor-pointer group"
+                        : "fixed bottom-3 right-3 z-[9990] flex items-center gap-1.5 px-2.5 py-1.5 bg-red-600/90 backdrop-blur-xl rounded-xl border border-red-400/30 shadow-[0_0_15px_rgba(220,38,38,0.3)] active:scale-95 transition-all cursor-pointer"
+                    }
                 >
                     {/* Pulsing red dot */}
-                    <span className="relative flex h-3 w-3">
+                    <span className={isTablet ? "relative flex h-3 w-3" : "relative flex h-2 w-2"}>
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-white" />
+                        <span className={isTablet ? "relative inline-flex rounded-full h-3 w-3 bg-white" : "relative inline-flex rounded-full h-2 w-2 bg-white"} />
                     </span>
 
-                    <span className="text-white font-black text-xs uppercase tracking-widest">REC</span>
+                    <span className={isTablet
+                        ? "text-white font-black text-xs uppercase tracking-widest"
+                        : "text-white font-black text-[9px] uppercase tracking-widest"
+                    }>REC</span>
 
-                    <span className="text-white/90 font-mono font-bold text-sm tracking-wider">
+                    <span className={isTablet
+                        ? "text-white/90 font-mono font-bold text-sm tracking-wider"
+                        : "text-white/90 font-mono font-bold text-[10px] tracking-wider"
+                    }>
                         {formatTime(recorderStatus?.current_time)}
                     </span>
                 </motion.button>
