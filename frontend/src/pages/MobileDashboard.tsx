@@ -129,7 +129,7 @@ export const MobileDashboard: React.FC = () => {
 
     return (
         <div
-            className="fixed inset-0 bg-black text-gray-900 dark:text-white overflow-hidden font-sans selection:bg-primary-500/30 transition-colors duration-500"
+            className="fixed top-0 left-0 right-0 bottom-7 bg-black text-gray-900 dark:text-white overflow-hidden font-sans selection:bg-primary-500/30 transition-colors duration-500"
             style={{ backgroundColor: backgroundColor }}
         >
             {/* Background Light Effect */}
