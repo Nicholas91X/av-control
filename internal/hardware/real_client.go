@@ -20,6 +20,7 @@ const (
 type RealHardwareClient struct {
 	baseURL string
 	client  *http.Client
+	cb      *CircuitBreaker
 }
 
 func NewRealHardwareClient() *RealHardwareClient {
@@ -37,22 +38,29 @@ func NewRealHardwareClient() *RealHardwareClient {
 	return &RealHardwareClient{
 		baseURL: "http://localhost:8080",
 		client: &http.Client{
-			Timeout:   10 * time.Second,
+			Timeout:   3 * time.Second,
 			Transport: transport,
 		},
+		cb: NewCircuitBreaker(),
 	}
 }
 
-// get executes a single GET request (no retry).
+// get executes a single GET request (no retry). Protected by circuit breaker.
 func (r *RealHardwareClient) get(path string, result interface{}) error {
+	if !r.cb.Allow() {
+		return ErrCircuitOpen
+	}
+
 	resp, err := r.client.Get(r.baseURL + path)
 	if err != nil {
+		r.cb.RecordFailure()
 		return fmt.Errorf("HTTP GET failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		// Don't count application-level errors as circuit failures
 		return fmt.Errorf("hardware error (HTTP %d): %s", resp.StatusCode, string(body))
 	}
 
@@ -62,6 +70,7 @@ func (r *RealHardwareClient) get(path string, result interface{}) error {
 		}
 	}
 
+	r.cb.RecordSuccess()
 	return nil
 }
 
@@ -89,7 +98,12 @@ func (r *RealHardwareClient) getRetry(path string, result interface{}) error {
 }
 
 // post executes a single POST request (never retried to avoid duplicate commands).
+// Protected by circuit breaker.
 func (r *RealHardwareClient) post(path string, payload interface{}, result interface{}) error {
+	if !r.cb.Allow() {
+		return ErrCircuitOpen
+	}
+
 	var body io.Reader
 
 	if payload != nil {
@@ -102,6 +116,7 @@ func (r *RealHardwareClient) post(path string, payload interface{}, result inter
 
 	resp, err := r.client.Post(r.baseURL+path, "application/json", body)
 	if err != nil {
+		r.cb.RecordFailure()
 		return fmt.Errorf("HTTP POST failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -117,6 +132,7 @@ func (r *RealHardwareClient) post(path string, payload interface{}, result inter
 		}
 	}
 
+	r.cb.RecordSuccess()
 	return nil
 }
 
