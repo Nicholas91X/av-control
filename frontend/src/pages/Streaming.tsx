@@ -11,7 +11,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useIsTablet } from '../hooks/useIsTablet';
 
 interface StreamingStatus {
-    state: 'playing' | 'stopped';
+    state: 'streaming' | 'stopped' | 'noid';
     current_time: number;
 }
 
@@ -52,7 +52,7 @@ export const Streaming: React.FC = () => {
         },
     });
 
-    const isStreaming = streamingStatus?.state === 'playing';
+    const isStreaming = streamingStatus?.state === 'streaming';
 
     const formatTime = (seconds?: number) => {
         if (!seconds) return '00:00:00';

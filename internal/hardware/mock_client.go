@@ -285,7 +285,7 @@ func (m *MockHardwareClient) GetStreamingStatus() (*models.StreamingStatus, erro
 }
 
 func (m *MockHardwareClient) StartStreaming() error {
-	m.streamingState = "playing"
+	m.streamingState = "streaming"
 	m.streamingStartTime = time.Now()
 	return nil
 }
