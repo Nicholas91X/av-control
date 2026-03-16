@@ -69,6 +69,12 @@ type ControlValue struct {
 	Value interface{} `json:"value"`
 }
 
+// Streaming
+type StreamingStatus struct {
+	State       string `json:"state"`
+	CurrentTime int    `json:"current_time"`
+}
+
 // System Status
 type SystemStatus struct {
 	Connected bool                  `json:"connected"`

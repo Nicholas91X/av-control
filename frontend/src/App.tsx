@@ -18,6 +18,7 @@ import { Scenario } from './pages/Scenario';
 import { UserManagement } from './pages/UserManagement';
 import { TabletDashboard } from './pages/TabletDashboard';
 import { Settings } from './pages/Settings';
+import { Streaming } from './pages/Streaming';
 import { SettingsProvider } from './context/SettingsContext';
 import { useIsTablet } from './hooks/useIsTablet';
 import { PageTransition } from './components/layout/PageTransition';
@@ -108,6 +109,14 @@ const AppContent: React.FC = () => {
               element={
                 <PageTransition>
                   <Recorders />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/streaming"
+              element={
+                <PageTransition>
+                  <Streaming />
                 </PageTransition>
               }
             />

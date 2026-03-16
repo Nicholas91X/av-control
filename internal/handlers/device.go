@@ -363,6 +363,47 @@ func (h *Handler) GetRecorderStatus(c *gin.Context) {
 	h.respondSuccess(c, status)
 }
 
+// --- Streaming ---
+
+func (h *Handler) GetStreamingStatus(c *gin.Context) {
+	status, err := h.hwClient.GetStreamingStatus()
+	if err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+	h.respondSuccess(c, status)
+}
+
+func (h *Handler) StartStreaming(c *gin.Context) {
+	if err := h.hwClient.StartStreaming(); err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "streaming.start", nil)
+	}
+
+	h.respondSuccess(c, nil)
+}
+
+func (h *Handler) StopStreaming(c *gin.Context) {
+	if err := h.hwClient.StopStreaming(); err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "streaming.stop", nil)
+	}
+
+	h.respondSuccess(c, nil)
+}
+
 // --- Controls ---
 
 func (h *Handler) GetControls(c *gin.Context) {

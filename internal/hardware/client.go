@@ -36,6 +36,11 @@ type HardwareClient interface {
 	GetControlValue(controlID string) (*models.ControlValue, error)
 	SetControlValue(controlID string, value interface{}) error
 
+	// Streaming
+	GetStreamingStatus() (*models.StreamingStatus, error)
+	StartStreaming() error
+	StopStreaming() error
+
 	// System
 	GetSystemStatus() (*models.SystemStatus, error)
 	GetSystemInfo() (*models.SystemInfo, error)

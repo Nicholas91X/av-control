@@ -121,7 +121,7 @@ export const MobileDashboard: React.FC = () => {
     const surroundingItems = [
         { icon: Mic2, label: "SCENARIO", glowColor: "#f59e0b", action: () => navigate('/presets') },
         { icon: Disc, label: "PLAYER", glowColor: "#3b82f6", action: () => navigate('/players') },
-        { icon: Globe, label: "STREAM", glowColor: "#6366f1", action: () => {}, className: 'opacity-40 grayscale' },
+        { icon: Globe, label: "STREAM", glowColor: "#6366f1", action: () => navigate('/streaming') },
         { icon: Wrench, label: "IMPOSTA", glowColor: "#64748b", action: () => navigate('/settings') },
         { icon: Sliders, label: "CONTROL", glowColor: "#10b981", action: () => navigate('/controls') },
         { icon: Circle, label: "RECORD", glowColor: "#ef4444", iconClassName: "text-red-500 fill-red-500/20", action: () => navigate('/recorders') },

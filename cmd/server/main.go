@@ -274,6 +274,14 @@ func main() {
 				recorder.POST("/source", deviceHandler.SetRecorderSource)
 			}
 
+			// STREAMING
+			streaming := device.Group("/streaming")
+			{
+				streaming.GET("/status", deviceHandler.GetStreamingStatus)
+				streaming.POST("/start", deviceHandler.StartStreaming)
+				streaming.POST("/stop", deviceHandler.StopStreaming)
+			}
+
 			// CONTROLS
 			controls := device.Group("/controls")
 			{

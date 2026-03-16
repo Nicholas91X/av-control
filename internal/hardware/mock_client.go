@@ -27,6 +27,10 @@ type MockHardwareClient struct {
 	recorderFilename  string
 	recorderStartTime time.Time
 
+	// Streaming
+	streamingState     string
+	streamingStartTime time.Time
+
 	// Controls
 	controls []models.Control
 	volumes  map[int]float64
@@ -65,6 +69,7 @@ func NewMockHardwareClient() *MockHardwareClient {
 		currentSongTime:  0.0,
 		lastStatusUpdate: time.Now(),
 		recorderState:    "stopped",
+		streamingState:   "stopped",
 		controls: []models.Control{
 			{ID: 100000, Name: "Master Volume", Type: "volume_mute", Min: intPtr(-96), Max: intPtr(12)},
 			{ID: 200000, Name: "Bus 1", Type: "volume_mute", Min: intPtr(-6), Max: intPtr(6)},
@@ -265,6 +270,29 @@ func (m *MockHardwareClient) GetRecorderStatus() (*models.RecorderStatus, error)
 		Filename:    m.recorderFilename,
 		CurrentTime: recTime,
 	}, nil
+}
+
+// Streaming
+func (m *MockHardwareClient) GetStreamingStatus() (*models.StreamingStatus, error) {
+	currentTime := 0
+	if m.streamingState == "playing" {
+		currentTime = int(time.Since(m.streamingStartTime).Seconds())
+	}
+	return &models.StreamingStatus{
+		State:       m.streamingState,
+		CurrentTime: currentTime,
+	}, nil
+}
+
+func (m *MockHardwareClient) StartStreaming() error {
+	m.streamingState = "playing"
+	m.streamingStartTime = time.Now()
+	return nil
+}
+
+func (m *MockHardwareClient) StopStreaming() error {
+	m.streamingState = "stopped"
+	return nil
 }
 
 // Controls

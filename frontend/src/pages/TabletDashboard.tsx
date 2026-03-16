@@ -348,7 +348,7 @@ export const TabletDashboard: React.FC = () => {
                         { angle: -30,  icon: Disc,    label: 'MEDIA PLAYER', color: '#3b82f6', onClick: () => navigate('/players'),   cls: '',                        iconCls: '' },
                         { angle:  30,  icon: Circle,  label: 'REGISTRATORE', color: '#ef4444', onClick: () => navigate('/recorders'), cls: '',                        iconCls: 'text-red-500 fill-red-500/20' },
                         { angle:  90,  icon: Sliders, label: 'CONTROLLI',    color: '#10b981', onClick: () => navigate('/controls'),  cls: '',                        iconCls: '' },
-                        { angle:  150, icon: Globe,   label: 'STREAMING',    color: '#6366f1', onClick: () => {},                    cls: 'opacity-40 grayscale',    iconCls: '' },
+                        { angle:  150, icon: Globe,   label: 'STREAMING',    color: '#6366f1', onClick: () => navigate('/streaming'), cls: '',                        iconCls: '' },
                         { angle:  210, icon: Wrench,  label: 'IMPOSTAZIONI', color: '#64748b', onClick: () => navigate('/settings'),  cls: '',                        iconCls: '' },
                     ] as const).map(({ angle, icon, label, color, onClick, cls, iconCls }) => (
                         <div

@@ -329,6 +329,24 @@ func (r *RealHardwareClient) SetControlValue(controlID string, value interface{}
 }
 
 // ============================================================================
+// STREAMING
+// ============================================================================
+
+func (r *RealHardwareClient) GetStreamingStatus() (*models.StreamingStatus, error) {
+	var response models.StreamingStatus
+	err := r.getRetry("/api/device/st1/status", &response)
+	return &response, err
+}
+
+func (r *RealHardwareClient) StartStreaming() error {
+	return r.post("/api/device/st1/play", nil, nil)
+}
+
+func (r *RealHardwareClient) StopStreaming() error {
+	return r.post("/api/device/st1/stop", nil, nil)
+}
+
+// ============================================================================
 // SYSTEM
 // ============================================================================
 
