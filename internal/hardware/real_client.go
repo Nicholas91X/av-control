@@ -347,6 +347,18 @@ func (r *RealHardwareClient) StopStreaming() error {
 }
 
 // ============================================================================
+// DONATION
+// ============================================================================
+
+func (r *RealHardwareClient) OpenDonation() error {
+	return r.post("/api/device/st1/donation/open", nil, nil)
+}
+
+func (r *RealHardwareClient) CloseDonation() error {
+	return r.post("/api/device/st1/donation/close", nil, nil)
+}
+
+// ============================================================================
 // SYSTEM
 // ============================================================================
 

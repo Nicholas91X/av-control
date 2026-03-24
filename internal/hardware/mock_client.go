@@ -295,6 +295,15 @@ func (m *MockHardwareClient) StopStreaming() error {
 	return nil
 }
 
+// Donation
+func (m *MockHardwareClient) OpenDonation() error {
+	return nil
+}
+
+func (m *MockHardwareClient) CloseDonation() error {
+	return nil
+}
+
 // Controls
 func (m *MockHardwareClient) GetControls() (*models.ControlsResponse, error) {
 	return &models.ControlsResponse{

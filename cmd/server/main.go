@@ -282,6 +282,13 @@ func main() {
 				streaming.POST("/stop", deviceHandler.StopStreaming)
 			}
 
+			// DONATION
+			donation := device.Group("/donation")
+			{
+				donation.POST("/open", deviceHandler.OpenDonation)
+				donation.POST("/close", deviceHandler.CloseDonation)
+			}
+
 			// CONTROLS
 			controls := device.Group("/controls")
 			{

@@ -41,6 +41,10 @@ type HardwareClient interface {
 	StartStreaming() error
 	StopStreaming() error
 
+	// Donation
+	OpenDonation() error
+	CloseDonation() error
+
 	// System
 	GetSystemStatus() (*models.SystemStatus, error)
 	GetSystemInfo() (*models.SystemInfo, error)

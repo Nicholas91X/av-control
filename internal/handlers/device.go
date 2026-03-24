@@ -404,6 +404,38 @@ func (h *Handler) StopStreaming(c *gin.Context) {
 	h.respondSuccess(c, nil)
 }
 
+// --- Donation ---
+
+func (h *Handler) OpenDonation(c *gin.Context) {
+	if err := h.hwClient.OpenDonation(); err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "donation.open", nil)
+	}
+
+	h.respondSuccess(c, nil)
+}
+
+func (h *Handler) CloseDonation(c *gin.Context) {
+	if err := h.hwClient.CloseDonation(); err != nil {
+		h.respondError(c, http.StatusInternalServerError, err.Error(), "HARDWARE_ERROR")
+		return
+	}
+
+	userID := c.GetString("user_id")
+	username := c.GetString("username")
+	if h.hub != nil {
+		h.hub.BroadcastCommandExecuted(userID, username, "donation.close", nil)
+	}
+
+	h.respondSuccess(c, nil)
+}
+
 // --- Controls ---
 
 func (h *Handler) GetControls(c *gin.Context) {
