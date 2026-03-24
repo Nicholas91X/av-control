@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import {
     Globe,
-    ChevronLeft
+    ChevronLeft,
+    Heart,
 } from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSettings } from '../context/SettingsContext';
@@ -20,6 +21,7 @@ export const Streaming: React.FC = () => {
     const { lastMessage } = useWebSocket();
     const navigate = useNavigate();
     const { backgroundColor } = useSettings();
+    const [donationOpen, setDonationOpen] = useState(false);
 
     const { data: streamingStatus, refetch: refetchStatus } = useQuery<StreamingStatus>({
         queryKey: ['streaming', 'status'],
@@ -36,6 +38,15 @@ export const Streaming: React.FC = () => {
         }
     }, [lastMessage, refetchStatus]);
 
+    const isStreaming = streamingStatus?.state === 'streaming';
+
+    // Reset donation state when streaming stops
+    useEffect(() => {
+        if (!isStreaming) {
+            setDonationOpen(false);
+        }
+    }, [isStreaming]);
+
     const startMutation = useMutation({
         mutationFn: async () => api.post('/device/streaming/start'),
         onSuccess: async () => {
@@ -47,12 +58,24 @@ export const Streaming: React.FC = () => {
     const stopMutation = useMutation({
         mutationFn: async () => api.post('/device/streaming/stop'),
         onSuccess: async () => {
+            // Reset timer immediately without waiting for next poll
+            queryClient.setQueryData<StreamingStatus>(['streaming', 'status'], (old) =>
+                old ? { ...old, state: 'stopped', current_time: 0 } : old
+            );
+            setDonationOpen(false);
             await refetchStatus();
-            queryClient.invalidateQueries({ queryKey: ['streaming', 'status'] });
         },
     });
 
-    const isStreaming = streamingStatus?.state === 'streaming';
+    const openDonationMutation = useMutation({
+        mutationFn: async () => api.post('/device/donation/open'),
+        onSuccess: () => setDonationOpen(true),
+    });
+
+    const closeDonationMutation = useMutation({
+        mutationFn: async () => api.post('/device/donation/close'),
+        onSuccess: () => setDonationOpen(false),
+    });
 
     const formatTime = (seconds?: number) => {
         if (!seconds) return '00:00:00';
@@ -61,6 +84,8 @@ export const Streaming: React.FC = () => {
         const s = seconds % 60;
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
+
+    const isDonationPending = openDonationMutation.isPending || closeDonationMutation.isPending;
 
     const isTablet = useIsTablet();
 
@@ -123,6 +148,24 @@ export const Streaming: React.FC = () => {
                             {isStreaming ? 'Streaming in corso' : 'In attesa'}
                         </span>
                     </div>
+
+                    {/* Donation Button */}
+                    <button
+                        onClick={() => donationOpen ? closeDonationMutation.mutate() : openDonationMutation.mutate()}
+                        disabled={!isStreaming || isDonationPending}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border transition-all active:translate-y-0.5 landscape:hidden
+                            ${!isStreaming
+                                ? 'border-white/5 bg-black/20 text-white/20 cursor-not-allowed'
+                                : donationOpen
+                                    ? 'border-rose-500/30 bg-rose-950/40 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.15)]'
+                                    : 'border-white/10 bg-black/40 text-white/60 hover:text-white/80'
+                            }`}
+                    >
+                        <Heart className={`w-4 h-4 ${donationOpen ? 'fill-rose-400' : ''}`} />
+                        <span className="font-black uppercase tracking-[0.2em] text-[10px]">
+                            {donationOpen ? 'Chiudi donazione' : 'Apri donazione'}
+                        </span>
+                    </button>
                 </div>
             </div>
         );
@@ -213,6 +256,24 @@ export const Streaming: React.FC = () => {
                                 </span>
                             </div>
                         </div>
+
+                        {/* Donation Button */}
+                        <button
+                            onClick={() => donationOpen ? closeDonationMutation.mutate() : openDonationMutation.mutate()}
+                            disabled={!isStreaming || isDonationPending}
+                            className={`flex items-center gap-3 px-8 py-3.5 rounded-2xl border transition-all duration-300 active:translate-y-0.5
+                                ${!isStreaming
+                                    ? 'border-white/5 bg-black/20 text-white/20 cursor-not-allowed'
+                                    : donationOpen
+                                        ? 'border-rose-500/30 bg-rose-950/40 text-rose-400 shadow-[0_0_30px_rgba(244,63,94,0.15)] border-b-[4px] border-b-rose-950'
+                                        : 'border-white/10 bg-black/40 text-white/50 hover:text-white/80 border-b-[4px] border-b-black shadow-[0_10px_30px_rgba(0,0,0,0.5)]'
+                                }`}
+                        >
+                            <Heart className={`w-5 h-5 transition-all duration-300 ${donationOpen ? 'fill-rose-400' : ''}`} />
+                            <span className="font-black uppercase tracking-[0.3em] text-[11px]">
+                                {donationOpen ? 'Chiudi finestra di donazione' : 'Apri finestra di donazione'}
+                            </span>
+                        </button>
                     </div>
                 </div>
             </div>

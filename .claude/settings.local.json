@@ -23,7 +23,8 @@
       "Bash(find /c/Users/Principale/Desktop/Progetti/av-control/frontend/src -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\) 2>/dev/null | grep -v node_modules)",
       "Bash(grep -ri \"stream\" /c/Users/Principale/Desktop/Progetti/av-control/frontend/src --include=\"*.tsx\" --include=\"*.ts\" 2>/dev/null | head -50)",
       "Bash(find /c/Users/Principale/Desktop/Progetti/av-control -name \"*stream*\" -o -name \"*Stream*\" 2>/dev/null | grep -v node_modules)",
-      "Bash(cd /c/Users/Principale/Desktop/Progetti/av-control/frontend && npx tsc --noEmit 2>&1 | head -20)"
+      "Bash(cd /c/Users/Principale/Desktop/Progetti/av-control/frontend && npx tsc --noEmit 2>&1 | head -20)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
